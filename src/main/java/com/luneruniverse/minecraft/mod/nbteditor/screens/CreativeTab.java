@@ -28,7 +28,12 @@ public class CreativeTab {
 		}
 		@Override
 		public boolean isMouseOver(double mouseX, double mouseY) {
-			return true;
+			for (CreativeTab tab : tabs) {
+				if(tab.isHoveringOverTab(tab.x,tab.y, (int) mouseX, (int) mouseY)) {
+					return true;
+				}
+			}
+			return false;
 		}
 		@Override
 		public void render(MatrixStack matrices, int mouseX, int mouseY, float delta) {
