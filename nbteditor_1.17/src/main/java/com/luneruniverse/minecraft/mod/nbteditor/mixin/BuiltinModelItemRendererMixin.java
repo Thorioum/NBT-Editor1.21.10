@@ -1,6 +1,7 @@
 package com.luneruniverse.minecraft.mod.nbteditor.mixin;
 
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Group;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
@@ -25,7 +26,7 @@ public class BuiltinModelItemRendererMixin {
 		this.item = item;
 		return item;
 	}
-	@ModifyVariable(method = "render", at = @At("HEAD"), ordinal = 0)
+	@ModifyVariable(method = "render", at = @At("HEAD"), ordinal = 0, argsOnly = true)
 	@Group(name = "render_ItemStack", min = 1)
 	private ItemStack render_ItemStack_old(ItemStack item) {
 		this.item = item;
@@ -38,12 +39,13 @@ public class BuiltinModelItemRendererMixin {
 	private VertexConsumerProvider render_VertexConsumerProvider(VertexConsumerProvider provider) {
 		return render_VertexConsumerProvider_impl(provider);
 	}
-	@ModifyVariable(method = "render", at = @At("HEAD"), ordinal = 0)
+	@ModifyVariable(method = "render", at = @At("HEAD"), ordinal = 0, argsOnly = true)
 	@Group(name = "render_VertexConsumerProvider", min = 1)
 	private VertexConsumerProvider render_VertexConsumerProvider_old(VertexConsumerProvider provider) {
 		return render_VertexConsumerProvider_impl(provider);
 	}
-	
+
+	@Unique
 	private VertexConsumerProvider render_VertexConsumerProvider_impl(VertexConsumerProvider provider) {
 		if (!(item.getItem() instanceof BlockItem) ||
 				(!MixinLink.ENCHANT_GLINT_FIX.contains(item) && !ConfigScreen.isEnchantGlintFix()))

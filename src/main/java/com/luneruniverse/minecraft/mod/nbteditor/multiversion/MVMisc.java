@@ -497,10 +497,15 @@ public class MVMisc {
 	
 	private static final Supplier<Reflection.MethodInvoker> SpawnEggItem_getEntityType =
 			Reflection.getOptionalMethod(SpawnEggItem.class, "method_8015", MethodType.methodType(EntityType.class, NbtCompound.class));
+
+	private static final Supplier<Reflection.MethodInvoker> SpawnEggItem_getEntityType2 =
+			Reflection.getOptionalMethod(SpawnEggItem.class, "method_8015", MethodType.methodType(EntityType.class, ItemStack.class));
+
 	public static EntityType<?> getEntityType(ItemStack item) {
 		SpawnEggItem spawnEggItem = (SpawnEggItem) item.getItem();
 		return Version.<EntityType<?>>newSwitch()
-				.range("1.20.5", null, () -> spawnEggItem.getEntityType(item))
+				.range("1.21.3",null, ()-> spawnEggItem.getEntityType(DynamicRegistryManagerHolder.get(),item))
+				.range("1.20.5", "1.21.2", () -> SpawnEggItem_getEntityType2.get().invoke(spawnEggItem,item))
 				.range(null, "1.20.4", () -> SpawnEggItem_getEntityType.get().invoke(spawnEggItem, item.manager$getNbt()))
 				.get();
 	}

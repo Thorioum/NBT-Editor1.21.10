@@ -34,7 +34,8 @@ public class EditableText implements Text {
 	}
 	
 	// Wrapper handler
-	private final Cache<String, Reflection.MethodInvoker> methodCache = CacheBuilder.newBuilder().build();
+	//why in the FUCK was this shit not static :sob:
+	private static final Cache<String, Reflection.MethodInvoker> methodCache = CacheBuilder.newBuilder().build();
 	@SuppressWarnings("unchecked")
 	private <R> R call(boolean mutable, String method, MethodType type, Object... args) {
 		try {

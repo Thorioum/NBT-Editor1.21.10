@@ -186,7 +186,7 @@ public class MVDrawableHelper {
 			Reflection.getOptionalMethod(ItemRenderer.class, "method_4023", MethodType.methodType(void.class, ItemStack.class, int.class, int.class));
 	private static final Supplier<Reflection.MethodInvoker> ItemRenderer_renderGuiItemOverlay =
 			Reflection.getOptionalMethod(ItemRenderer.class, "method_4025", MethodType.methodType(void.class, TextRenderer.class, ItemStack.class, int.class, int.class));
-	public static final void renderItem(MatrixStack matrices, float zOffset, boolean setScreenZOffset, ItemStack item, int x, int y) {
+	public static void renderItem(MatrixStack matrices, float zOffset, boolean setScreenZOffset, ItemStack item, int x, int y) {
 		ItemRenderer itemRenderer = MainUtil.client.getItemRenderer();
 		TextRenderer textRenderer = MainUtil.client.textRenderer;
 		Version.newSwitch()

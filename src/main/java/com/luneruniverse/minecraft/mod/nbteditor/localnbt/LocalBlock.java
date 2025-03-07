@@ -26,7 +26,9 @@ import net.minecraft.block.Blocks;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.client.render.OverlayTexture;
 import net.minecraft.client.render.RenderLayer;
+import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.client.render.VertexConsumerProvider;
+import net.minecraft.client.render.block.entity.BlockEntityRenderDispatcher;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.datafixer.TypeReferences;
 import net.minecraft.item.BlockItem;
@@ -176,8 +178,8 @@ public class LocalBlock implements LocalNBT {
 				new BlockPos(0, 1000, 0), MainUtil.client.world, renderMatrices,
 				provider.getBuffer(RenderLayer.getCutout()), false);
 		if (isBlockEntity()) {
-			MainUtil.client.getBlockEntityRenderDispatcher().renderEntity(getCachedBlockEntity(),
-					renderMatrices, provider, 0xF000F0, OverlayTexture.DEFAULT_UV);
+			MainUtil.client.getBlockEntityRenderDispatcher().render(getCachedBlockEntity(), RenderTickCounter.ONE.getTickDelta(true),
+					renderMatrices, provider);
 		}
 		provider.draw();
 		
@@ -197,8 +199,12 @@ public class LocalBlock implements LocalNBT {
 							BlockEntity entity = provider.createBlockEntity(new BlockPos(0, 1000, 0), state.applyTo(block.getDefaultState()));
 							entity.setWorld(MainUtil.client.world);
 							NBTManagers.BLOCK_ENTITY.setNbt(entity, nbt);
-							MainUtil.client.addBlockEntityNbt(output, entity, DynamicRegistryManagerHolder.getManager());
-							
+
+							NbtCompound nbtCompound = entity.createComponentlessNbtWithIdentifyingData(MainUtil.client.getNetworkHandler().getRegistryManager());
+							entity.removeFromCopiedStackNbt(nbtCompound);
+							BlockItem.setBlockEntityData(output, entity.getType(), nbtCompound);
+							output.applyComponentsFrom(entity.createComponentMap());
+
 							NbtCompound blockEntityDataTag = ItemTagReferences.BLOCK_ENTITY_DATA.get(output);
 							blockEntityDataTag.remove("x");
 							blockEntityDataTag.remove("y");

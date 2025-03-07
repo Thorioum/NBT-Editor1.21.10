@@ -39,7 +39,6 @@
     "GameRendererMixin",
     "ChatInputSuggestorMixin",
     "ClientPlayerEntityMixin",
-    "BuiltinModelItemRendererMixin",
     "EnchantmentMixin",
     "SplashOverlayMixin",
     "ScreenHandlerMixin"

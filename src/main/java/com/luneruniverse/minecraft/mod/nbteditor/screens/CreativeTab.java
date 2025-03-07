@@ -10,6 +10,7 @@ import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVDrawableHelper;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVElement;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.Version;
 
+import net.minecraft.client.gui.Element;
 import net.minecraft.client.gui.Selectable;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
@@ -21,11 +22,14 @@ public class CreativeTab {
 	
 	public static class CreativeTabGroup implements MVDrawable, MVElement, Selectable {
 		private final List<CreativeTab> tabs;
-		
+		private boolean focused = false;
 		public CreativeTabGroup(List<CreativeTab> tabs) {
 			this.tabs = tabs;
 		}
-		
+		@Override
+		public boolean isMouseOver(double mouseX, double mouseY) {
+			return true;
+		}
 		@Override
 		public void render(MatrixStack matrices, int mouseX, int mouseY, float delta) {
 			for (CreativeTab tab : tabs)
@@ -41,7 +45,17 @@ public class CreativeTab {
 			}
 			return false;
 		}
-		
+
+		@Override
+		public void setFocused(boolean focused) {
+			this.focused = focused;
+		}
+
+		@Override
+		public boolean isFocused() {
+			return focused;
+		}
+
 		@Override
 		public SelectionType getType() {
 			return SelectionType.NONE;

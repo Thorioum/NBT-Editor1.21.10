@@ -27,7 +27,7 @@ import net.minecraft.text.Style;
 
 @Mixin(Screen.class)
 public class ScreenMixin {
-	@Inject(method = "clearChildren", at = @At("RETURN"))
+	@Inject(method = "clearAndInit", at = @At("RETURN"))
 	private void clearChildren(CallbackInfo info) {
 		MixinLink.addCreativeTabs((Screen) (Object) this);
 	}
@@ -39,7 +39,7 @@ public class ScreenMixin {
 				.run();
 	}
 	
-	@Inject(method = "filesDragged", at = @At("HEAD"))
+	@Inject(method = "onFilesDropped", at = @At("HEAD"))
 	private void filesDragged(List<Path> paths, CallbackInfo info) {
 		Screen source = (Screen) (Object) this;
 		if (source instanceof HandledScreen || source instanceof GameMenuScreen)

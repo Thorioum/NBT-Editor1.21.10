@@ -3,26 +3,27 @@ package com.luneruniverse.minecraft.mod.nbteditor.multiversion;
 import java.lang.invoke.MethodType;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 import com.luneruniverse.minecraft.mod.nbteditor.misc.MixinLink;
 import com.luneruniverse.minecraft.mod.nbteditor.server.NBTEditorServer;
 import com.luneruniverse.minecraft.mod.nbteditor.util.CompletableFutureCache;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 
+import com.mojang.datafixers.util.Pair;
+import com.mojang.serialization.Lifecycle;
 import net.minecraft.client.network.ClientPlayNetworkHandler;
 import net.minecraft.network.listener.PacketListener;
-import net.minecraft.registry.CombinedDynamicRegistries;
-import net.minecraft.registry.DynamicRegistryManager;
-import net.minecraft.registry.Registry;
-import net.minecraft.registry.RegistryLoader;
-import net.minecraft.registry.RegistryWrapper;
-import net.minecraft.registry.ServerDynamicRegistryType;
+import net.minecraft.registry.*;
 import net.minecraft.registry.entry.RegistryEntry;
+import net.minecraft.registry.entry.RegistryEntryList;
 import net.minecraft.registry.tag.TagGroupLoader;
+import net.minecraft.registry.tag.TagKey;
 import net.minecraft.resource.LifecycledResourceManagerImpl;
 import net.minecraft.resource.ResourceManager;
 import net.minecraft.resource.ResourceReload;
@@ -147,8 +148,47 @@ public class DynamicRegistryManagerHolder {
 		Registry<T> registry = (Registry<T>) defaultManagerRegistryCache.getRegistry(entry.registryKey().getRegistry()).orElse(null);
 		if (registry == null)
 			return false;
-		
-		return entry.owner.ownerEquals(getReadOnlyWrapperExists ? Registry_getReadOnlyWrapper.get().invoke(registry) : registry);
+
+		if(getReadOnlyWrapperExists) {
+			return entry.owner.ownerEquals(Registry_getReadOnlyWrapper.get().invoke(registry));
+		} else {
+			RegistryWrapper.Impl<T> lookup = new RegistryWrapper.Impl<T>() {
+				public RegistryKey<? extends Registry<? extends T>> getRegistryKey() {
+					return registry.getKey();
+				}
+
+				@Override
+				public RegistryKey<? extends Registry<? extends T>> getKey() {
+					return null;
+				}
+
+				public Lifecycle getLifecycle() {
+					return registry.getLifecycle();
+				}
+
+				public Optional<RegistryEntry.Reference<T>> getOptional(RegistryKey<T> key) {
+					return registry.getOptional(key);
+				}
+
+				public Stream<RegistryEntry.Reference<T>> streamEntries() {
+					return registry.streamEntries();
+				}
+
+				@Override
+				public Stream<RegistryEntryList.Named<T>> getTags() {
+					return Stream.empty();
+				}
+
+				public Optional<RegistryEntryList.Named<T>> getOptional(TagKey<T> tag) {
+					return registry.getOptional(tag);
+				}
+
+				public Stream<RegistryEntryList.Named<T>> streamTags() {
+					return registry.getTags();
+				}
+			};
+			return entry.owner.ownerEquals(lookup);
+		}
 	}
 	
 }
