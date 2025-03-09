@@ -106,7 +106,24 @@ public class ConfigValueDropdown<T> extends MVButtonWidget implements ConfigValu
 		
 		matrices.pop();
 	}
-	
+	@Override
+	public boolean isMouseOver(double mouseX, double mouseY) {
+		if(this.active && this.visible && open) {
+			int i = 0;
+			for (T option : allValues) {
+				if (option.equals(value))
+					continue;
+				int y = this.y + (++i * this.height);
+				if (mouseY >= y && mouseY < y + this.height) {
+					this.playDownSound(MinecraftClient.getInstance().getSoundManager());
+					setValue(option);
+					open = false;
+					return true;
+				}
+			}
+		}
+		return isHovered();
+	}
 	@Override
 	public boolean mouseClicked(double mouseX, double mouseY, int button) {
 		boolean output = super.mouseClicked(mouseX, mouseY, button);
