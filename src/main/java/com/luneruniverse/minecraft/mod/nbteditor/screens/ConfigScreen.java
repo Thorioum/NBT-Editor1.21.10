@@ -264,7 +264,7 @@ public class ConfigScreen extends TickableSupportingScreen {
 			airEditable = settings.get("airEditable").getAsBoolean();
 			jsonText = settings.get("jsonText").getAsBoolean();
 			shortcuts = getStream(settings.get("shortcuts").getAsJsonArray())
-					.map(cmd -> cmd.getAsString()).collect(Collectors.toList());
+					.map(JsonElement::getAsString).collect(Collectors.toList());
 			JsonPrimitive checkUpdatesLegacy = settings.get("checkUpdates").getAsJsonPrimitive();
 			checkUpdates = checkUpdatesLegacy.isBoolean() ?
 					(checkUpdatesLegacy.getAsBoolean() ? CheckUpdatesLevel.MINOR : CheckUpdatesLevel.NONE)

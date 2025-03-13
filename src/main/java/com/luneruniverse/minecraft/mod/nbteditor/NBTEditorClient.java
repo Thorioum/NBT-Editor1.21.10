@@ -9,11 +9,7 @@ import java.util.Map;
 import com.luneruniverse.minecraft.mod.nbteditor.addons.NBTEditorAPI;
 import com.luneruniverse.minecraft.mod.nbteditor.addons.NBTEditorAddon;
 import com.luneruniverse.minecraft.mod.nbteditor.async.HeadRefreshThread;
-import com.luneruniverse.minecraft.mod.nbteditor.clientchest.ClientChest;
-import com.luneruniverse.minecraft.mod.nbteditor.clientchest.ClientChestHelper;
-import com.luneruniverse.minecraft.mod.nbteditor.clientchest.LargeClientChestPageCache;
-import com.luneruniverse.minecraft.mod.nbteditor.clientchest.PageLoadLevel;
-import com.luneruniverse.minecraft.mod.nbteditor.clientchest.SmallClientChestPageCache;
+import com.luneruniverse.minecraft.mod.nbteditor.clientchest.*;
 import com.luneruniverse.minecraft.mod.nbteditor.commands.CommandHandler;
 import com.luneruniverse.minecraft.mod.nbteditor.containers.ContainerIO;
 import com.luneruniverse.minecraft.mod.nbteditor.misc.MixinLink;
@@ -64,6 +60,7 @@ public class NBTEditorClient implements ClientModInitializer {
 			SETTINGS_FOLDER.mkdir();
 		
 		MVMisc.onRegistriesLoad(this::onRegistriesLoad);
+		ExtraDataFixes.init();
 	}
 	
 	private void onRegistriesLoad() {
@@ -79,11 +76,10 @@ public class NBTEditorClient implements ClientModInitializer {
 		ConfigScreen.loadSettings();
 		
 		CLIENT_CHEST = new ClientChest(ConfigScreen.isLargeClientChest() ? new LargeClientChestPageCache(5) : new SmallClientChestPageCache(100));
-		ClientChestHelper.loadDefaultPages(PageLoadLevel.NORMAL_ITEMS);
 		MVClientNetworking.PlayNetworkStateEvents.Start.EVENT.register(networkHandler -> ClientChestHelper.loadDefaultPages(PageLoadLevel.DYNAMIC_ITEMS));
 		MVClientNetworking.PlayNetworkStateEvents.Stop.EVENT.register(() -> ClientChestHelper.unloadAllPages(PageLoadLevel.NORMAL_ITEMS));
 		
-		ItemStack clientChestIcon = new ItemStack(Items.ENDER_CHEST)
+		ItemStack clientChestIcon = new ItemStack(Items.CHEST)
 				.manager$setCustomName(TextInst.translatable("itemGroup.nbteditor.client_chest"));
 		MVEnchantments.addEnchantment(clientChestIcon, MVEnchantments.LOYALTY, 1);
 		MixinLink.ENCHANT_GLINT_FIX.add(clientChestIcon);

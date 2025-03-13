@@ -61,6 +61,7 @@ public class NBTEditorMixinPlugin extends BasicMixinPlugin {
 		Version.newSwitch()
 				.range("1.21.2", null, () -> {
 					output.add("toggled.IndexedIterableMixin");
+					output.add("BuiltinModelItemRendererMixin");
 				})
 				.range(null, "1.21.1", () -> {
 					output.add("BuiltinModelItemRendererMixin");

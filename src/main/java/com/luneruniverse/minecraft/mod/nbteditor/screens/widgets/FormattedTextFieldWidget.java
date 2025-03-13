@@ -40,7 +40,7 @@ public class FormattedTextFieldWidget extends GroupWidget {
 			public enum ClickAction {
 				NONE(null),
 				OPEN_URL(ClickEvent.Action.OPEN_URL),
-				OPEN_FILE(ClickEvent.Action.OPEN_FILE),
+				//OPEN_FILE(ClickEvent.Action.OPEN_FILE), not supported by minecraft itself, game will crash
 				RUN_COMMAND(ClickEvent.Action.RUN_COMMAND),
 				SUGGEST_COMMAND(ClickEvent.Action.SUGGEST_COMMAND),
 				CHANGE_PAGE(ClickEvent.Action.CHANGE_PAGE),

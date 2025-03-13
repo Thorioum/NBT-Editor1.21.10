@@ -778,7 +778,8 @@ public class ClientChest {
 			boolean dynamic = (itemNbt.contains("dynamic", NbtElement.BYTE_TYPE) && itemNbt.getBoolean("dynamic"));
 			if (dynamic)
 				itemNbt.remove("dynamic");
-			
+
+			ExtraDataFixes.applyFixes(itemNbt,dataVersion);
 			itemNbt = MainUtil.updateDynamic(TypeReferences.ITEM_STACK, itemNbt, dataVersion);
 			
 			if (dynamic) {

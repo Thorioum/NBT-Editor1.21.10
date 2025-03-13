@@ -17,6 +17,7 @@ import net.minecraft.item.ItemStack;
 
 @Mixin(BuiltinModelItemRenderer.class)
 public class BuiltinModelItemRendererMixin {
+	@Unique
 	private ItemStack item;
 	
 	@ModifyVariable(method = "method_3166(Lnet/minecraft/class_1799;Lnet/minecraft/class_811;Lnet/minecraft/class_4587;Lnet/minecraft/class_4597;II)V", at = @At("HEAD"), ordinal = 0, remap = false)
