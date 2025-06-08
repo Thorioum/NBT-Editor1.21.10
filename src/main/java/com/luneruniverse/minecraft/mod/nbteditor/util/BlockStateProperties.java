@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 import net.minecraft.block.BlockState;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
+import net.minecraft.nbt.NbtString;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.state.property.Property;
 
@@ -121,12 +122,12 @@ public class BlockStateProperties {
 	public Set<String> setValues(NbtCompound blockStateTag) {
 		Set<String> unset = new HashSet<>(properties.keySet());
 		for (String tag : blockStateTag.getKeys()) {
-			if (!blockStateTag.contains(tag, NbtElement.STRING_TYPE))
+			if (!(blockStateTag.get(tag) instanceof NbtString))
 				continue;
 			BlockStateProperty property = properties.get(tag);
 			if (property == null)
 				continue;
-			String value = blockStateTag.getString(tag);
+			String value = blockStateTag.getString(tag).orElse("");
 			if (property.options.contains(value)) {
 				property.value = value;
 				unset.remove(tag);

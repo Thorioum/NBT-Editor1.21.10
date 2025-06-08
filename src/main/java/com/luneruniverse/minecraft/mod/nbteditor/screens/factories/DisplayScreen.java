@@ -76,8 +76,6 @@ public class DisplayScreen<L extends LocalNBT> extends LocalEditorScreen<L> {
 			});
 			addSelectableChild(nameFormatted);
 			addSelectableChild(lore);
-			addDrawableChild(MVMisc.newButton(16, height - 16 - 20, 100, 20, TextInst.translatable("nbteditor.hide_flags"),
-					btn -> closeSafely(() -> client.setScreen(new HideFlagsScreen((ItemReference) ref)))));
 			if (NBTManagers.COMPONENTS_EXIST) {
 				addDrawableChild(MVMisc.newButton(124, height - 16 - 20, 150, 20,
 						TextInst.translatable("nbteditor.display.name_type." + (itemNameType ? "item" : "custom")), btn -> {

@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import com.luneruniverse.minecraft.mod.nbteditor.localnbt.LocalBlock;
@@ -17,7 +18,6 @@ import com.mojang.brigadier.context.StringRange;
 import com.mojang.brigadier.suggestion.Suggestion;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
-import com.mt1006.nbt_ac.autocomplete.NbtSuggestionManager;
 
 import net.minecraft.command.argument.ItemStringReader;
 import net.minecraft.nbt.NbtCompound;
@@ -36,7 +36,6 @@ public class NBTAutocompleteIntegration extends Integration {
 	}
 	private static Suggestion shiftSuggestion(Suggestion suggestion, int shift) {
 		Suggestion shiftedSuggestion = new Suggestion(shiftRange(suggestion.getRange(), shift), suggestion.getText(), suggestion.getTooltip());
-		NbtSuggestionManager.subtextMap.put(shiftedSuggestion, NbtSuggestionManager.subtextMap.remove(suggestion));
 		return shiftedSuggestion;
 	}
 	
@@ -161,7 +160,7 @@ public class NBTAutocompleteIntegration extends Integration {
 		});
 	}
 	private String escapeKey(String key) {
-		if (key.isEmpty() || StringNbtWriter.SIMPLE_NAME.matcher(key).matches())
+		if (key.isEmpty() || Pattern.compile("[A-Za-z0-9._+-]+").matcher(key).matches())
 			return key;
 		return NbtString.escape(key);
 	}
@@ -175,7 +174,7 @@ public class NBTAutocompleteIntegration extends Integration {
 						.map(suggestion -> shiftSuggestion(suggestion, -shift)).collect(Collectors.toList()));
 			});
 		}
-		return NbtSuggestionManager.loadFromName(name, tag, new SuggestionsBuilder(tag, 0), false);
+		return Suggestions.empty();
 	}
 	
 	public CompletableFuture<Suggestions> getSuggestions(LocalNBT nbt, List<String> path, String key, String value, int cursor, Collection<String> otherTags) {

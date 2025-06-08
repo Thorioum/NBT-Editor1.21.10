@@ -4,7 +4,12 @@ import static com.luneruniverse.minecraft.mod.nbteditor.multiversion.commands.Cl
 import static com.luneruniverse.minecraft.mod.nbteditor.multiversion.commands.ClientCommandManager.literal;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.luneruniverse.minecraft.mod.nbteditor.NBTEditor;
 import com.luneruniverse.minecraft.mod.nbteditor.NBTEditorClient;
@@ -28,16 +33,68 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 
+import net.minecraft.SharedConstants;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
+import net.minecraft.nbt.NbtList;
 import net.minecraft.text.ClickEvent;
 import net.minecraft.util.Formatting;
-import net.minecraft.util.PathUtil;
 
 public class NBTExportCommand extends ClientCommand {
-	
+	private static final Pattern FILE_NAME_WITH_COUNT = Pattern.compile("(<name>.*) \\((<count>\\d*)\\)", 66);
+	private static final int MAX_NAME_LENGTH = 255;
+	private static final Pattern RESERVED_WINDOWS_NAMES = Pattern.compile(".*\\.|(?:COM|CLOCK\\$|CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(?:\\..*)?", 2);
+	private static final Pattern VALID_FILE_NAME = Pattern.compile("[-._a-z0-9]+");
+	public static String replaceInvalidChars(String fileName) {
+		for (char c : SharedConstants.INVALID_CHARS_LEVEL_NAME) {
+			fileName = fileName.replace(c, '_');
+		}
+
+		return fileName.replaceAll("[./\"]", "_");
+	}
+	public static String getNextUniqueName(Path path, String name, String extension) throws IOException {
+		name = replaceInvalidChars(name);
+		if (RESERVED_WINDOWS_NAMES.matcher(name).matches()) {
+			name = "_" + name + "_";
+		}
+
+		Matcher matcher = FILE_NAME_WITH_COUNT.matcher(name);
+		int i = 0;
+		if (matcher.matches()) {
+			name = matcher.group("name");
+			i = Integer.parseInt(matcher.group("count"));
+		}
+
+		if (name.length() > 255 - extension.length()) {
+			name = name.substring(0, 255 - extension.length());
+		}
+
+		while (true) {
+			String string = name;
+			if (i != 0) {
+				String string2 = " (" + i + ")";
+				int j = 255 - string2.length();
+				if (name.length() > j) {
+					string = name.substring(0, j);
+				}
+
+				string = string + string2;
+			}
+
+			string = string + extension;
+			Path path2 = path.resolve(string);
+
+			try {
+				Path path3 = Files.createDirectory(path2);
+				Files.deleteIfExists(path3);
+				return path.relativize(path3).toString();
+			} catch (FileAlreadyExistsException var8) {
+				i++;
+			}
+		}
+	}
 	public static final NBTReferenceFilter EXPORT_FILTER = NBTReferenceFilter.create(
 			ref -> true,
 			ref -> true,
@@ -62,7 +119,7 @@ public class NBTExportCommand extends ClientCommand {
 	private static void stripEntityTags(NbtCompound nbt, String... tags) {
 		for (String tag : tags)
 			nbt.remove(tag);
-		for (NbtElement passenger : nbt.getList("Passengers", NbtElement.COMPOUND_TYPE))
+		for (NbtElement passenger : nbt.getList("Passengers").orElseGet(NbtList::new))
 			stripEntityTags((NbtCompound) passenger, tags);
 	}
 	
@@ -102,12 +159,12 @@ public class NBTExportCommand extends ClientCommand {
 		try {
 			if (!exportDir.exists())
 				Files.createDirectory(exportDir.toPath());
-			File output = new File(exportDir, PathUtil.getNextUniqueName(exportDir.toPath(), name, ".nbt"));
+			File output = new File(exportDir, getNextUniqueName(exportDir.toPath(), name, ".nbt"));
 			nbt.putInt("DataVersion", Version.getDataVersion());
 			MVMisc.writeCompressedNbt(nbt, output);
 			MainUtil.client.player.sendMessage(TextUtil.attachFileTextOptions(TextInst.translatable("nbteditor.nbt.export.file.success",
 					TextInst.literal(output.getName()).formatted(Formatting.UNDERLINE).styled(style ->
-					style.withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_FILE, output.getAbsolutePath())))), output), false);
+					style.withClickEvent(new ClickEvent.OpenFile(output.getAbsolutePath())))), output), false);
 		} catch (Exception e) {
 			NBTEditor.LOGGER.error("Error while exporting item", e);
 			MainUtil.client.player.sendMessage(TextInst.translatable("nbteditor.nbt.export.file.error", e.getMessage()), false);

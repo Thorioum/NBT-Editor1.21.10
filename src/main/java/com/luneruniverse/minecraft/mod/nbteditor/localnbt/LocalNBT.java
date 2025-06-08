@@ -11,12 +11,13 @@ import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
+import net.minecraft.nbt.NbtString;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 
 public interface LocalNBT {
 	public static Optional<LocalNBT> deserialize(NbtCompound nbt, int defaultDataVersion) {
-		return Optional.ofNullable(switch (nbt.contains("type", NbtElement.STRING_TYPE) ? nbt.getString("type") : "item") {
+		return Optional.ofNullable(switch (nbt.getString("type").orElse("item")) {
 			case "item" -> LocalItemStack.deserialize(nbt, defaultDataVersion);
 			case "block" -> LocalBlock.deserialize(nbt, defaultDataVersion);
 			case "entity" -> LocalEntity.deserialize(nbt, defaultDataVersion);

@@ -31,13 +31,13 @@ import net.minecraft.component.type.BlockStateComponent;
 import net.minecraft.component.type.LoreComponent;
 import net.minecraft.component.type.NbtComponent;
 import net.minecraft.component.type.ProfileComponent;
-import net.minecraft.component.type.UnbreakableComponent;
 import net.minecraft.component.type.WritableBookContentComponent;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtString;
 import net.minecraft.text.RawFilteredPair;
 import net.minecraft.text.Text;
+import net.minecraft.util.Unit;
 
 public class ItemTagReferences {
 	
@@ -73,11 +73,11 @@ public class ItemTagReferences {
 	
 	public static final TagReference<List<AttributeData>, ItemStack> ATTRIBUTES = Version.<TagReference<List<AttributeData>, ItemStack>>newSwitch()
 			.range("1.20.5", null, () -> new ComponentTagReference<>(MVComponentType.ATTRIBUTE_MODIFIERS,
-					() -> new AttributeModifiersComponent(List.of(), true),
+					() -> new AttributeModifiersComponent(List.of()),
 					component -> component.modifiers().stream().map(AttributeData::fromComponentEntry).collect(Collectors.toList()),
 					(component, list) -> new AttributeModifiersComponent(
-							list.stream().map(AttributeData::toComponentEntry).toList(),
-							component == null ? true : component.showInTooltip())))
+							list.stream().map(AttributeData::toComponentEntry).toList()
+                    )))
 			.range(null, "1.20.4", () -> TagReference.forItems(ArrayList::new, new AttributesNBTTagReference(AttributesNBTTagReference.NBTLayout.ITEM_OLD)))
 			.get();
 	
@@ -90,7 +90,7 @@ public class ItemTagReferences {
 			.get();
 	
 	public static final TagReference<Boolean, ItemStack> UNBREAKABLE = Version.<TagReference<Boolean, ItemStack>>newSwitch()
-			.range("1.20.5", null, () -> ComponentTagReference.forExistance(MVComponentType.UNBREAKABLE, () -> new UnbreakableComponent(true)))
+			.range("1.20.5", null, () -> ComponentTagReference.forExistance(MVComponentType.UNBREAKABLE, () -> Unit.INSTANCE))
 			.range(null, "1.20.4", () -> TagReference.forItems(() -> false, new NBTTagReference<>(Boolean.class, "Unbreakable")))
 			.get();
 	

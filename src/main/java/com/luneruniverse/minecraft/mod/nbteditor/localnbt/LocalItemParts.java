@@ -118,7 +118,7 @@ public class LocalItemParts extends LocalItem {
 			}
 		} else {
 			NbtCompound nbt = getOrCreateNBT();
-			NbtCompound display = nbt.getCompound("display");
+			NbtCompound display = nbt.getCompound("display").orElse(new NbtCompound());
 			if (name == null)
 				display.remove("Name");
 			else {

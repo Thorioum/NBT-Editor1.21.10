@@ -19,24 +19,7 @@ public class NbtTypeModifier {
 	
 	@SuppressWarnings("unchecked")
 	public static <T extends NbtElement> NbtType<T> makeMutable(NbtType<T> type) {
-		if (!type.isImmutable())
-			return type;
-		for (int i = 0; i < VALUES.length; i++) {
-			if (VALUES[i] == type) {
-				NbtType<T> newType = (NbtType<T>) Proxy.newProxyInstance(NbtTypeModifier.class.getClassLoader(),
-						new Class[] { NbtType.class }, (obj, method, args) -> {
-					if (method.getName().equals(Reflection.getMethodName(NbtType.class, "method_23263", MethodType.methodType(boolean.class)))) {
-						// isImmutable
-						return false;
-					}
-					
-					return method.invoke(type, args);
-				});
-				VALUES[i] = newType;
-				return newType;
-			}
-		}
-		return null;
+		return type;
 	}
 	
 }

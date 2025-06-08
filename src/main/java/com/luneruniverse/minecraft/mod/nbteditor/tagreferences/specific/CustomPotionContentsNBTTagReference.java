@@ -14,6 +14,7 @@ import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
+import net.minecraft.nbt.NbtInt;
 
 public class CustomPotionContentsNBTTagReference implements TagReference<CustomPotionContents, ItemStack> {
 	
@@ -26,8 +27,8 @@ public class CustomPotionContentsNBTTagReference implements TagReference<CustomP
 		Integer color = null;
 		if (object.manager$hasNbt()) {
 			NbtCompound nbt = object.manager$getNbt();
-			if (nbt.contains("CustomPotionColor", NbtElement.NUMBER_TYPE))
-				color = nbt.getInt("CustomPotionColor");
+			if (nbt.get("CustomPotionColor") instanceof NbtInt)
+				color = nbt.getInt("CustomPotionColor").orElse(0);
 		}
 		List<StatusEffectInstance> effects = PotionUtil_getCustomPotionEffects.get().invoke(null, object);
 		return new CustomPotionContents(Optional.ofNullable(color), effects);

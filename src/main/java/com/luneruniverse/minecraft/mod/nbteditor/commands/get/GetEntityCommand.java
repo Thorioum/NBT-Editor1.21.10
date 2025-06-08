@@ -15,7 +15,6 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.suggestion.Suggestions;
-import com.mt1006.nbt_ac.autocomplete.NbtSuggestionManager;
 
 import net.minecraft.command.argument.NbtCompoundArgumentType;
 import net.minecraft.command.argument.PosArgument;
@@ -64,7 +63,7 @@ public class GetEntityCommand extends ClientCommand {
 			EntityType<?> entityType = context.getArgument("entity", EntityType.class);
 			String name = "entity/" + EntityType.getId(entityType);
 			String tag = suggestionsBuilder.getRemaining();
-			return NbtSuggestionManager.loadFromName(name, tag, suggestionsBuilder, false);
+			return Suggestions.empty();
 		};
 		
 		builder.then(argument("entity", SummonableEntityArgumentType.summonableEntity())

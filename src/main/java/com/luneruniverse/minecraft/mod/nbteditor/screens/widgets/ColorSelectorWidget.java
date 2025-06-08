@@ -5,7 +5,6 @@ import java.util.function.Consumer;
 
 import org.lwjgl.glfw.GLFW;
 
-import com.luneruniverse.minecraft.mod.nbteditor.misc.Shaders;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.IdentifierInst;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVDrawable;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVDrawableHelper;
@@ -63,7 +62,7 @@ public class ColorSelectorWidget extends GroupWidget {
 	private class ColorArea implements MVDrawable, MVElement {
 		@Override
 		public void render(MatrixStack matrices, int mouseX, int mouseY, float delta) {
-			MainUtil.fillShader(matrices, Shaders.POSITION_HSV, vertex -> MVMisc.setVertexLight(vertex, hueValue), x, y, areaSize, areaSize);
+
 		}
 		@Override
 		public boolean mouseClicked(double mouseX, double mouseY, int button) {

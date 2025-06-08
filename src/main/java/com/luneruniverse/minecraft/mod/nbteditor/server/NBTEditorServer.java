@@ -40,10 +40,7 @@ import net.minecraft.entity.Entity.RemovalReason;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.inventory.Inventory;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtDouble;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtList;
+import net.minecraft.nbt.*;
 import net.minecraft.screen.GenericContainerScreenHandler;
 import net.minecraft.screen.LecternScreenHandler;
 import net.minecraft.screen.SimpleNamedScreenHandlerFactory;
@@ -52,6 +49,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.InvalidIdentifierException;
+import net.minecraft.util.Uuids;
 import net.minecraft.util.math.Vec3d;
 
 public class NBTEditorServer implements MVServerNetworking.PlayNetworkStateEvents.Start {
@@ -229,14 +227,14 @@ public class NBTEditorServer implements MVServerNetworking.PlayNetworkStateEvent
 			return;
 		
 		UUID newUUID = packet.getUUID();
-		if (packet.getNbt().containsUuid("UUID")) {
-			newUUID = packet.getNbt().getUuid("UUID");
+		if (packet.getNbt().contains("UUID")) {
+			newUUID = UUID.nameUUIDFromBytes(packet.getNbt().getByteArray("UUID").orElse(new byte[]{}));
 			if (!packet.getUUID().equals(newUUID) && world.getEntity(newUUID) != null) {
 				newUUID = packet.getUUID();
-				packet.getNbt().putUuid("UUID", newUUID);
+				packet.getNbt().put("UUID", new NbtByteArray(Uuids.toByteArray(newUUID)));
 			}
 		} else
-			packet.getNbt().putUuid("UUID", packet.getUUID());
+			packet.getNbt().put("UUID", new NbtByteArray(Uuids.toByteArray(packet.getUUID())));
 		
 		EntityType<?> entityType = MVRegistry.ENTITY_TYPE.get(packet.getId());
 		
@@ -271,12 +269,12 @@ public class NBTEditorServer implements MVServerNetworking.PlayNetworkStateEvent
 		}
 		
 		UUID uuid = UUID.randomUUID();
-		if (packet.getNbt().containsUuid("UUID")) {
-			UUID nbtUUID = packet.getNbt().getUuid("UUID");
+		if (packet.getNbt().contains("UUID")) {
+			UUID nbtUUID = UUID.nameUUIDFromBytes(packet.getNbt().getByteArray("UUID").orElse(new byte[]{}));
 			if (world.getEntity(nbtUUID) == null)
 				uuid = nbtUUID;
 			else
-				packet.getNbt().putUuid("UUID", uuid);
+				packet.getNbt().put("UUID", new NbtByteArray(Uuids.toByteArray(uuid)));
 		}
 		
 		Entity entity = MVMisc.createEntity(MVRegistry.ENTITY_TYPE.get(packet.getId()), world);
@@ -296,24 +294,24 @@ public class NBTEditorServer implements MVServerNetworking.PlayNetworkStateEvent
 		NBTManagers.ENTITY.setNbt(entity, nbt);
 		
 		Map<UUID, Entity> passengers = entity.getPassengerList().stream().collect(Collectors.toMap(Entity::getUuid, Function.identity()));
-		NbtList passengersNbt = nbt.getList("Passengers", NbtElement.COMPOUND_TYPE);
+		NbtList passengersNbt = nbt.getList("Passengers").orElse(new NbtList());
 		Set<UUID> passengerUUIDs = new HashSet<>();
 		
 		for (NbtElement passengerNbtElement : passengersNbt) {
 			NbtCompound passengerNbt = (NbtCompound) passengerNbtElement;
-			if (!passengerNbt.containsUuid("UUID"))
-				passengerNbt.putUuid("UUID", UUID.randomUUID());
-			UUID passengerUUID = passengerNbt.getUuid("UUID");
+			if (!passengerNbt.contains("UUID"))
+				passengerNbt.put("UUID", new NbtByteArray(Uuids.toByteArray(UUID.randomUUID())));
+			UUID passengerUUID = UUID.nameUUIDFromBytes(passengerNbt.getByteArray("UUID").orElse(new byte[]{}));
 			if (!passengerUUIDs.add(passengerUUID)) {
 				passengerUUID = UUID.randomUUID();
-				passengerNbt.putUuid("UUID", passengerUUID);
+				passengerNbt.put("UUID", new NbtByteArray(Uuids.toByteArray(passengerUUID)));
 			}
 			Entity passenger = passengers.get(passengerUUID);
 			
 			Identifier passengerId = null;
-			if (passengerNbt.contains("id", NbtElement.STRING_TYPE)) {
+			if (passengerNbt.get("id") instanceof NbtString) {
 				try {
-					passengerId = IdentifierInst.of(passengerNbt.getString("id"));
+					passengerId = IdentifierInst.of(passengerNbt.getString("id").orElse(""));
 					if (!MVRegistry.ENTITY_TYPE.containsId(passengerId))
 						passengerId = null;
 				} catch (InvalidIdentifierException e) {}
@@ -332,7 +330,7 @@ public class NBTEditorServer implements MVServerNetworking.PlayNetworkStateEvent
 				EntityType<?> passengerType = MVRegistry.ENTITY_TYPE.get(passengerId);
 				if (world.getEntity(passengerUUID) != null) {
 					passengerUUID = UUID.randomUUID();
-					passengerNbt.putUuid("UUID", passengerUUID);
+					passengerNbt.put("UUID", new NbtByteArray(Uuids.toByteArray(passengerUUID)));
 				}
 				passenger = MVMisc.createEntity(passengerType, world);
 				passenger.setUuid(passengerUUID);

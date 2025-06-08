@@ -6,17 +6,18 @@ import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.general.TagRefere
 
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
+import net.minecraft.nbt.NbtString;
 
 public class GameProfileNameNBTTagReference implements TagReference<Optional<String>, NbtCompound> {
 	
 	@Override
 	public Optional<String> get(NbtCompound object) {
-		if (object.contains("SkullOwner", NbtElement.STRING_TYPE))
-			return Optional.of(object.getString("SkullOwner"));
-		if (object.contains("SkullOwner", NbtElement.COMPOUND_TYPE)) {
-			NbtCompound skullOwner = object.getCompound("SkullOwner");
-			if (skullOwner.contains("Name", NbtElement.STRING_TYPE))
-				return Optional.of(skullOwner.getString("Name"));
+		if (object.get("SkullOwner") instanceof NbtString)
+			return Optional.of(object.getString("SkullOwner").orElse(""));
+		if (object.get("SkullOwner") instanceof NbtCompound) {
+			NbtCompound skullOwner = object.getCompound("SkullOwner").orElse(new NbtCompound());
+			if (skullOwner.get("Name") instanceof NbtString)
+				return Optional.of(skullOwner.getString("Name").orElse(""));
 			return Optional.empty();
 		}
 		return Optional.empty();

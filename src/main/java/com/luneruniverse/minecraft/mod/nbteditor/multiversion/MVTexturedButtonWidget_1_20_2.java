@@ -41,7 +41,6 @@ class MVTexturedButtonWidget_1_20_2 extends ButtonWidget {
 		} else if (isSelected()) {
 			i += hoveredVOffset;
 		}
-		RenderSystem.enableDepthTest();
 		MVDrawableHelper.drawTexture(MVDrawableHelper.getMatrices(context), texture, x, y, u, i, width, height, textureWidth, textureHeight);
 	}
 	

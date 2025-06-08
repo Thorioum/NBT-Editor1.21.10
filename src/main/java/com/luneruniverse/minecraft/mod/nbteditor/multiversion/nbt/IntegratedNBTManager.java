@@ -32,7 +32,7 @@ public interface IntegratedNBTManager {
 	}
 	public default void manager$modifySubNbt(String tag, Consumer<NbtCompound> modifier) {
 		NbtCompound nbt = manager$getOrCreateNbt();
-		NbtCompound subNbt = nbt.getCompound(tag);
+		NbtCompound subNbt = nbt.getCompoundOrEmpty(tag);
 		modifier.accept(subNbt);
 		nbt.put(tag, subNbt);
 		manager$setNbt(nbt);

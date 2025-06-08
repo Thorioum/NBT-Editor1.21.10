@@ -24,6 +24,6 @@ public interface NBTManager<T> {
 		NbtCompound nbt = getNbt(subject);
 		if (nbt == null)
 			return "";
-		return nbt.asString();
+		return nbt.asString().orElse("");
 	}
 }

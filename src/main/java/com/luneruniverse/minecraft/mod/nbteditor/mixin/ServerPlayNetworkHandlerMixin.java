@@ -19,9 +19,9 @@ public class ServerPlayNetworkHandlerMixin {
 	@Shadow
 	public ServerPlayerEntity player;
 	
-	@Redirect(method = "onCreativeInventoryAction", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/network/ServerPlayerInteractionManager;isCreative()Z"))
-	private boolean isCreative(ServerPlayerInteractionManager manager) {
-		return manager.isCreative() || player.hasPermissionLevel(2);
+	@Redirect(method = "onCreativeInventoryAction", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/network/ServerPlayerEntity;isInCreativeMode()Z"))
+	private boolean isCreative(ServerPlayerEntity instance) {
+		return instance.isCreative() || player.hasPermissionLevel(2);
 	}
 	
 	@Inject(method = "onClickSlot", at = @At("HEAD"))

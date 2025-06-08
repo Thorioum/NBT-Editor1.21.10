@@ -1,7 +1,9 @@
 package com.luneruniverse.minecraft.mod.nbteditor.mixin;
 
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Group;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -17,35 +19,20 @@ import net.minecraft.network.packet.c2s.play.ClickSlotC2SPacket;
 
 @Mixin(ClickSlotC2SPacket.class)
 public class ClickSlotC2SPacketMixin implements ClickSlotC2SPacketParent {
-	private static final int NO_SLOT_RESTRICTIONS_FLAG = 0b01000000;
+	@Shadow @Final private byte button;
+	@Unique
+	private static final int NO_SLOT_RESTRICTIONS_FLAG = 64;
+
 	
-	@Shadow
-	private int button;
-	
-	@ModifyVariable(method = "<init>(IIIILnet/minecraft/screen/slot/SlotActionType;Lnet/minecraft/item/ItemStack;Lit/unimi/dsi/fastutil/ints/Int2ObjectMap;)V", at = @At("HEAD"), ordinal = 3)
+	@ModifyVariable(method = "<init>", at = @At("HEAD"), ordinal = 0, argsOnly = true)
 	@Group(name = "<init>", min = 1)
-	private static int init_new(int button) {
+	private static byte init_new(byte button) {
 		if (ConfigScreen.isNoSlotRestrictions() && NBTEditorClient.SERVER_CONN.isEditingExpanded())
-			return button | NO_SLOT_RESTRICTIONS_FLAG;
-		return button;
-	}
-	@ModifyVariable(method = "<init>(IIILnet/minecraft/class_1713;Lnet/minecraft/class_1799;Lit/unimi/dsi/fastutil/ints/Int2ObjectMap;)V", at = @At("HEAD"), ordinal = 2, remap = false)
-	@Group(name = "<init>", min = 1)
-	@SuppressWarnings("target")
-	private static int init_old(int button) {
-		if (Version.<Boolean>newSwitch()
-				.range("1.17.1", null, true)
-				.range(null, "1.17", false)
-				.get()) {
-			// https://github.com/SpongePowered/Mixin/issues/677
-			return button;
-		}
-		if (ConfigScreen.isNoSlotRestrictions() && NBTEditorClient.SERVER_CONN.isEditingExpanded())
-			return button | NO_SLOT_RESTRICTIONS_FLAG;
+			return (byte) (button | NO_SLOT_RESTRICTIONS_FLAG);
 		return button;
 	}
 	
-	@Inject(method = "getButton", at = @At("RETURN"), cancellable = true)
+	@Inject(method = "button", at = @At("RETURN"), cancellable = true)
 	private void getButton(CallbackInfoReturnable<Integer> info) {
 		info.setReturnValue(info.getReturnValue() & ~NO_SLOT_RESTRICTIONS_FLAG);
 	}

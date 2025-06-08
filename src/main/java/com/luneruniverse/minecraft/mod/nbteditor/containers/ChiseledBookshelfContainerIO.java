@@ -21,7 +21,7 @@ public class ChiseledBookshelfContainerIO extends BlockEntityTagContainerIO {
 		int output = super.writeItem(container, contents);
 		
 		contents = readItem(container);
-		NbtCompound blockStatesTag = container.manager$getNbt().getCompound(TagNames.BLOCK_STATE_TAG);
+		NbtCompound blockStatesTag = container.manager$getNbt().getCompound(TagNames.BLOCK_STATE_TAG).get();
 		for (int i = 0; i < 6; i++) {
 			String state = "slot_" + i + "_occupied";
 			if (contents[i] != null && !contents[i].isEmpty())

@@ -15,6 +15,8 @@ accessible method net/minecraft/client/gui/screen/Screen addDrawableChild (Lnet/
 accessible method net/minecraft/client/gui/screen/ingame/HandledScreens register (Lnet/minecraft/screen/ScreenHandlerType;Lnet/minecraft/client/gui/screen/ingame/HandledScreens$Provider;)V
 accessible class net/minecraft/client/gui/screen/ingame/HandledScreens$Provider
 
+accessible method net/minecraft/component/type/ItemEnchantmentsComponent <init> (Lit/unimi/dsi/fastutil/objects/Object2IntOpenHashMap;)V
+
 accessible field net/minecraft/client/gui/widget/ClickableWidget x I
 accessible field net/minecraft/client/gui/widget/ClickableWidget y I
 
@@ -27,7 +29,6 @@ accessible field net/minecraft/text/Style obfuscated Ljava/lang/Boolean;
 extendable method net/minecraft/client/gui/widget/ClickableWidget render (Lnet/minecraft/client/gui/DrawContext;IIF)V
 
 accessible class net/minecraft/client/render/RenderLayer$MultiPhaseParameters
-accessible class net/minecraft/client/render/RenderPhase$ShaderProgram
 
 accessible field net/minecraft/client/gui/screen/ChatInputSuggestor parse Lcom/mojang/brigadier/ParseResults;
 accessible field net/minecraft/client/gui/screen/ChatInputSuggestor completingSuggestions Z
@@ -48,13 +49,7 @@ accessible method net/minecraft/text/Text$Serialization toJson (Lnet/minecraft/t
 
 accessible field net/minecraft/util/Rarity formatting Lnet/minecraft/util/Formatting;
 
-accessible method net/minecraft/component/type/ItemEnchantmentsComponent <init> (Lit/unimi/dsi/fastutil/objects/Object2IntOpenHashMap;Z)V
-accessible field net/minecraft/component/type/ItemEnchantmentsComponent showInTooltip Z
-accessible field net/minecraft/item/equipment/trim/ArmorTrim showInTooltip Z
-
 accessible field net/minecraft/client/render/GameRenderer buffers Lnet/minecraft/client/render/BufferBuilderStorage;
-
-accessible field net/minecraft/nbt/visitor/StringNbtWriter SIMPLE_NAME Ljava/util/regex/Pattern;
 
 accessible method net/minecraft/block/entity/BlockEntity writeNbt (Lnet/minecraft/nbt/NbtCompound;Lnet/minecraft/registry/RegistryWrapper$WrapperLookup;)V
 accessible method net/minecraft/block/entity/BlockEntity writeIdToNbt (Lnet/minecraft/nbt/NbtCompound;)V
@@ -62,17 +57,11 @@ accessible class net/minecraft/block/entity/BlockEntity$Components
 
 accessible field net/minecraft/registry/entry/RegistryEntry$Reference owner Lnet/minecraft/registry/entry/RegistryEntryOwner;
 
-accessible class com/mojang/blaze3d/platform/GlStateManager$ScissorTestState
-accessible class com/mojang/blaze3d/platform/GlStateManager$CapabilityTracker
-accessible field com/mojang/blaze3d/platform/GlStateManager SCISSOR Lcom/mojang/blaze3d/platform/GlStateManager$ScissorTestState;
-accessible field com/mojang/blaze3d/platform/GlStateManager$CapabilityTracker state Z
-
 accessible field net/minecraft/client/gui/DrawContext vertexConsumers Lnet/minecraft/client/render/VertexConsumerProvider$Immediate;
+accessible method net/minecraft/client/gl/ShaderProgram <init> (ILjava/lang/String;)V
 
-accessible method net/minecraft/client/render/block/entity/BlockEntityRenderDispatcher render (Lnet/minecraft/client/render/block/entity/BlockEntityRenderer;Lnet/minecraft/block/entity/BlockEntity;FLnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;)V
+accessible class net/minecraft/client/gl/ShaderLoader$ShaderSourceKey
+accessible method net/minecraft/client/gl/ShaderLoader$ShaderSourceKey <init> (Lnet/minecraft/util/Identifier;Lcom/mojang/blaze3d/shaders/ShaderType;)V
 
 # Private in older versions
 accessible method net/minecraft/text/TextColor getHexCode ()Ljava/lang/String;
-accessible method net/minecraft/client/render/RenderLayer of (Ljava/lang/String;Lnet/minecraft/client/render/VertexFormat;Lnet/minecraft/client/render/VertexFormat$DrawMode;ILnet/minecraft/client/render/RenderLayer$MultiPhaseParameters;)Lnet/minecraft/client/render/RenderLayer$MultiPhase;
-accessible field net/minecraft/client/render/RenderPhase TRANSLUCENT_TRANSPARENCY Lnet/minecraft/client/render/RenderPhase$Transparency;
-accessible field net/minecraft/client/render/RenderPhase LEQUAL_DEPTH_TEST Lnet/minecraft/client/render/RenderPhase$DepthTest;

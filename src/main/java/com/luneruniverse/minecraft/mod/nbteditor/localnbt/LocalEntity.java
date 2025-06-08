@@ -33,6 +33,7 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.item.SpawnEggItem;
+import net.minecraft.nbt.NbtByteArray;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.text.HoverEvent;
@@ -44,10 +45,10 @@ import net.minecraft.world.World;
 public class LocalEntity implements LocalNBT {
 	
 	public static LocalEntity deserialize(NbtCompound nbt, int defaultDataVersion) {
-		NbtCompound tag = nbt.getCompound("tag");
-		tag.putString("id", nbt.getString("id"));
+		NbtCompound tag = nbt.getCompound("tag").orElse(new NbtCompound());
+		tag.putString("id", nbt.getString("id").orElse(""));
 		tag = MainUtil.updateDynamic(TypeReferences.ENTITY, tag, nbt.get("DataVersion"), defaultDataVersion);
-		String id = tag.getString("id");
+		String id = tag.getString("id").orElse("");
 		tag.remove("id");
 		return new LocalEntity(MVRegistry.ENTITY_TYPE.get(IdentifierInst.of(id)), tag);
 	}
@@ -150,7 +151,6 @@ public class LocalEntity implements LocalNBT {
 		}
 		MVDrawableHelper.applyModelViewMatrix();
 		
-		DiffuseLighting.method_34742();
 		VertexConsumerProvider.Immediate provider = MVDrawableHelper.getVertexConsumerProvider();
 		EntityRenderDispatcher dispatcher = MainUtil.client.getEntityRenderDispatcher();
 		dispatcher.setRenderShadows(false);
@@ -193,9 +193,9 @@ public class LocalEntity implements LocalNBT {
 	}
 	@Override
 	public Text toHoverableText() {
-		UUID uuid = (nbt.containsUuid("UUID") ? nbt.getUuid("UUID") : UUID.nameUUIDFromBytes(new byte[] {0, 0, 0, 0}));
+		UUID uuid = (nbt.get("UUID") instanceof NbtByteArray ? UUID.nameUUIDFromBytes(nbt.getByteArray("UUID").orElse(new byte[]{})) : UUID.nameUUIDFromBytes(new byte[] {0, 0, 0, 0}));
 		return TextInst.bracketed(getName()).styled(
-				style -> style.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_ENTITY, new HoverEvent.EntityContent(
+				style -> style.withHoverEvent(new HoverEvent.ShowEntity(new HoverEvent.EntityContent(
 						entityType, uuid, MainUtil.getNbtNameSafely(nbt, "CustomName", () -> null)))));
 	}
 	

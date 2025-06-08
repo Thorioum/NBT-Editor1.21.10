@@ -8,32 +8,21 @@ import com.luneruniverse.minecraft.mod.nbteditor.NBTEditor;
 import com.luneruniverse.minecraft.mod.nbteditor.screens.NBTEditorScreen;
 import com.luneruniverse.minecraft.mod.nbteditor.screens.NBTValue;
 
-import net.minecraft.nbt.AbstractNbtList;
-import net.minecraft.nbt.AbstractNbtNumber;
-import net.minecraft.nbt.NbtByte;
-import net.minecraft.nbt.NbtDouble;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtFloat;
-import net.minecraft.nbt.NbtInt;
-import net.minecraft.nbt.NbtList;
-import net.minecraft.nbt.NbtLong;
-import net.minecraft.nbt.NbtShort;
-import net.minecraft.nbt.NbtString;
+import net.minecraft.nbt.*;
 
-public class ListMenuGenerator<T extends NbtElement, L extends AbstractNbtList<? extends NbtElement>> implements MenuGenerator {
+public class ListMenuGenerator implements MenuGenerator {
 	
-	private final T defaultValue;
-	public ListMenuGenerator(T defaultValue) {
-		this.defaultValue = defaultValue;
+	public ListMenuGenerator() {
+
 	}
 	
 	@SuppressWarnings("unchecked")
 	@Override
 	public List<NBTValue> getElements(NBTEditorScreen<?> screen, NbtElement source) {
-		AbstractNbtList<? extends NbtElement> nbt = (AbstractNbtList<T>) source;
+		AbstractNbtList nbt = (AbstractNbtList) source;
 		List<NBTValue> output = new ArrayList<>();
 		for (int i = 0; i < nbt.size(); i++)
-			output.add(new NBTValue(screen, i + "", nbt.get(i), nbt));
+			output.add(new NBTValue(screen, i + "", nbt.method_10534(i), nbt));
 		return output;
 	}
 	
@@ -41,7 +30,7 @@ public class ListMenuGenerator<T extends NbtElement, L extends AbstractNbtList<?
 	@Override
 	public NbtElement getElement(NbtElement source, String key) {
 		try {
-			return ((AbstractNbtList<T>) source).get(Integer.parseInt(key));
+			return ((AbstractNbtList) source).method_10534(Integer.parseInt(key));
 		} catch (NumberFormatException e) {
 			return null;
 		}
@@ -51,14 +40,15 @@ public class ListMenuGenerator<T extends NbtElement, L extends AbstractNbtList<?
 	@Override
 	public void setElement(NbtElement source, String key, NbtElement value) {
 		try {
-			AbstractNbtList<T> list = (AbstractNbtList<T>) source;
+			AbstractNbtList list = (AbstractNbtList) source;
 			int index = Integer.parseInt(key);
 			if (list.size() == 1 && index == 0 && list instanceof NbtList) {
 				NbtList nonGenericList = (NbtList) list;
 				nonGenericList.remove(0);
 				nonGenericList.add(value);
-			} else if (list.getHeldType() == value.getType())
-				list.set(index, (T) value);
+			} else {
+				list.setElement(index, value);
+			}
 		} catch (NumberFormatException e) {
 			NBTEditor.LOGGER.error("Error while modifying a list", e);
 		}
@@ -67,7 +57,7 @@ public class ListMenuGenerator<T extends NbtElement, L extends AbstractNbtList<?
 	@SuppressWarnings("unchecked")
 	@Override
 	public void addElement(NBTEditorScreen<?> screen, NbtElement source, Consumer<String> requestOverwrite, String force) {
-		((AbstractNbtList<T>) source).add((T) defaultValue.copy());
+		((AbstractNbtList) source).addElement(((AbstractNbtList) source).size(),NbtInt.of(0));
 		requestOverwrite.accept(null);
 	}
 	
@@ -75,7 +65,7 @@ public class ListMenuGenerator<T extends NbtElement, L extends AbstractNbtList<?
 	@Override
 	public void removeElement(NbtElement source, String key) {
 		try {
-			((AbstractNbtList<T>) source).remove(Integer.parseInt(key));
+			((AbstractNbtList) source).method_10536(Integer.parseInt(key));
 		} catch (NumberFormatException e) {
 			NBTEditor.LOGGER.error("Error while modifying a list", e);
 		}
@@ -84,41 +74,14 @@ public class ListMenuGenerator<T extends NbtElement, L extends AbstractNbtList<?
 	@SuppressWarnings("unchecked")
 	@Override
 	public void pasteElement(NbtElement source, String key, NbtElement value) {
-		AbstractNbtList<T> list = (AbstractNbtList<T>) source;
-		if (list.getHeldType() == 0 || list.getHeldType() == value.getType())
-			list.add((T) value);
-		else if (list.getHeldType() == NbtElement.STRING_TYPE)
-			list.add((T) NbtString.of(value.toString()));
-		else if (value instanceof AbstractNbtNumber) {
-			AbstractNbtNumber num = (AbstractNbtNumber) value;
-			
-			switch (list.getHeldType()) {
-				case NbtElement.BYTE_TYPE:
-					list.add((T) NbtByte.of(num.byteValue()));
-					break;
-				case NbtElement.SHORT_TYPE:
-					list.add((T) NbtShort.of(num.shortValue()));
-					break;
-				case NbtElement.INT_TYPE:
-					list.add((T) NbtInt.of(num.intValue()));
-					break;
-				case NbtElement.LONG_TYPE:
-					list.add((T) NbtLong.of(num.longValue()));
-					break;
-				case NbtElement.FLOAT_TYPE:
-					list.add((T) NbtFloat.of(num.floatValue()));
-					break;
-				case NbtElement.DOUBLE_TYPE:
-					list.add((T) NbtDouble.of(num.doubleValue()));
-					break;
-			}
-		}
+		AbstractNbtList list = (AbstractNbtList) source;
+		list.addElement(list.size(),value);
 	}
 	
 	@SuppressWarnings("unchecked")
 	@Override
 	public boolean renameElement(NbtElement source, String key, String newKey, boolean force) {
-		AbstractNbtList<T> list = (AbstractNbtList<T>) source;
+		AbstractNbtList list = (AbstractNbtList) source;
 		try {
 			NbtElement value = getElement(source, key);
 			int keyInt = Integer.parseInt(key);
@@ -127,11 +90,11 @@ public class ListMenuGenerator<T extends NbtElement, L extends AbstractNbtList<?
 				throw new NumberFormatException(newKeyInt + " is less than 0!");
 			
 			if (newKeyInt >= list.size()) {
-				list.remove(keyInt);
-				list.add((T) value);
+				list.method_10536(keyInt);
+				list.addElement(list.size(),value);
 			} else {
-				list.remove(keyInt);
-				list.add(newKeyInt, (T) value);
+				list.method_10536(keyInt);
+				list.addElement(newKeyInt, value);
 			}
 			
 			return true;

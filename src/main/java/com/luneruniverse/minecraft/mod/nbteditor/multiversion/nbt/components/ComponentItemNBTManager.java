@@ -14,9 +14,7 @@ import net.minecraft.component.ComponentChanges;
 import net.minecraft.component.ComponentType;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtOps;
+import net.minecraft.nbt.*;
 
 public class ComponentItemNBTManager implements DeserializableNBTManager<ItemStack> {
 	
@@ -33,10 +31,10 @@ public class ComponentItemNBTManager implements DeserializableNBTManager<ItemSta
 	}
 	@Override
 	public Attempt<ItemStack> tryDeserialize(NbtCompound nbt) {
-		if (nbt.contains("id", NbtElement.STRING_TYPE) &&
-				IdentifierInst.of(nbt.getString("id")).equals(IdentifierInst.of("minecraft", "air")))
+		if (nbt.get("id") instanceof NbtString &&
+				IdentifierInst.of(nbt.getString("id").orElse("")).equals(IdentifierInst.of("minecraft", "air")))
 			return new Attempt<>(ItemStack.EMPTY);
-		if (nbt.contains("count", NbtElement.INT_TYPE) && nbt.getInt("count") <= 0)
+		if (nbt.get("count") instanceof NbtInt && nbt.getInt("count").orElse(0) <= 0)
 			return new Attempt<>(ItemStack.EMPTY);
 		
 		DataResult<Pair<ItemStack, NbtElement>> result = ItemStack.OPTIONAL_CODEC.decode(

@@ -167,7 +167,7 @@ public class BookScreen extends LocalEditorScreen<LocalItem> {
 					TextInst.translatable("nbteditor.book.preview.click.action",
 							MVMisc.getClickEventActionName(style.getClickEvent().getAction())),
 					TextInst.of(""),
-					TextInst.translatable("nbteditor.book.preview.click.value", style.getClickEvent().getValue())), 200);
+					TextInst.translatable("nbteditor.book.preview.click.value", "")), 200);
 		});
 	}
 	

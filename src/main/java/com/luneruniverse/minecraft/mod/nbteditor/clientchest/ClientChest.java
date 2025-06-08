@@ -39,9 +39,7 @@ import com.luneruniverse.minecraft.mod.nbteditor.util.SaveQueue;
 
 import net.minecraft.datafixer.TypeReferences;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtList;
+import net.minecraft.nbt.*;
 import net.minecraft.text.ClickEvent;
 import net.minecraft.text.Text;
 
@@ -580,9 +578,9 @@ public class ClientChest {
 			return Optional.of(Version.getDataVersion());
 		
 		NbtCompound pageNbt = MVMisc.readNbt(file);
-		if (!pageNbt.contains("DataVersion", NbtElement.NUMBER_TYPE))
+		if (!(pageNbt.get("DataVersion") instanceof AbstractNbtNumber))
 			return Optional.empty();
-		return Optional.of(pageNbt.getInt("DataVersion"));
+		return Optional.of(pageNbt.getInt("DataVersion").orElse(0));
 	}
 	private DataVersionStatus readDataVersionStatusSync(int page) throws Exception {
 		return DataVersionStatus.of(readDataVersionSync(page));
@@ -611,19 +609,19 @@ public class ClientChest {
 		}
 		
 		NbtCompound pageNbt = MVMisc.readNbt(file);
-		if (!pageNbt.contains("DataVersion", NbtElement.NUMBER_TYPE)) {
+		if (!(pageNbt.get("DataVersion") instanceof AbstractNbtNumber)) {
 			ClientChestPage output = ClientChestPage.unknownDataVersion();
 			cache.cachePage(page, output);
 			return output;
 		}
-		int dataVersion = pageNbt.getInt("DataVersion");
+		int dataVersion = pageNbt.getInt("DataVersion").orElse(0);
 		if (dataVersion != Version.getDataVersion()) {
 			ClientChestPage output = ClientChestPage.wrongDataVersion(dataVersion);
 			cache.cachePage(page, output);
 			return output;
 		}
 		
-		NbtList itemsNbt = pageNbt.getList("items", NbtElement.COMPOUND_TYPE);
+		NbtList itemsNbt = pageNbt.getList("items").orElse(new NbtList());
 		ItemStack[] items = new ItemStack[54];
 		DynamicItems dynamicItems = new DynamicItems();
 		boolean empty = true;
@@ -631,7 +629,7 @@ public class ClientChest {
 		for (NbtElement itemElementNbt : itemsNbt) {
 			i++;
 			NbtCompound itemNbt = (NbtCompound) itemElementNbt;
-			if (itemNbt.contains("dynamic", NbtElement.BYTE_TYPE) && itemNbt.getBoolean("dynamic")) {
+			if ((itemNbt.get("dynamic") instanceof NbtByte) && itemNbt.getBoolean("dynamic").orElse(false)) {
 				itemNbt.remove("dynamic");
 				dynamicItems.add(i, itemNbt, false);
 				empty = false;
@@ -726,7 +724,7 @@ public class ClientChest {
 		}
 		
 		NbtCompound pageNbt = MVMisc.readNbt(file);
-		if (pageNbt.contains("DataVersion", NbtElement.NUMBER_TYPE)) {
+		if (!(pageNbt.get("DataVersion") instanceof AbstractNbtNumber)) {
 			if (ignoreInvalidDataVersion)
 				return;
 			throw new IllegalStateException("Cannot import a page with a DataVersion tag!");
@@ -753,7 +751,7 @@ public class ClientChest {
 		NbtCompound pageNbt = MVMisc.readNbt(file);
 		int dataVersion;
 		try {
-			dataVersion = (pageNbt.contains("DataVersion", NbtElement.NUMBER_TYPE) ? pageNbt.getInt("DataVersion") :
+			dataVersion = ((pageNbt.get("DataVersion") instanceof AbstractNbtNumber) ? pageNbt.getInt("DataVersion").orElse(0) :
 					defaultDataVersion.orElseThrow(() -> new IllegalStateException("Missing DataVersion tag and default DataVersion!")));
 			if (dataVersion == Version.getDataVersion())
 				throw new IllegalStateException("Cannot update an already up to date page!");
@@ -767,7 +765,7 @@ public class ClientChest {
 		
 		Files.copy(file.toPath(), new File(CLIENT_CHEST_FOLDER, "updating_page" + page + "_" + System.currentTimeMillis() + ".nbt").toPath());
 		
-		NbtList itemsNbt = pageNbt.getList("items", NbtElement.COMPOUND_TYPE);
+		NbtList itemsNbt = pageNbt.getList("items").orElse(new NbtList());
 		ItemStack[] items = new ItemStack[54];
 		DynamicItems dynamicItems = new DynamicItems();
 		boolean empty = true;
@@ -775,7 +773,7 @@ public class ClientChest {
 		for (NbtElement itemElementNbt : itemsNbt) {
 			i++;
 			NbtCompound itemNbt = (NbtCompound) itemElementNbt;
-			boolean dynamic = (itemNbt.contains("dynamic", NbtElement.BYTE_TYPE) && itemNbt.getBoolean("dynamic"));
+			boolean dynamic = ((itemNbt.get("dynamic") instanceof NbtByte) && itemNbt.getBoolean("dynamic").orElse(false));
 			if (dynamic)
 				itemNbt.remove("dynamic");
 
@@ -810,7 +808,7 @@ public class ClientChest {
 			throw new IllegalStateException("Cannot discard an up to date page!");
 		
 		NbtCompound pageNbt = MVMisc.readNbt(file);
-		if (pageNbt.contains("DataVersion", NbtElement.NUMBER_TYPE) && pageNbt.getInt("DataVersion") == Version.getDataVersion())
+		if ((pageNbt.get("DataVersion") instanceof AbstractNbtNumber) && pageNbt.getInt("DataVersion").orElse(0) == Version.getDataVersion())
 			throw new IllegalStateException("Cannot discard an up to date page!");
 		
 		cache.cacheEmptyPage(page);
@@ -841,7 +839,7 @@ public class ClientChest {
 	}
 	public static Text attachShowFolder(EditableText text) {
 		return text.append(" ").append(TextInst.translatable("nbteditor.file_options.show").styled(
-				style -> style.withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_FILE, CLIENT_CHEST_FOLDER.getAbsolutePath()))));
+				style -> style.withClickEvent(new ClickEvent.OpenFile(CLIENT_CHEST_FOLDER.getAbsolutePath()))));
 	}
 	
 }

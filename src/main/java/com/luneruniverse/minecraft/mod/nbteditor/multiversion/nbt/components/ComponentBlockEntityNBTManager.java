@@ -22,7 +22,7 @@ public class ComponentBlockEntityNBTManager implements NBTManager<BlockEntity> {
 		NbtCompound output = new NbtCompound();
 		subject.writeNbt(output, registryLookup);
 		DataResult<NbtElement> result = BlockEntity.Components.CODEC
-				.encodeStart(registryLookup.getOps(NbtOps.INSTANCE), subject.getComponents());
+				.encoder().encodeStart(registryLookup.getOps(NbtOps.INSTANCE), subject.getComponents());
 		result.resultOrPartial().ifPresent(nbt -> output.copyFrom((NbtCompound) nbt));
 		subject.writeIdToNbt(output);
 		

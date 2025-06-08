@@ -27,7 +27,7 @@ public class StringJsonWriterQuoted extends StringNbtWriter {
 	
 	@Override
 	public void visitString(NbtString element) {
-		((StringNbtWriterAccessor) this).getResult().append(ConfigScreen.isSingleQuotesAllowed() ? NbtString.escape(element.asString()) : escape(element.asString()));
+		((StringNbtWriterAccessor) this).getResult().append(ConfigScreen.isSingleQuotesAllowed() ? NbtString.escape(element.asString().orElse("")) : escape(element.asString().orElse("")));
 	}
 	
     @Override
@@ -39,7 +39,7 @@ public class StringJsonWriterQuoted extends StringNbtWriter {
             if (i != 0) {
                 result.append(',');
             }
-            result.append(new StringJsonWriterQuoted().apply(element.get(i)));
+            result.append(element.get(i));
         }
         result.append(']');
     }
@@ -55,7 +55,7 @@ public class StringJsonWriterQuoted extends StringNbtWriter {
             if (result.length() != 1) {
                 result.append(',');
             }
-            result.append(escapeNameWithQuotes(string)).append(':').append(new StringJsonWriterQuoted().apply(compound.get(string)));
+            result.append(escapeNameWithQuotes(string)).append(':').append(compound.get(string));
         }
         result.append('}');
 	}
@@ -68,8 +68,10 @@ public class StringJsonWriterQuoted extends StringNbtWriter {
 	}
 	
 	protected static String escapeName(String str) {
-		String superEsc = StringNbtWriter.escapeName(str);
-		
+		StringBuilder output = new StringBuilder();
+		NbtString.appendEscaped(str,output);
+		String superEsc = output.toString();
+
 		if (ConfigScreen.isSingleQuotesAllowed() || superEsc.equals(str))
 			return superEsc;
 		else

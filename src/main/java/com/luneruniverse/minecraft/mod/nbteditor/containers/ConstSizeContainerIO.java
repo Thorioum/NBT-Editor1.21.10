@@ -30,13 +30,13 @@ public class ConstSizeContainerIO implements NBTContainerIO {
 		boolean itemComponent = NBTManagers.COMPONENTS_EXIST && source == SourceContainerType.ITEM;
 		
 		ItemStack[] items = new ItemStack[numItems];
-		NbtList itemsNbt = container.getList(itemComponent ? "minecraft:container" : "Items", NbtElement.COMPOUND_TYPE);
+		NbtList itemsNbt = container.getList(itemComponent ? "minecraft:container" : "Items").orElseGet(NbtList::new);
 		for (NbtElement itemNbtElement : itemsNbt) {
 			NbtCompound itemNbt = (NbtCompound) itemNbtElement;
-			int slot = itemNbt.getInt(itemComponent ? "slot" : "Slot");
+			int slot = itemNbt.getInt(itemComponent ? "slot" : "Slot").get();
 			if (slot < 0 || slot >= numItems)
 				continue;
-			items[slot] = NBTManagers.ITEM.deserialize(itemComponent ? itemNbt.getCompound("item") : itemNbt, true);
+			items[slot] = NBTManagers.ITEM.deserialize(itemComponent ? itemNbt.getCompound("item").get() : itemNbt, true);
 		}
 		return items;
 	}

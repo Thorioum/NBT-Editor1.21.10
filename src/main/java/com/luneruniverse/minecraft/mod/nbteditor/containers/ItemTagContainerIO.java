@@ -30,7 +30,7 @@ public class ItemTagContainerIO implements ItemContainerIO {
 		
 		if (tag == null || nbtIO.passRootNbt(SourceContainerType.ITEM))
 			return nbt;
-		return nbt.getCompound(tag);
+		return nbt.getCompound(tag).orElse(new NbtCompound());
 	}
 	private void setNBT(ItemStack item, NbtCompound nbt) {
 		if (tag == null || nbtIO.passRootNbt(SourceContainerType.ITEM))
@@ -38,12 +38,12 @@ public class ItemTagContainerIO implements ItemContainerIO {
 		else
 			item.manager$modifyNbt(itemNbt -> itemNbt.put(tag, fillId ? MainUtil.fillId(nbt) : nbt));
 	}
-	
+
 	@Override
 	public int getMaxItemSize(ItemStack item) {
 		return nbtIO.getMaxNBTSize(item == null ? null : getNBT(item), SourceContainerType.ITEM);
 	}
-	
+
 	@Override
 	public ItemStack[] readItem(ItemStack container) {
 		return nbtIO.readNBT(getNBT(container), SourceContainerType.ITEM);

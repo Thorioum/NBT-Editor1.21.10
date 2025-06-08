@@ -45,14 +45,14 @@ public class HandItemReference implements ItemReference {
 	@Override
 	public int getBlockedInvSlot() {
 		if (hand == Hand.MAIN_HAND)
-			return MainUtil.client.player.getInventory().selectedSlot + 27;
+			return MainUtil.client.player.getInventory().getSelectedSlot() + 27;
 		return -1;
 	}
 	
 	@Override
 	public int getBlockedHotbarSlot() {
 		if (hand == Hand.MAIN_HAND)
-			return MainUtil.client.player.getInventory().selectedSlot;
+			return MainUtil.client.player.getInventory().getSelectedSlot();
 		return 40;
 	}
 	

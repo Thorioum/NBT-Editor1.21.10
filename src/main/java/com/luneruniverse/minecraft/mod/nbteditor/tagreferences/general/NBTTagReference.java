@@ -28,12 +28,12 @@ public class NBTTagReference<T> implements TagReference<T, NbtCompound> {
 	
 	private static Object deserialize(NbtElement element, Class<?> target) {
 		if (target.isArray()) {
-			if (!(element instanceof AbstractNbtList<?> list))
+			if (!(element instanceof AbstractNbtList list))
 				return Array.newInstance(target.componentType(), 0);
 			
 			Object output = Array.newInstance(target.componentType(), list.size());
 			for (int i = 0; i < list.size(); i++)
-				Array.set(output, i, deserialize(list.get(i), target.componentType()));
+				Array.set(output, i, deserialize(list.method_10534(i), target.componentType()));
 			return output;
 		}
 		

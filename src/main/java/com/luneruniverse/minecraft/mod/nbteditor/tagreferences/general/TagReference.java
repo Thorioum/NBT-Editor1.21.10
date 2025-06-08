@@ -144,7 +144,7 @@ public interface TagReference<T, O> {
 				String[] pathParts = path.split("/");
 				NbtCompound nbt = object;
 				for (int i = 0; i < pathParts.length - 1; i++)
-					nbt = nbt.getCompound(pathParts[i]);
+					nbt = nbt.getCompound(pathParts[i]).orElse(new NbtCompound());
 				nbt.remove(pathParts[pathParts.length - 1]);
 			}
 		};

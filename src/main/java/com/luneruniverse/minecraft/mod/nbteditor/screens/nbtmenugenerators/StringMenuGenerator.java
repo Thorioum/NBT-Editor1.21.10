@@ -102,14 +102,14 @@ public class StringMenuGenerator implements MenuGenerator {
 	
 	private NbtElement getRealNbt(NbtElement str) {
 		try {
-			return MixinLink.parseSpecialElement(new StringReader(((NbtString) str).asString()));
+			return MixinLink.parseSpecialElement(new StringReader(((NbtString) str).asString().orElse("")));
 		} catch (CommandSyntaxException e) {
 			return null;
 		}
 	}
 	
 	private void save(NbtElement source, NbtElement nbt) {
-		((NbtString) source).value = new StringJsonWriterQuoted().apply(nbt);
+		((NbtString) source).value = nbt.toString();
 	}
 	
 }

@@ -142,14 +142,6 @@ public class MVDrawableHelper {
 		Version.newSwitch()
 				.range("1.21.2", null, () -> getDrawContext(matrices).drawTexture(RenderLayer::getGuiTextured, texture, x, y, u, v, width, height, textureWidth, textureHeight))
 				.range("1.20.0", "1.21.1", () -> DrawContext_drawTexture.get().invoke(getDrawContext(matrices), texture, x, y, u, v, width, height, textureWidth, textureHeight))
-				.range(null, "1.19.4", () -> {
-					RenderSystem.setShader((ShaderProgram) GameRenderer_getPositionTexProgram.get().invoke(null));
-					RenderSystem.setShaderTexture(0, texture);
-					RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
-					call("method_25290", void.class,
-							new Class<?>[] {int.class, int.class, float.class, float.class, int.class, int.class, int.class, int.class},
-							matrices, x, y, u, v, width, height, textureWidth, textureHeight);
-				})
 				.run();
 	}
 	public static void drawTexture(MatrixStack matrices, Identifier texture, int x, int y, float u, float v, int width, int height) {
@@ -236,13 +228,6 @@ public class MVDrawableHelper {
 	public static void drawSlotHighlight(MatrixStack matrices, int x, int y, int color) {
 		Version.newSwitch()
 				.range("1.20.0", null, () -> getDrawContext(matrices).fillGradient(RenderLayer.getGuiOverlay(), x, y, x + 16, y + 16, color, color, 0))
-				.range(null, "1.19.4", () -> {
-					RenderSystem.disableDepthTest();
-					RenderSystem.colorMask(true, true, true, false);
-					DrawableHelper_fillGradient.get().invoke(null, matrices, x, y, x + 16, y + 16, color, color, 0);
-					RenderSystem.colorMask(true, true, true, true);
-					RenderSystem.enableDepthTest();
-				})
 				.run();
 	}
 	

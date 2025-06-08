@@ -1,9 +1,9 @@
 package com.luneruniverse.minecraft.mod.nbteditor.clientchest;
 
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtInt;
-import net.minecraft.nbt.NbtList;
+import com.mojang.brigadier.StringReader;
+import net.minecraft.command.EntitySelectorReader;
+import net.minecraft.nbt.*;
+import net.minecraft.util.StringHelper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,15 +18,15 @@ public class ExtraDataFixes {
     public static void init() {
 
 
-        fixes.add(new Fix("OOBEnchantFixer", 3950, -1) {
+        fixes.add(new Fix("OOB Enchant Fixer", 3950, -1) {
             @Override
             public void fix(NbtCompound nbt) {
                 forEveryRecursiveItem(nbt,tag->{
-                    NbtCompound components = tag.getCompound("components");
+                    NbtCompound components = tag.getCompoundOrEmpty("components");
                     if (components.contains("minecraft:enchantments")) {
-                        NbtCompound enchantments = components.getCompound("minecraft:enchantments");
-                        if(enchantments.contains("levels",NbtCompound.COMPOUND_TYPE)) {
-                            NbtCompound levels = enchantments.getCompound("levels");
+                        NbtCompound enchantments = components.getCompoundOrEmpty("minecraft:enchantments");
+                        if(enchantments.get("levels") instanceof NbtCompound) {
+                            NbtCompound levels = enchantments.getCompoundOrEmpty("levels");
                             for(String key : levels.getKeys()) {
                                 if(levels.get(key) instanceof NbtInt i && i.intValue() == 0) {
                                     levels.put(key,NbtInt.of(1));
@@ -37,7 +37,6 @@ public class ExtraDataFixes {
                 });
             }
         });
-
 
     }
 
@@ -82,7 +81,7 @@ public class ExtraDataFixes {
                 }
             }
         }
-        protected abstract void fix(NbtCompound tag);
+        protected abstract void fix(NbtCompound nbt);
 
     }
 }

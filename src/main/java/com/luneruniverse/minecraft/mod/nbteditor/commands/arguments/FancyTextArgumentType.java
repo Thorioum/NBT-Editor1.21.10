@@ -1,5 +1,6 @@
 package com.luneruniverse.minecraft.mod.nbteditor.commands.arguments;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -58,31 +59,6 @@ public class FancyTextArgumentType implements ArgumentType<Text> {
 		boolean errors = false;
 		
 		int numEvents = 0;
-		ClickEvent click = text.getStyle().getClickEvent();
-		HoverEvent hover = text.getStyle().getHoverEvent();
-		if (click != null) {
-			numEvents++;
-			output.append("[" + MVMisc.getClickEventActionName(click.getAction()) + "]");
-			output.append("{");
-			output.append(click.getValue().replace("\\", "\\\\").replace("{", "\\{").replace("}", "\\}"));
-			output.append("}");
-			output.append("(");
-		}
-		if (hover != null) {
-			numEvents++;
-			output.append("[" + MVMisc.getHoverEventActionName(hover.getAction()) + "]");
-			if (hover.getAction() == HoverEvent.Action.SHOW_TEXT) {
-				StringBuilder buffer = new StringBuilder();
-				errors |= stringifyFancyText(hover.getValue(HoverEvent.Action.SHOW_TEXT), buffer);
-				output.append("{" + buffer.toString().replace("}", "\\}") + "}");
-			} else if (hover.getAction() == HoverEvent.Action.SHOW_ITEM)
-				errors = true;
-			else if (hover.getAction() == HoverEvent.Action.SHOW_ENTITY) {
-				output.append("{" + hover.getValue(HoverEvent.Action.SHOW_ENTITY).uuid.toString() + "}");
-				errors = true;
-			}
-			output.append("(");
-		}
 		
 		StringBuilder color = new StringBuilder();
 		StringBuilder formats = new StringBuilder();
@@ -144,7 +120,24 @@ public class FancyTextArgumentType implements ArgumentType<Text> {
 		
 		return parseInternal(reader);
 	}
-	
+	ClickEvent a(ClickEvent.Action action, String value) {
+		switch (action) {
+			case COPY_TO_CLIPBOARD:
+				return new ClickEvent.CopyToClipboard(value);
+			case RUN_COMMAND:
+				return new ClickEvent.RunCommand(value);
+			case SUGGEST_COMMAND:
+				return new ClickEvent.SuggestCommand(value);
+			case CHANGE_PAGE:
+				return new ClickEvent.ChangePage(Integer.parseInt(value));
+			case OPEN_URL:
+				return new ClickEvent.OpenUrl(URI.create(value));
+			case OPEN_FILE:
+				return new ClickEvent.OpenFile(value);
+
+		}
+		return null;
+	}
 	private EditableText parseInternal(StringReader reader) throws CommandSyntaxException {
 		String str = "";
 		boolean event = false;
@@ -174,12 +167,12 @@ public class FancyTextArgumentType implements ArgumentType<Text> {
 				case "open_url", "run_command", "suggest_command", "change_page", "copy_to_clipboard" -> {
 					reader.expect('{');
 					String value = readUntilClosed(reader, '{', '}');
-					eventAdder = style -> style.withClickEvent(new ClickEvent(MVMisc.getClickEventAction(eventType), value));
+					eventAdder = style -> style.withClickEvent(a(MVMisc.getClickEventAction(eventType), value));
 				}
 				case "show_text" -> {
 					reader.expect('{');
 					EditableText tooltip = parseInternal(new StringReader(readUntilClosed(reader, '{', '}')));
-					eventAdder = style -> style.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, tooltip));
+					eventAdder = style -> style.withHoverEvent(new HoverEvent.ShowText(tooltip));
 				}
 				case "show_item" -> {
 					ItemStack item;
@@ -190,8 +183,7 @@ public class FancyTextArgumentType implements ArgumentType<Text> {
 						item = MainUtil.client.player.getInventory().getStack(slot);
 					} else
 						item = ItemReference.getHeldItem().getItem();
-					eventAdder = style -> style.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_ITEM,
-							new HoverEvent.ItemStackContent(item)));
+					eventAdder = style -> style.withHoverEvent(new HoverEvent.ShowItem(item));
 				}
 				case "show_entity" -> {
 					Entity entity;
@@ -208,7 +200,7 @@ public class FancyTextArgumentType implements ArgumentType<Text> {
 						entity = MainUtil.client.targetedEntity;
 					else
 						entity = MainUtil.client.player;
-					eventAdder = style -> style.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_ENTITY,
+					eventAdder = style -> style.withHoverEvent(new HoverEvent.ShowEntity(
 							new HoverEvent.EntityContent(entity.getType(), entity.getUuid(), entity.getName())));
 				}
 				default -> throw new SimpleCommandExceptionType(TextInst.translatable("nbteditor.fancy_text_arg_type.invalid.event_type")).createWithContext(reader);

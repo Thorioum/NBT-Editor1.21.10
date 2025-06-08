@@ -20,6 +20,7 @@ import net.minecraft.item.Items;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtList;
+import net.minecraft.nbt.NbtString;
 
 public class EnchantsTagReference implements TagReference<Enchants, ItemStack> {
 	
@@ -33,18 +34,17 @@ public class EnchantsTagReference implements TagReference<Enchants, ItemStack> {
 								enchants.getEnchants().stream().collect(Collectors.toMap(
 										enchant -> MVRegistry.getEnchantmentRegistry().getInternalValue().getEntry(enchant.enchant()),
 										enchant -> Math.min(255, enchant.level()),
-										Math::max))),
-								componentValue == null ? true : componentValue.showInTooltip)))
+										Math::max))))))
 				.range(null, "1.20.4", () -> TagReference.mapValue(Enchants::new, Enchants::getEnchants,
 						TagReference.forItems(ArrayList::new, TagReference.forLists(element -> {
 							if (!(element instanceof NbtCompound compound))
 								return null;
-							if (!compound.contains("id", NbtElement.STRING_TYPE))
+							if (!(compound.get("id") instanceof NbtString))
 								return null;
-							Enchantment enchant = MVRegistry.getEnchantmentRegistry().get(IdentifierInst.of(compound.getString("id")));
+							Enchantment enchant = MVRegistry.getEnchantmentRegistry().get(IdentifierInst.of(compound.getString("id").orElse("")));
 							if (enchant == null)
 								return null;
-							int level = compound.getShort("lvl");
+							int level = compound.getShort("lvl").orElse((short)0);
 							if (level < 1)
 								return null;
 							return new Enchants.EnchantWithLevel(enchant, level);

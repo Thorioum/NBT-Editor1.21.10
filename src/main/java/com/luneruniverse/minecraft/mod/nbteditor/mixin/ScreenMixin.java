@@ -50,31 +50,9 @@ public class ScreenMixin {
 	private void handleTextClick(Style style, CallbackInfoReturnable<Boolean> info) {
 		if (style != null && !Screen.hasShiftDown() && style.getClickEvent() != null &&
 				style.getClickEvent().getAction() == ClickEvent.Action.OPEN_FILE &&
-				MixinLink.tryRunClickEvent(style.getClickEvent().getValue())) {
+				MixinLink.tryRunClickEvent(((ClickEvent.OpenFile)style.getClickEvent()).path())) {
 			info.setReturnValue(true);
 		}
 	}
-	
-	// See toggled.ScreenMixin#renderTooltipFromComponents, toggled.DrawContextMixin#drawTooltip
-	@Inject(method = "method_32633(Lnet/minecraft/class_4587;Ljava/util/List;II)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/class_4587;method_22903()V", shift = At.Shift.AFTER), remap = false, require = 0)
-	@SuppressWarnings("target")
-	private void renderTooltipFromComponents(MatrixStack matrices, List<TooltipComponent> tooltip, int x, int y, CallbackInfo info) {
-		if (!ConfigScreen.isTooltipOverflowFix())
-			return;
-		
-		int[] size = MixinLink.getTooltipSize(tooltip);
-		int width = size[0];
-		int height = size[1];
-		int screenWidth = MainUtil.client.currentScreen.width;
-		int screenHeight = MainUtil.client.currentScreen.height;
-		
-		x += 12;
-		y -= 12;
-		if (x + width > screenWidth)
-			x -= 28 + width;
-		if (y + height + 6 > screenHeight)
-			y = screenHeight - height - 6;
-		
-		MixinLink.renderTooltipFromComponents(matrices, x, y, width, height, screenWidth, screenHeight);
-	}
+
 }

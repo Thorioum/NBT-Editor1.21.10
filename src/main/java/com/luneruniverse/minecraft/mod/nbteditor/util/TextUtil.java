@@ -2,6 +2,7 @@ package com.luneruniverse.minecraft.mod.nbteditor.util;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
@@ -42,7 +43,7 @@ public class TextUtil {
 			
 			if (str.startsWith("[LINK] ")) {
 				String url = str.substring("[LINK] ".length());
-				line = TextInst.literal(url).styled(style -> style.withClickEvent(new ClickEvent(Action.OPEN_URL, url))
+				line = TextInst.literal(url).styled(style -> style.withClickEvent(new ClickEvent.OpenUrl(URI.create(url)))
 						.withUnderline(true).withItalic(true).withColor(Formatting.GOLD));
 			}
 			if (str.startsWith("[FORMAT] ")) {
@@ -153,7 +154,7 @@ public class TextUtil {
 	
 	public static Text attachFileTextOptions(EditableText link, File file) {
 		return link.append(" ").append(TextInst.translatable("nbteditor.file_options.show").styled(style ->
-				style.withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_FILE,
+				style.withClickEvent(new ClickEvent.OpenFile(
 						file.getAbsoluteFile().getParentFile().getAbsolutePath()))))
 				.append(" ").append(TextInst.translatable("nbteditor.file_options.delete").styled(style ->
 				MixinLink.withRunClickEvent(style, () -> MainUtil.client.setScreen(

@@ -50,8 +50,8 @@ public class ClientPlayNetworkHandlerMixin {
 			if (packet.getSlot() == 45)
 				MainUtil.client.player.getInventory().setStack(40, packet.getStack());
 			else if (packet.getSlot() < 9) {
-				if (packet.getSlot() > 4)
-					MainUtil.client.player.getInventory().armor.set(8 - packet.getSlot(), packet.getStack());
+				if (packet.getSlot() > 4) ;
+
 			} else
 				MainUtil.client.player.getInventory().setStack(packet.getSlot() >= 36 ? packet.getSlot() - 36 : packet.getSlot(), packet.getStack());
 		}

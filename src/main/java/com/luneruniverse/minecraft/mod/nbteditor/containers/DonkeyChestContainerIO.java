@@ -61,7 +61,7 @@ public class DonkeyChestContainerIO implements NBTContainerIO {
 				if (contents[i] != null && !contents[i].isEmpty())
 					columns = (i / 3) + 1;
 			}
-			if (columns != 1 && container.getInt("Strength") < columns)
+			if (columns != 1 && (container.contains("Strength") && container.getInt("Strength").get() < columns))
 				container.putInt("Strength", columns);
 		}
 		

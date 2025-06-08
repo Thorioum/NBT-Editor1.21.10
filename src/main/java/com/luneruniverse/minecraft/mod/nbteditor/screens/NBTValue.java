@@ -45,13 +45,13 @@ public class NBTValue extends List2D.List2DValue {
 	private final NBTEditorScreen<?> screen;
 	private final String key;
 	private NbtElement value;
-	private AbstractNbtList<?> parentList;
+	private AbstractNbtList parentList;
 	
 	private boolean selected;
 	private boolean unsafe;
 	private boolean invalidComponent;
 	
-	public NBTValue(NBTEditorScreen<?> screen, String key, NbtElement value, AbstractNbtList<?> parentList) {
+	public NBTValue(NBTEditorScreen<?> screen, String key, NbtElement value, AbstractNbtList parentList) {
 		this.screen = screen;
 		this.key = key;
 		this.value = value;
@@ -78,8 +78,6 @@ public class NBTValue extends List2D.List2DValue {
 			icon = FLOAT;
 		else if (value.getType() == NbtElement.DOUBLE_TYPE)
 			icon = DOUBLE;
-		else if (value.getType() == NbtElement.NUMBER_TYPE)
-			icon = NUMBER;
 		else if (value.getType() == NbtElement.STRING_TYPE)
 			icon = STRING;
 		else if (value.getType() == NbtElement.LIST_TYPE)
@@ -97,7 +95,7 @@ public class NBTValue extends List2D.List2DValue {
 		
 		int color = -1;
 		String tooltip = null;
-		if (unsafe && selected || parentList != null && parentList.getHeldType() != value.getType()) {
+		if (unsafe && selected) {
 			color = 0xFFFFAA33;
 			tooltip = "nbteditor.nbt.marker.unsafe";
 		} else if (invalidComponent) {
@@ -188,7 +186,7 @@ public class NBTValue extends List2D.List2DValue {
 			NbtCompound nbtOutput = localItem.getReadableItem().manager$getNbt();
 			if (component == null)
 				component = this.key;
-			this.invalidComponent = (nbtOutput == null || !nbtOutput.contains(MainUtil.addNamespace(component)));
+			this.invalidComponent = (nbtOutput == null);
 		}
 	}
 	public boolean isInvalidComponent() {

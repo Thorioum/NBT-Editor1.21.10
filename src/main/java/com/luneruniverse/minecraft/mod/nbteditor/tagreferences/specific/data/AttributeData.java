@@ -33,7 +33,7 @@ public record AttributeData(EntityAttribute attribute, double value, Optional<At
 			ADD_MULTIPLIED_BASE("nbteditor.attributes.operation.add_multiplied_base"),
 			ADD_MULTIPLIED_TOTAL("nbteditor.attributes.operation.add_multiplied_total");
 			
-			public static Operation fromMinecraft(net.minecraft.entity.attribute.EntityAttributeModifier.Operation operation) {
+			public static Operation fromMinecraft(EntityAttributeModifier.Operation operation) {
 				return switch (operation) {
 					case ADD_VALUE -> ADD;
 					case ADD_MULTIPLIED_BASE -> ADD_MULTIPLIED_BASE;
@@ -45,11 +45,11 @@ public record AttributeData(EntityAttribute attribute, double value, Optional<At
 			private Operation(String key) {
 				this.name = TextInst.translatable(key);
 			}
-			public net.minecraft.entity.attribute.EntityAttributeModifier.Operation toMinecraft() {
+			public EntityAttributeModifier.Operation toMinecraft() {
 				return switch (this) {
-					case ADD -> net.minecraft.entity.attribute.EntityAttributeModifier.Operation.ADD_VALUE;
-					case ADD_MULTIPLIED_BASE -> net.minecraft.entity.attribute.EntityAttributeModifier.Operation.ADD_MULTIPLIED_BASE;
-					case ADD_MULTIPLIED_TOTAL -> net.minecraft.entity.attribute.EntityAttributeModifier.Operation.ADD_MULTIPLIED_TOTAL;
+					case ADD -> EntityAttributeModifier.Operation.ADD_VALUE;
+					case ADD_MULTIPLIED_BASE -> EntityAttributeModifier.Operation.ADD_MULTIPLIED_BASE;
+					case ADD_MULTIPLIED_TOTAL -> EntityAttributeModifier.Operation.ADD_MULTIPLIED_TOTAL;
 				};
 			}
 			@Override
@@ -68,8 +68,9 @@ public record AttributeData(EntityAttribute attribute, double value, Optional<At
 			CHEST("nbteditor.attributes.slot.chest", false),
 			LEGS("nbteditor.attributes.slot.legs", false),
 			FEET("nbteditor.attributes.slot.feet", false),
-			BODY("nbteditor.attributes.slot.body", true);
-			
+			BODY("nbteditor.attributes.slot.body", true),
+			SADDLE("nbteditor.attributes.slot.saddle", true);
+
 			public static Slot fromMinecraft(Object slot) {
 				return switch ((AttributeModifierSlot) slot) {
 					case ANY -> ANY;
@@ -82,7 +83,8 @@ public record AttributeData(EntityAttribute attribute, double value, Optional<At
 					case LEGS -> LEGS;
 					case FEET -> FEET;
 					case BODY -> BODY;
-				};
+                    case SADDLE -> SADDLE;
+                };
 			}
 			public static List<Slot> getNotOnlyForComponents() {
 				return Arrays.stream(values()).filter(slot -> !slot.isOnlyForComponents()).toList();
@@ -106,6 +108,8 @@ public record AttributeData(EntityAttribute attribute, double value, Optional<At
 					case LEGS -> AttributeModifierSlot.LEGS;
 					case FEET -> AttributeModifierSlot.FEET;
 					case BODY -> AttributeModifierSlot.BODY;
+					case SADDLE -> AttributeModifierSlot.SADDLE;
+
 				};
 			}
 			public boolean isOnlyForComponents() {
@@ -160,13 +164,13 @@ public record AttributeData(EntityAttribute attribute, double value, Optional<At
 				return (Identifier) id;
 			}
 			
-			public EntityAttributeModifier toMinecraft(String name, double value, net.minecraft.entity.attribute.EntityAttributeModifier.Operation operation) {
+			public EntityAttributeModifier toMinecraft(String name, double value, EntityAttributeModifier.Operation operation) {
 				if (ID_IS_IDENTIFIER)
 					return new EntityAttributeModifier(getIdentifier(), value, operation);
 				
 				return Reflection.newInstance(
 						EntityAttributeModifier.class,
-						new Class<?>[] {UUID.class, String.class, double.class, net.minecraft.entity.attribute.EntityAttributeModifier.Operation.class},
+						new Class<?>[] {UUID.class, String.class, double.class, EntityAttributeModifier.Operation.class},
 						getUUID(), name, value, operation);
 			}
 			

@@ -47,16 +47,16 @@ public class LocalBlock implements LocalNBT {
 	public static LocalBlock deserialize(NbtCompound nbt, int defaultDataVersion) {
 		NbtElement dataVersion = nbt.get("DataVersion");
 		
-		String id = MainUtil.updateDynamic(TypeReferences.BLOCK_NAME, NbtString.of(nbt.getString("id")), dataVersion, defaultDataVersion).value;
+		String id = MainUtil.updateDynamic(TypeReferences.BLOCK_NAME, NbtString.of(nbt.getString("id").orElse("")), dataVersion, defaultDataVersion).value;
 		Block block = MVRegistry.BLOCK.get(IdentifierInst.of(id));
 		
 		BlockStateProperties state = new BlockStateProperties(block.getDefaultState());
-		state.setValues(MainUtil.updateDynamic(TypeReferences.BLOCK_STATE, nbt.getCompound("state"), dataVersion, defaultDataVersion));
+		state.setValues(MainUtil.updateDynamic(TypeReferences.BLOCK_STATE, nbt.getCompound("state").orElse(new NbtCompound()), dataVersion, defaultDataVersion));
 		
 		NbtCompound tag = null;
-		if (nbt.contains("tag", NbtElement.COMPOUND_TYPE)) {
-			tag = nbt.getCompound("tag");
-			tag.putString("id", nbt.getString("id"));
+		if (!nbt.getCompound("tag").orElse(new NbtCompound()).isEmpty()) {
+			tag = nbt.getCompound("tag").orElse(new NbtCompound());
+			tag.putString("id", nbt.getString("id").orElse(""));
 			tag = MainUtil.updateDynamic(TypeReferences.BLOCK_ENTITY, tag, dataVersion, defaultDataVersion);
 			tag.remove("id");
 		}
@@ -162,8 +162,7 @@ public class LocalBlock implements LocalNBT {
 	
 	@Override
 	public void renderIcon(MatrixStack matrices, int x, int y) {
-		RenderSystem.disableCull();
-		
+
 		matrices.push();
 		MatrixStack renderMatrices = Version.<MatrixStack>newSwitch()
 				.range("1.19.4", null, matrices)
@@ -178,14 +177,12 @@ public class LocalBlock implements LocalNBT {
 				new BlockPos(0, 1000, 0), MainUtil.client.world, renderMatrices,
 				provider.getBuffer(RenderLayer.getCutout()), false);
 		if (isBlockEntity()) {
-			MainUtil.client.getBlockEntityRenderDispatcher().render(getCachedBlockEntity(), RenderTickCounter.ONE.getTickDelta(true),
+			MainUtil.client.getBlockEntityRenderDispatcher().render(getCachedBlockEntity(), RenderTickCounter.ONE.getDynamicDeltaTicks(),
 					renderMatrices, provider);
 		}
 		provider.draw();
 		
 		matrices.pop();
-		
-		RenderSystem.enableCull();
 	}
 	
 	@Override
@@ -243,7 +240,7 @@ public class LocalBlock implements LocalNBT {
 			tooltip = TextInst.literal("").append(customName).append("\n").append(tooltip);
 		final Text finalTooltip = tooltip;
 		return TextInst.bracketed(getName()).styled(
-				style -> style.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, finalTooltip)));
+				style -> style.withHoverEvent(new HoverEvent.ShowText(finalTooltip)));
 	}
 	
 	public BlockReference place(BlockPos pos) {

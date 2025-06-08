@@ -40,7 +40,6 @@
     "ScreenshotRecorderMixin",
     "SplashOverlayMixin",
     "StringHelperMixin",
-    "StringNbtReaderMixin",
     "StringNbtWriterAccessor",
     "TextFieldWidgetMixin",
     "UtilMixin"

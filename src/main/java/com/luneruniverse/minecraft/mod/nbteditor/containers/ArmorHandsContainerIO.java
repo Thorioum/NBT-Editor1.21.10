@@ -18,13 +18,13 @@ public class ArmorHandsContainerIO implements NBTContainerIO {
 	public ItemStack[] readNBT(NbtCompound container, SourceContainerType source) {
 		ItemStack[] items = new ItemStack[6];
 		
-		NbtList armorItemsNbt = container.getList("ArmorItems", NbtElement.COMPOUND_TYPE);
+		NbtList armorItemsNbt = container.getList("ArmorItems").orElseGet(NbtList::new);
 		for (int i = 0; i < armorItemsNbt.size() && i < 4; i++)
-			items[3 - i] = NBTManagers.ITEM.deserialize(armorItemsNbt.getCompound(i), true);
+			items[3 - i] = NBTManagers.ITEM.deserialize(armorItemsNbt.getCompound(i).get(), true);
 		
-		NbtList handItemsNbt = container.getList("HandItems", NbtElement.COMPOUND_TYPE);
+		NbtList handItemsNbt = container.getList("HandItems").orElseGet(NbtList::new);
 		for (int i = 0; i < handItemsNbt.size() && i < 2; i++)
-			items[4 + i] = NBTManagers.ITEM.deserialize(handItemsNbt.getCompound(i), true);
+			items[4 + i] = NBTManagers.ITEM.deserialize(handItemsNbt.getCompound(i).get(), true);
 		
 		return items;
 	}

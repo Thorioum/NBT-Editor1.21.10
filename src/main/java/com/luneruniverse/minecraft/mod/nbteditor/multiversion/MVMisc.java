@@ -14,17 +14,19 @@ import java.io.UncheckedIOException;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Proxy;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import com.google.gson.JsonNull;
+import com.google.gson.JsonPrimitive;
 import org.joml.Vector2ic;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.luneruniverse.minecraft.mod.nbteditor.misc.MixinLink;
-import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVShaders.MVShaderAndLayer;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.commands.ClientCommandRegistrationCallback;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.commands.FabricClientCommandSource;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.nbt.NBTManagers;
@@ -49,11 +51,9 @@ import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.gui.widget.TexturedButtonWidget;
 import net.minecraft.client.network.ClientPlayNetworkHandler;
 import net.minecraft.client.render.BufferBuilder;
-import net.minecraft.client.render.BufferRenderer;
 import net.minecraft.client.render.Tessellator;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.VertexConsumerProvider;
-import net.minecraft.client.render.VertexFormat;
 import net.minecraft.client.render.block.BlockRenderManager;
 import net.minecraft.client.render.entity.EntityRenderDispatcher;
 import net.minecraft.client.toast.SystemToast;
@@ -419,7 +419,7 @@ public class MVMisc {
 		// But this seems to be equivalent (at least currently)
 		return action.name().toLowerCase();
 	}
-	public static String getHoverEventActionName(HoverEvent.Action<?> action) {
+	public static String getHoverEventActionName(HoverEvent.Action action) {
 		// Should be #getName() until 1.20.2 and #asString() at and after 1.20.3
 		// But this seems to be equivalent (at least currently)
 		String str = action.toString();
@@ -433,48 +433,49 @@ public class MVMisc {
 	private static final Supplier<Reflection.MethodInvoker> HoverEvent$Action_contentsToJson =
 			Reflection.getOptionalMethod(HoverEvent.Action.class, "method_27669", MethodType.methodType(JsonElement.class, Object.class));
 	public static JsonElement getHoverEventContentsJson(HoverEvent event) {
-		return Version.<JsonElement>newSwitch()
-				.range("1.20.3", null, () -> HoverEvent.CODEC.encodeStart(JsonOps.INSTANCE, event).result().orElseThrow().getAsJsonObject().get("contents"))
-				.range(null, "1.20.2", () -> HoverEvent$Action_contentsToJson.get().invoke(event.getAction(), event.getValue(event.getAction())))
-				.get();
+		JsonElement e = HoverEvent.CODEC.encodeStart(JsonOps.INSTANCE,event).result().orElse(new JsonNull());
+		if(e instanceof JsonObject o) {
+			switch (event.getAction()) {
+				case SHOW_ENTITY, SHOW_ITEM -> {
+					return o.remove("action");
+				}
+				case SHOW_TEXT -> {
+					return o.get("value");
+				}
+			}
+		}
+		return e;
+	}
+	public static JsonElement getClickEventValueJson(ClickEvent event) {
+		JsonElement e = ClickEvent.CODEC.encodeStart(JsonOps.INSTANCE,event).result().orElse(new JsonNull());
+		JsonElement ret = e;
+		if(e instanceof JsonObject o) {
+			switch (event.getAction()) {
+				case OPEN_URL -> {
+					ret = o.get("url");
+				}
+				case OPEN_FILE -> {
+					ret = o.get("path");
+				}
+				case CHANGE_PAGE -> {
+					ret = o.get("page");
+				}
+				case RUN_COMMAND, SUGGEST_COMMAND -> {
+					ret = o.get("command");
+				}
+				case COPY_TO_CLIPBOARD -> {
+					ret = o.get("value");
+				}
+			}
+		}
+		return ret;
 	}
 	private static final Supplier<Reflection.MethodInvoker> HoverEvent_fromJson =
 			Reflection.getOptionalMethod(HoverEvent.class, "method_27664", MethodType.methodType(HoverEvent.class, JsonObject.class));
 	public static HoverEvent getHoverEvent(JsonObject json) {
 		return Version.<HoverEvent>newSwitch()
 				.range("1.20.3", null, () -> HoverEvent.CODEC.parse(JsonOps.INSTANCE, json).result().orElseThrow())
-				.range(null, "1.20.2", () -> HoverEvent_fromJson.get().invoke(null, json))
 				.get();
-	}
-	
-	private static final Supplier<Reflection.MethodInvoker> Tessellator_getBuffer =
-			Reflection.getOptionalMethod(Tessellator.class, "method_1349", MethodType.methodType(BufferBuilder.class));
-	private static final Supplier<Reflection.MethodInvoker> BufferBuilder_begin =
-			Reflection.getOptionalMethod(BufferBuilder.class, "method_1328", MethodType.methodType(void.class, VertexFormat.DrawMode.class, VertexFormat.class));
-	public static VertexConsumer beginDrawingShader(MatrixStack matrices, MVShaderAndLayer shader) {
-		return Version.<VertexConsumer>newSwitch()
-				.range("1.20.0", null, () -> MVDrawableHelper.getDrawContext(matrices).vertexConsumers.getBuffer(shader.layer()))
-				.range(null, "1.19.4", () -> {
-					RenderSystem.setShader(shader.shader().shader);
-					BufferBuilder builder = Tessellator_getBuffer.get().invoke(Tessellator.getInstance());
-					BufferBuilder_begin.get().invoke(builder, shader.layer().getDrawMode(), shader.layer().getVertexFormat());
-					return builder;
-				})
-				.get();
-	}
-	private static final Supplier<Reflection.MethodInvoker> BufferBuilder_end =
-			Reflection.getOptionalMethod(BufferBuilder.class, "method_1326", MethodType.methodType(void.class));
-	private static final Supplier<Reflection.MethodInvoker> BufferRenderer_draw =
-			Reflection.getOptionalMethod(BufferRenderer.class, "method_1309", MethodType.methodType(void.class, BufferBuilder.class));
-	public static void endDrawingShader(MatrixStack matrices, VertexConsumer vertexConsumer) {
-		Version.newSwitch()
-				.range("1.20.0", null, () -> MVDrawableHelper.getDrawContext(matrices).vertexConsumers.draw())
-				.range("1.19.0", "1.19.4", () -> BufferRenderer.drawWithGlobalProgram(((BufferBuilder) vertexConsumer).end()))
-				.range(null, "1.18.2", () -> {
-					BufferBuilder_end.get().invoke(vertexConsumer);
-					BufferRenderer_draw.get().invoke(null, vertexConsumer);
-				})
-				.run();
 	}
 	
 	private static final Supplier<Reflection.MethodInvoker> TextFieldWidget_setCursor =
@@ -490,7 +491,11 @@ public class MVMisc {
 			Reflection.getOptionalMethod(BlockRenderManager.class, "method_3355", MethodType.methodType(boolean.class, BlockState.class, BlockPos.class, BlockRenderView.class, MatrixStack.class, VertexConsumer.class, boolean.class, java.util.Random.class));
 	public static void renderBlock(BlockRenderManager renderer, BlockState state, BlockPos pos, BlockRenderView world, MatrixStack matrices, VertexConsumer vertexConsumer, boolean cull) {
 		Version.newSwitch()
-				.range("1.19.0", null, () -> renderer.renderBlock(state, pos, world, matrices, vertexConsumer, cull, Random.create()))
+				.range("1.19.0", null, () -> {
+					List l = new ArrayList();
+					renderer.getModel(state).addParts(Random.create(), l);
+					renderer.renderBlock(state, pos, world, matrices, vertexConsumer, cull, l);
+				})
 				.range(null, "1.18.2", () -> BlockRenderManager_renderBlock.get().invoke(renderer, state, pos, world, matrices, vertexConsumer, cull, new java.util.Random()))
 				.run();
 	}
@@ -608,7 +613,7 @@ public class MVMisc {
 			Reflection.getOptionalMethod(MinecraftClient.class, "method_1488", MethodType.methodType(float.class));
 	public static float getTickDelta() {
 		return Version.<Float>newSwitch()
-				.range("1.21.0", null, () -> MainUtil.client.getRenderTickCounter().getTickDelta(true))
+				.range("1.21.0", null, () -> MainUtil.client.getRenderTickCounter().getDynamicDeltaTicks())
 				.range(null, "1.20.6", () -> MinecraftClient_getTickDelta.get().invoke(MainUtil.client))
 				.get();
 	}

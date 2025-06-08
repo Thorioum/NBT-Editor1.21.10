@@ -3,6 +3,7 @@ package com.luneruniverse.minecraft.mod.nbteditor.containers;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import com.luneruniverse.minecraft.mod.nbteditor.localnbt.LocalBlock;
@@ -20,7 +21,9 @@ import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.TagNames;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockWithEntity;
 import net.minecraft.block.ShulkerBoxBlock;
+import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.item.BlockItem;
@@ -28,6 +31,7 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.item.SpawnEggItem;
+import net.minecraft.util.math.BlockPos;
 
 public class ContainerIO {
 	
@@ -52,7 +56,6 @@ public class ContainerIO {
 		registerItemIO(item, io);
 		registerEntityIO(entity, io);
 	}
-	
 	private static final BlockEntityTagContainerIO CHEST_IO = new BlockEntityTagContainerIO(new ConstSizeContainerIO(27));
 	private static final BlockEntityTagContainerIO FURNACE_IO = new BlockEntityTagContainerIO(new ConstSizeContainerIO(3));
 	private static final BlockEntityTagContainerIO BREWING_STAND_IO = new BlockEntityTagContainerIO(new ConstSizeContainerIO(5));

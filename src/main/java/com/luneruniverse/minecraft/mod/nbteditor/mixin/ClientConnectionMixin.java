@@ -34,7 +34,7 @@ public abstract class ClientConnectionMixin {
 			if (packet instanceof ClickSlotC2SPacket slotPacket) {
 				info.cancel();
 				NBTEditor.LOGGER.warn("Tried to send ClickSlotC2SPacket while not updating server inventory: slot=" +
-						slotPacket.getSlot() + ", button=" + slotPacket.getButton() + ", action=" + slotPacket.getActionType());
+						slotPacket.slot() + ", button=" + slotPacket.button() + ", action=" + slotPacket.actionType());
 			}
 		}
 	}

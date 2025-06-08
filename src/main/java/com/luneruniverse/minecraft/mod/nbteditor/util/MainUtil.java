@@ -27,7 +27,6 @@ import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVDrawableHelper;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVMatrix4f;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVMisc;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVRegistry;
-import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVShaders.MVShaderAndLayer;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.TextInst;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.Version;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.nbt.NBTManagers;
@@ -47,10 +46,7 @@ import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.AbstractNbtNumber;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtOps;
+import net.minecraft.nbt.*;
 import net.minecraft.network.packet.c2s.play.CreativeInventoryActionC2SPacket;
 import net.minecraft.screen.ScreenHandler;
 import net.minecraft.text.Text;
@@ -77,7 +73,7 @@ public class MainUtil {
 	
 	public static void saveItem(Hand hand, ItemStack item) {
 		client.player.setStackInHand(hand, item.copy());
-		clickCreativeStack(item, hand == Hand.OFF_HAND ? 45 : client.player.getInventory().selectedSlot + 36);
+		clickCreativeStack(item, hand == Hand.OFF_HAND ? 45 : client.player.getInventory().getSelectedSlot() + 36);
 	}
 	public static void saveItem(EquipmentSlot equipment, ItemStack item) {
 		if (equipment == EquipmentSlot.MAINHAND)
@@ -85,7 +81,7 @@ public class MainUtil {
 		else if (equipment == EquipmentSlot.OFFHAND)
 			saveItem(Hand.OFF_HAND, item);
 		else {
-			client.player.getInventory().armor.set(equipment.getEntitySlotId(), item.copy());
+			client.player.getInventory().setStack(equipment.getEntitySlotId(), item.copy());
 			clickCreativeStack(item, 8 - equipment.getEntitySlotId());
 		}
 	}
@@ -262,13 +258,13 @@ public class MainUtil {
 			return item.getName();
 		NbtCompound nbt = item.manager$getNbt();
 		if (nbt != null)
-			nbt = nbt.getCompound("display");
+			nbt = nbt.getCompound("display").orElse(new NbtCompound());
 		return getNbtNameSafely(nbt, "Name", () -> item.getItem().getName(item));
 	}
 	public static Text getNbtNameSafely(NbtCompound nbt, String key, Supplier<Text> defaultName) {
-		if (nbt != null && nbt.contains(key, NbtElement.STRING_TYPE)) {
+		if (nbt != null && nbt.get(key) instanceof NbtString) {
             try {
-                Text text = TextInst.fromJson(nbt.getString(key));
+                Text text = TextInst.fromJson(nbt.getString(key).orElse(""));
                 if (text != null)
                     return text;
             } catch (JsonParseException e) {}
@@ -448,38 +444,7 @@ public class MainUtil {
 			return defaultValue;
 		return output;
 	}
-	
-	
-	public static void fillShader(MatrixStack matrices, MVShaderAndLayer shader, Consumer<VertexConsumer> data, int x, int y, int width, int height) {
-		int x1 = x;
-		int y1 = y;
-		int x2 = x + width;
-		int y2 = y + height;
-		
-		MVMatrix4f matrix = MVMatrix4f.getPositionMatrix(matrices.peek());
-		VertexConsumer vertexConsumer = MVMisc.beginDrawingShader(matrices, shader);
-		
-		matrix.applyToVertex(vertexConsumer, x1, y1, 0).texture(0, 0);
-		data.accept(vertexConsumer);
-		MVMisc.nextVertex(vertexConsumer);
-		
-		matrix.applyToVertex(vertexConsumer, x1, y2, 0).texture(0, 1);
-		data.accept(vertexConsumer);
-		MVMisc.nextVertex(vertexConsumer);
-		
-		matrix.applyToVertex(vertexConsumer, x2, y2, 0).texture(1, 1);
-		data.accept(vertexConsumer);
-		MVMisc.nextVertex(vertexConsumer);
-		
-		matrix.applyToVertex(vertexConsumer, x2, y1, 0).texture(1, 0);
-		data.accept(vertexConsumer);
-		MVMisc.nextVertex(vertexConsumer);
-		
-		RenderSystem.disableDepthTest();
-		MVMisc.endDrawingShader(matrices, vertexConsumer);
-		RenderSystem.enableDepthTest();
-	}
-	
+
 	
 	// Based on DataFixTypes
 	@SuppressWarnings("unchecked")
@@ -513,7 +478,7 @@ public class MainUtil {
 	public static NbtCompound fillId(NbtCompound nbt) {
 		if (!NBTManagers.COMPONENTS_EXIST)
 			return nbt;
-		if (!nbt.contains("id", NbtElement.STRING_TYPE))
+		if (!(nbt.get("id") instanceof NbtString))
 			nbt.putString("id", "");
 		return nbt;
 	}
@@ -528,7 +493,6 @@ public class MainUtil {
 	
 	public static void setRootCursorStack(ScreenHandler handler, ItemStack cursor) {
 		handler.setCursorStack(cursor);
-		handler.setPreviousCursorStack(cursor);
 		if (client.player.playerScreenHandler != handler || client.interactionManager.getCurrentGameMode().isSurvivalLike())
 			MVClientNetworking.send(new SetCursorC2SPacket(cursor));
 	}
@@ -539,7 +503,6 @@ public class MainUtil {
 			if (!cursor.isEmpty())
 				MainUtil.get(cursor, true);
 			MainUtil.client.player.playerScreenHandler.setCursorStack(ItemStack.EMPTY);
-			MainUtil.client.player.playerScreenHandler.setPreviousCursorStack(ItemStack.EMPTY);
 			MVClientNetworking.send(new SetCursorC2SPacket(ItemStack.EMPTY));
 		}
 	}

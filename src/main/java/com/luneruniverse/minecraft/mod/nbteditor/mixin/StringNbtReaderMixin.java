@@ -14,9 +14,10 @@ import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtFloat;
 import net.minecraft.nbt.StringNbtReader;
 
+/* fuckass mojang
 @Mixin(StringNbtReader.class)
 public class StringNbtReaderMixin {
-	@Inject(method = "parsePrimitive", at = @At("HEAD"), cancellable = true)
+	@Inject(method = "decodeFloat", at = @At("HEAD"), cancellable = true)
 	private void parsePrimitive(String input, CallbackInfoReturnable<NbtElement> info) {
 		if (ConfigScreen.isSpecialNumbers() && MixinLink.specialNumbers.contains(Thread.currentThread())) {
 			Number specialNum = NbtFormatter.SPECIAL_NUMS.get(input);
@@ -30,4 +31,4 @@ public class StringNbtReaderMixin {
 			}
 		}
 	}
-}
+}*/

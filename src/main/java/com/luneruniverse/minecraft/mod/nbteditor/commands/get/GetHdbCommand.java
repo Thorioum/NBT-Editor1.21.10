@@ -8,7 +8,6 @@ import com.luneruniverse.minecraft.mod.nbteditor.commands.arguments.EnumArgument
 import com.luneruniverse.minecraft.mod.nbteditor.containers.ContainerIO;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.TextInst;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.commands.FabricClientCommandSource;
-import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.specific.data.HideFlag;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
@@ -75,7 +74,6 @@ public class GetHdbCommand extends ClientCommand {
 					Category category = context.getArgument("category", Category.class);
 					ItemStack shulker = ShulkerBoxBlock.getItemStack(MainUtil.getDyeColor(category.getColor()));
 					shulker.manager$setCustomName(TextInst.of(Formatting.RESET.toString() + category.getColor() + Formatting.BOLD + category.getTranslatedName().toUpperCase()));
-					HideFlag.MISC.set(shulker, true);
 					ContainerIO.writeRecursively(shulker, HeadAPI.getHeads(category).stream().map(Head::getItemStack).toList());
 					MainUtil.getWithMessage(shulker);
 					return Command.SINGLE_SUCCESS;
@@ -85,7 +83,6 @@ public class GetHdbCommand extends ClientCommand {
 					String query = context.getArgument("query", String.class);
 					ItemStack shulker = new ItemStack(Items.BROWN_SHULKER_BOX);
 					shulker.manager$setCustomName(TextInst.of(Formatting.RESET.toString() + Formatting.GOLD + Formatting.BOLD + TextInst.translatable("nbteditor.hdb.search").getString() + ": " + query));
-					HideFlag.MISC.set(shulker, true);
 					ContainerIO.writeRecursively(shulker, HeadAPI.getHeadsByName(query).stream().map(Head::getItemStack).toList());
 					MainUtil.getWithMessage(shulker);
 					return Command.SINGLE_SUCCESS;

@@ -14,8 +14,10 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NbtByteArray;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.Uuids;
 
 public class RandomUUIDCommand extends ClientCommand {
 	
@@ -36,7 +38,7 @@ public class RandomUUIDCommand extends ClientCommand {
 			ItemStack item = ref.getItem();
 			NbtCompound nbt = ItemTagReferences.CUSTOM_DATA.get(item);
 			UUID uuid = UUID.randomUUID();
-			nbt.putUuid("UUID", uuid);
+			nbt.put("UUID", new NbtByteArray(Uuids.toByteArray(uuid)));
 			ItemTagReferences.CUSTOM_DATA.set(item, nbt);
 			ref.saveItem(item, TextInst.translatable("nbteditor.random_uuid.added",
 					TextInst.literal(uuid.toString()).formatted(Formatting.GOLD)));
@@ -46,7 +48,7 @@ public class RandomUUIDCommand extends ClientCommand {
 			ItemReference ref = ItemReference.getHeldItem();
 			ItemStack item = ref.getItem();
 			NbtCompound nbt = ItemTagReferences.CUSTOM_DATA.get(item);
-			if (!nbt.containsUuid("UUID")) {
+			if (!nbt.contains("UUID")) {
 				MainUtil.client.player.sendMessage(TextInst.translatable("nbteditor.random_uuid.already_removed"), false);
 				return Command.SINGLE_SUCCESS;
 			}

@@ -89,7 +89,7 @@ public class MixinLink {
 	public static Style withRunClickEvent(Style style, Runnable onClick) {
 		String id = "\0nbteditor_runnable@" + new Random().nextLong(); // \0 is not valid in file paths on most OSs
 		events.put(id, onClick);
-		return style.withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_FILE, id));
+		return style.withClickEvent(new ClickEvent.OpenFile( id));
 	}
 	public static boolean tryRunClickEvent(String id) {
 		Runnable onClick = events.get(id);
@@ -197,7 +197,7 @@ public class MixinLink {
 	public static NbtElement parseSpecialElement(StringReader reader) throws CommandSyntaxException {
 		specialNumbers.add(Thread.currentThread());
 		try {
-			return new StringNbtReader(reader).parseElement();
+			return StringNbtReader.readCompoundAsArgument(reader);
 		} finally {
 			specialNumbers.remove(Thread.currentThread());
 		}
@@ -295,10 +295,7 @@ public class MixinLink {
 		// The world doesn't exist yet, so this causes the game to freeze when an exception from this mixin breaks everything
 		if (MainUtil.client.world == null)
 			return;
-		
-		if (NBTManagers.COMPONENTS_EXIST && source.contains(MVComponentType.HIDE_TOOLTIP))
-			return;
-		
+
 		ConfigScreen.ItemSizeFormat sizeConfig = ConfigScreen.getItemSizeFormat();
 		if (sizeConfig != ConfigScreen.ItemSizeFormat.HIDDEN) {
 			OptionalLong loadingSize = ItemSize.getItemSize(source, sizeConfig.isCompressed());

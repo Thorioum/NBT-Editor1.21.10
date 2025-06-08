@@ -5,13 +5,14 @@ import java.util.function.Supplier;
 
 import com.google.common.collect.ImmutableMap;
 
+import com.mojang.blaze3d.shaders.ShaderType;
+import com.mojang.blaze3d.vertex.VertexFormat;
+import com.mojang.blaze3d.vertex.VertexFormatElement;
 import net.minecraft.client.gl.Defines;
+import net.minecraft.client.gl.ShaderLoader;
 import net.minecraft.client.gl.ShaderProgram;
-import net.minecraft.client.gl.ShaderProgramKey;
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.RenderPhase;
-import net.minecraft.client.render.VertexFormat;
-import net.minecraft.client.render.VertexFormatElement;
 import net.minecraft.client.render.VertexFormats;
 
 public class MVShaders {
@@ -19,7 +20,7 @@ public class MVShaders {
 	public static record MVShaderProgramKey(String name, VertexFormat vertexFormat, Object mcKey) {
 		public MVShaderProgramKey(String name, VertexFormat vertexFormat) {
 			this(name, vertexFormat, Version.newSwitch()
-					.range("1.21.2", null, () -> new ShaderProgramKey(IdentifierInst.of("minecraft", "core/" + name), vertexFormat, Defines.EMPTY))
+					.range("1.21.2", null, () -> new ShaderLoader.ShaderSourceKey(IdentifierInst.of("minecraft", "core/" + name), ShaderType.VERTEX))
 					.range(null, "1.21.1", () -> null)
 					.get());
 		}
@@ -41,8 +42,8 @@ public class MVShaders {
 	}
 	
 	public static final VertexFormatElement POSITION_ELEMENT = getElement("field_1587", () -> VertexFormatElement.POSITION);
-	public static final VertexFormatElement TEXTURE_ELEMENT = getElement("field_1591", () -> VertexFormatElement.UV_0);
-	public static final VertexFormatElement LIGHT_ELEMENT = getElement("field_20886", () -> VertexFormatElement.UV_2);
+	public static final VertexFormatElement TEXTURE_ELEMENT = getElement("field_1591", () -> VertexFormatElement.UV0);
+	public static final VertexFormatElement LIGHT_ELEMENT = getElement("field_20886", () -> VertexFormatElement.UV2);
 	
 	public static VertexFormat createFormat(Consumer<ImmutableMap.Builder<String, VertexFormatElement>> builderConsumer) {
 		ImmutableMap.Builder<String, VertexFormatElement> mapBuilder = ImmutableMap.builder();
@@ -59,10 +60,10 @@ public class MVShaders {
 				.get();
 	}
 	
-	public static RenderPhase.ShaderProgram newRenderPhaseShaderProgram(MVShaderProgram shader) {
-		return Version.<RenderPhase.ShaderProgram>newSwitch()
-				.range("1.21.2", null, () -> new RenderPhase.ShaderProgram((ShaderProgramKey) shader.key.mcKey()))
-				.range(null, "1.21.1", () -> Reflection.newInstance(RenderPhase.ShaderProgram.class, new Class<?>[] {Supplier.class}, (Supplier<ShaderProgram>) () -> shader.shader))
+	public static ShaderProgram newRenderPhaseShaderProgram(MVShaderProgram shader) {
+		return Version.<ShaderProgram>newSwitch()
+				//.range("1.21.2", null, () -> new ShaderProgram(((ShaderLoader.ShaderSourceKey) shader.key.mcKey()).type().,""))
+				.range(null, "1.21.1", () -> Reflection.newInstance(ShaderProgram.class, new Class<?>[] {Supplier.class}, (Supplier<ShaderProgram>) () -> shader.shader))
 				.get();
 	}
 	

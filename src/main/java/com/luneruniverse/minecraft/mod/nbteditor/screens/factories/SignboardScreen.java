@@ -87,7 +87,7 @@ public class SignboardScreen<L extends LocalNBT> extends LocalEditorScreen<L> {
 		}
 		
 		if (newFeatures)
-			return nbt.getCompound(back ? "back_text" : "front_text");
+			return nbt.getCompoundOrEmpty(back ? "back_text" : "front_text");
 		return nbt;
 	}
 	private void setSideNbt(NbtCompound sideNbt) {
@@ -136,7 +136,7 @@ public class SignboardScreen<L extends LocalNBT> extends LocalEditorScreen<L> {
 			nbt = ItemTagReferences.BLOCK_ENTITY_DATA.get(localItem.getEditableItem());
 		else
 			nbt = localNBT.getNBT();
-		return nbt != null && nbt.getBoolean("is_waxed");
+		return nbt != null && nbt.getBoolean("is_waxed").orElse(false);
 	}
 	
 	private void setGlowing(boolean glowing) {
@@ -148,11 +148,11 @@ public class SignboardScreen<L extends LocalNBT> extends LocalEditorScreen<L> {
 	}
 	
 	private void setColor(DyeColor color) {
-		modifySideNbt(nbt -> SignSideTagReferences.COLOR.set(nbt, color.getName()));
+		modifySideNbt(nbt -> SignSideTagReferences.COLOR.set(nbt, color.getId()));
 		checkSave();
 	}
 	private DyeColor getColor() {
-		return DyeColor.byName(SignSideTagReferences.COLOR.get(getSideNbt()), DyeColor.BLACK);
+		return DyeColor.byId(SignSideTagReferences.COLOR.get(getSideNbt()), DyeColor.BLACK);
 	}
 	
 	private void setLines(List<Text> lines) {
@@ -229,7 +229,7 @@ public class SignboardScreen<L extends LocalNBT> extends LocalEditorScreen<L> {
 				colors.setOpen(false);
 				glowingBtn.get().setMessage(TextInst.translatable("nbteditor.signboard.glowing.enabled")
 						.styled(style -> style.withColor(getRenderedColor(getColor()))));
-			}, new MVTooltip(TextInst.of(color.getName())));
+			}, new MVTooltip(TextInst.of(color.getId())));
 		}
 		colors.build();
 		

@@ -230,9 +230,6 @@ public class InventoryUtils {
         ItemStack item = getUIItem("fill", new ItemStack(Items.BLACK_STAINED_GLASS_PANE));
         // Do not bother filling the inventory if item to fill it with is AIR.
         if (item == null || item.isEmpty()) return;
-        
-        if (NBTManagers.COMPONENTS_EXIST)
-        	item.set(MVComponentType.HIDE_TOOLTIP, Unit.INSTANCE);
 
         // Fill any non-empty inventory slots with the given item.
         int size = inv.size();

@@ -14,7 +14,6 @@ import net.minecraft.component.type.NbtComponent;
 import net.minecraft.component.type.PotionContentsComponent;
 import net.minecraft.component.type.ProfileComponent;
 import net.minecraft.component.type.SuspiciousStewEffectsComponent;
-import net.minecraft.component.type.UnbreakableComponent;
 import net.minecraft.component.type.WritableBookContentComponent;
 import net.minecraft.component.type.WrittenBookContentComponent;
 import net.minecraft.item.BlockPredicatesChecker;
@@ -44,10 +43,8 @@ public class MVComponentType<T> {
 			new MVComponentType<>(() -> DataComponentTypes.ENCHANTMENTS);
 	public static final MVComponentType<NbtComponent> ENTITY_DATA =
 			new MVComponentType<>(() -> DataComponentTypes.ENTITY_DATA);
-	public static final MVComponentType<Unit> HIDE_ADDITIONAL_TOOLTIP =
-			new MVComponentType<>(() -> DataComponentTypes.HIDE_ADDITIONAL_TOOLTIP);
-	public static final MVComponentType<Unit> HIDE_TOOLTIP =
-			new MVComponentType<>(() -> DataComponentTypes.HIDE_TOOLTIP);
+	public static final MVComponentType<Unit> TOOLTIP_DISPLAY =
+			new MVComponentType<>(() -> DataComponentTypes.TOOLTIP_DISPLAY);
 	public static final MVComponentType<Text> ITEM_NAME =
 			new MVComponentType<>(() -> DataComponentTypes.ITEM_NAME);
 	public static final MVComponentType<LoreComponent> LORE =
@@ -66,7 +63,7 @@ public class MVComponentType<T> {
 			new MVComponentType<>(() -> DataComponentTypes.SUSPICIOUS_STEW_EFFECTS);
 	public static final MVComponentType<ArmorTrim> TRIM =
 			new MVComponentType<>(() -> DataComponentTypes.TRIM);
-	public static final MVComponentType<UnbreakableComponent> UNBREAKABLE =
+	public static final MVComponentType<Unit> UNBREAKABLE =
 			new MVComponentType<>(() -> DataComponentTypes.UNBREAKABLE);
 	public static final MVComponentType<WritableBookContentComponent> WRITABLE_BOOK_CONTENT =
 			new MVComponentType<>(() -> DataComponentTypes.WRITABLE_BOOK_CONTENT);
