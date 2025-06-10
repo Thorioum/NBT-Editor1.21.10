@@ -21,7 +21,7 @@ import net.minecraft.network.packet.c2s.play.ClickSlotC2SPacket;
 public class ClickSlotC2SPacketMixin implements ClickSlotC2SPacketParent {
 	@Shadow @Final private byte button;
 	@Unique
-	private static final int NO_SLOT_RESTRICTIONS_FLAG = 64;
+	private static final byte NO_SLOT_RESTRICTIONS_FLAG = 64;
 
 	
 	@ModifyVariable(method = "<init>", at = @At("HEAD"), ordinal = 0, argsOnly = true)
@@ -31,11 +31,7 @@ public class ClickSlotC2SPacketMixin implements ClickSlotC2SPacketParent {
 			return (byte) (button | NO_SLOT_RESTRICTIONS_FLAG);
 		return button;
 	}
-	
-	@Inject(method = "button", at = @At("RETURN"), cancellable = true)
-	private void getButton(CallbackInfoReturnable<Integer> info) {
-		info.setReturnValue(info.getReturnValue() & ~NO_SLOT_RESTRICTIONS_FLAG);
-	}
+	//i aint evne know what this class is for lmao
 	@Override
 	public boolean isNoSlotRestrictions() {
 		return (button & NO_SLOT_RESTRICTIONS_FLAG) != 0;
