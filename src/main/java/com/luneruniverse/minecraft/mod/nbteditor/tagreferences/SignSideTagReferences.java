@@ -9,6 +9,7 @@ import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.general.NBTTagRef
 import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.general.TagReference;
 
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtElement;
 import net.minecraft.text.Text;
 
 public class SignSideTagReferences {
@@ -23,8 +24,8 @@ public class SignSideTagReferences {
 			.range(null, "1.19.4", () -> new NBTTagReference<>(String.class, "Color"))
 			.get();
 	
-	public static final TagReference<List<Text>, NbtCompound> TEXT = Version.<TagReference<List<Text>, NbtCompound>>newSwitch()
-			.range("1.20.0", null, () -> TagReference.forLists(Text.class, new NBTTagReference<>(Text[].class, "messages")))
+	public static final TagReference<List<NbtElement>, NbtCompound> TEXT = Version.<TagReference<List<NbtElement>, NbtCompound>>newSwitch()
+			.range("1.20.0", null, () -> TagReference.forLists(NbtElement.class, new NBTTagReference<>(NbtElement[].class, "messages")))
 			.range(null, "1.19.4", () -> ArraySplitTagReference.forNBT(() -> TextInst.of(""), Text.class, "Text1", "Text2", "Text3", "Text4"))
 			.get();
 	

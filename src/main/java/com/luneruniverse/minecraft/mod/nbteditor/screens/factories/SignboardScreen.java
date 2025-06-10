@@ -1,6 +1,7 @@
 package com.luneruniverse.minecraft.mod.nbteditor.screens.factories;
 
 import java.awt.Color;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -29,9 +30,13 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.item.SignItem;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtElement;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.nbt.NbtString;
 import net.minecraft.text.ClickEvent;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
+import net.minecraft.text.TextCodecs;
 import net.minecraft.util.DyeColor;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
@@ -156,15 +161,30 @@ public class SignboardScreen<L extends LocalNBT> extends LocalEditorScreen<L> {
 	}
 	
 	private void setLines(List<Text> lines) {
-		modifySideNbt(nbt -> SignSideTagReferences.TEXT.set(nbt, lines.stream()
-				.map(this::fixClickEvent).map(line -> newFeatures ? fixEditable(line) : line).toList()));
+		List<NbtElement> serialized = new ArrayList<>();
+		try {
+			List<Text> t = lines.stream()
+					.map(this::fixClickEvent).map(line -> newFeatures ? fixEditable(line) : line).toList();
+			t.forEach(text -> serialized.add(TextCodecs.CODEC.encodeStart(NbtOps.INSTANCE, text).getOrThrow()));
+			modifySideNbt(nbt -> SignSideTagReferences.TEXT.set(nbt, serialized));
+		} catch (Throwable t) {
+			t.printStackTrace();
+		}
 		checkSave();
 	}
 	private List<Text> getLines() {
-		List<Text> output = SignSideTagReferences.TEXT.get(getSideNbt());
-		while (output.size() < 4)
-			output.add(TextInst.of(""));
-		return output;
+		List<NbtElement> output = SignSideTagReferences.TEXT.get(getSideNbt());
+		List<Text> lines = new ArrayList<>();
+		try {
+
+			while (output.size() < 4)
+				output.add(NbtString.of("\"\""));
+			output.forEach(nbt -> lines.add(TextCodecs.CODEC.decode(NbtOps.INSTANCE, nbt).getOrThrow().getFirst()));
+		} catch (Throwable t) {
+			t.printStackTrace();
+		}
+
+		return lines;
 	}
 	
 	private Text fixClickEvent(Text line) { // https://bugs.mojang.com/browse/MC-62833
