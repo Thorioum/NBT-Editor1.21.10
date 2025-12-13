@@ -6,9 +6,11 @@ import java.util.function.Function;
 
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 
+import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.widget.SliderWidget;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.Text;
+import org.joml.Matrix3x2fStack;
 
 public class ConfigValueSlider<T extends Number> extends SliderWidget implements ConfigValue<T, ConfigValueSlider<T>> {
 	
@@ -45,7 +47,7 @@ public class ConfigValueSlider<T extends Number> extends SliderWidget implements
 	}
 	
 	@Override
-	public void render(MatrixStack matrices, int mouseX, int mouseY, float delta) {
+	public void render(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
 		super.render(matrices, mouseX, mouseY, delta);
 	}
 	
@@ -56,20 +58,20 @@ public class ConfigValueSlider<T extends Number> extends SliderWidget implements
 	private double mouseClickX = -1;
 	private double mouseClickY = -1;
 	@Override
-	public boolean mouseClicked(double mouseX, double mouseY, int button) {
-		boolean output = super.mouseClicked(mouseX, mouseY, button);
+	public boolean mouseClicked(Click click, boolean doubled) {
+		boolean output = super.mouseClicked(click, doubled);
 		if (output) {
-			mouseClickX = mouseX;
-			mouseClickY = mouseY;
+			mouseClickX = click.x();
+			mouseClickY = click.y();
 		}
 		return clicked = output;
 	}
 	@Override
-	protected void onDrag(double mouseX, double mouseY, double deltaX, double deltaY) {
-		if (clicked && MainUtil.equals(mouseX, mouseClickX + deltaX) && MainUtil.equals(mouseY, mouseClickY + deltaY)) {
+	protected void onDrag(Click click, double deltaX, double deltaY) {
+		if (clicked && MainUtil.equals(click.x(), mouseClickX + deltaX) && MainUtil.equals(click.y(), mouseClickY + deltaY)) {
 			mouseClickX += deltaX;
 			mouseClickY += deltaY;
-			super.onDrag(mouseX, mouseY, deltaX, deltaY);
+			super.onDrag(click, deltaX, deltaY);
 		}
 	}
 	

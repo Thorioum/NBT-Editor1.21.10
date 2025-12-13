@@ -10,12 +10,13 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
+import net.minecraft.client.input.KeyInput;
 import org.lwjgl.glfw.GLFW;
 
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.TextInst;
 import com.luneruniverse.minecraft.mod.nbteditor.screens.containers.ClientHandledScreen;
-import com.luneruniverse.minecraft.mod.nbteditor.screens.containers.ClientScreenHandler;
-import com.luneruniverse.minecraft.mod.nbteditor.screens.util.StringInputScreen;
+import com.luneruniverse.minecraft.mod.nbteditor.screens.widgets.InputOverlay;
+import com.luneruniverse.minecraft.mod.nbteditor.screens.widgets.StringInput;
 import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.ItemTagReferences;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 
@@ -44,7 +45,7 @@ public class PagedPane extends ClientHandledScreen {
      * @param pageSize The page size. inventory rows - 2
      */
     public PagedPane(int pageSize, int rows, String title) {
-    	super(new ClientScreenHandler(rows), TextInst.of(MainUtil.colorize(title)));
+    	super(rows, TextInst.of(MainUtil.colorize(title)));
         this.pageSize = pageSize;
         pages.put(0, new Page(pageSize));
     }
@@ -143,16 +144,16 @@ public class PagedPane extends ClientHandledScreen {
     
     private boolean shiftKey;
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-    	if (keyCode == GLFW.GLFW_KEY_LEFT_SHIFT || keyCode == GLFW.GLFW_KEY_RIGHT_SHIFT)
+    public boolean keyPressed(KeyInput keyInput) {
+    	if (keyInput.key() == GLFW.GLFW_KEY_LEFT_SHIFT || keyInput.key()  == GLFW.GLFW_KEY_RIGHT_SHIFT)
     		shiftKey = true;
-    	return super.keyPressed(keyCode, scanCode, modifiers);
+    	return super.keyPressed(keyInput);
     }
     @Override
-    public boolean keyReleased(int keyCode, int scanCode, int modifiers) {
-    	if (keyCode == GLFW.GLFW_KEY_LEFT_SHIFT || keyCode == GLFW.GLFW_KEY_RIGHT_SHIFT)
+    public boolean keyReleased(KeyInput keyInput) {
+    	if (keyInput.key()  == GLFW.GLFW_KEY_LEFT_SHIFT || keyInput.key()  == GLFW.GLFW_KEY_RIGHT_SHIFT)
     		shiftKey = false;
-    	return super.keyReleased(keyCode, scanCode, modifiers);
+    	return super.keyReleased(keyInput);
     }
     
     @Override
@@ -258,8 +259,13 @@ public class PagedPane extends ClientHandledScreen {
                     "&7Right-Click to go to a &6Specific Page");
             controlMain = new Button(itemStack, event -> {
                 if (event.getClickType() == ClickTypeMod.RIGHT) {
-                	new StringInputScreen(this, page -> selectPage(Integer.parseInt(page) - 1),
-                			MainUtil.intPredicate(1, getPageAmount(), false)).show("Page number");
+                	InputOverlay.show(
+                			TextInst.of("Go to a Specific Page"),
+                			StringInput.builder()
+                					.withPlaceholder(TextInst.of("Page #"))
+                					.withValidator(MainUtil.intPredicate(1, getPageAmount(), false))
+                					.build(),
+                			page -> selectPage(Integer.parseInt(page) - 1));
                 } else {
                     InventoryUtils.openDatabase();
                 }
@@ -277,7 +283,7 @@ public class PagedPane extends ClientHandledScreen {
     }
 
     protected ItemStack setMeta(ItemStack itemStack, String name, String... lore) {
-        itemStack.manager$setCustomName(TextInst.of(Utils.colorize(name)));
+        itemStack.nbte$setCustomName(TextInst.of(Utils.colorize(name)));
         ItemTagReferences.LORE.set(itemStack, Arrays.stream(lore).map(MainUtil::colorize).map(TextInst::of).collect(Collectors.toList()));
         return itemStack;
     }

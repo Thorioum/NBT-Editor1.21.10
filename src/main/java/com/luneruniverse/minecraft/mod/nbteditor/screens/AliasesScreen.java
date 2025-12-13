@@ -23,6 +23,7 @@ import com.luneruniverse.minecraft.mod.nbteditor.screens.configurable.ConfigValu
 
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.util.math.MatrixStack;
+import org.joml.Matrix3x2fStack;
 
 public class AliasesScreen extends TickableSupportingScreen {
 	
@@ -90,7 +91,7 @@ public class AliasesScreen extends TickableSupportingScreen {
 				new MVTooltip("nbteditor.config.aliases.extreme.desc")));
 	}
 	
-	public void render(MatrixStack matrices, int mouseX, int mouseY, float delta) {
+	public void render(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
 		this.renderBackground(matrices);
 		super.render(matrices, mouseX, mouseY, delta);
 	}

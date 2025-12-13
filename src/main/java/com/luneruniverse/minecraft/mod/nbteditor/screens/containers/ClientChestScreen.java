@@ -1,7 +1,7 @@
 package com.luneruniverse.minecraft.mod.nbteditor.screens.containers;
 
-import java.util.Optional;
-
+import net.minecraft.client.gui.Click;
+import net.minecraft.client.input.KeyInput;
 import org.lwjgl.glfw.GLFW;
 
 import com.luneruniverse.minecraft.mod.nbteditor.NBTEditorClient;
@@ -14,7 +14,6 @@ import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVMisc;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVTooltip;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.TextInst;
 import com.luneruniverse.minecraft.mod.nbteditor.nbtreferences.itemreferences.ClientChestItemReference;
-import com.luneruniverse.minecraft.mod.nbteditor.nbtreferences.itemreferences.HandledScreenItemReference.HandledScreenItemReferenceParent;
 import com.luneruniverse.minecraft.mod.nbteditor.screens.ClientChestDataVersionScreen;
 import com.luneruniverse.minecraft.mod.nbteditor.screens.ConfigScreen;
 import com.luneruniverse.minecraft.mod.nbteditor.screens.LoadingScreen;
@@ -29,59 +28,44 @@ import net.minecraft.screen.slot.Slot;
 import net.minecraft.screen.slot.SlotActionType;
 import net.minecraft.text.Text;
 
+import static com.luneruniverse.minecraft.mod.nbteditor.NBTEditor.hasShiftDown;
+
 public class ClientChestScreen extends ClientHandledScreen {
 	
 	public static int PAGE = 0;
 	public static int prevPageJumpTarget;
 	public static int nextPageJumpTarget;
 	
-	public static void show(Optional<ItemStack> cursor) {
-		Runnable close = () -> {
-			if (MainUtil.client.currentScreen instanceof ClientChestScreen screen)
-				screen.close();
-			else
-				cursor.ifPresent(MainUtil::setInventoryCursorStack);
-		};
-		
+	public static void show() {
 		LoadingScreen.show(
 				ClientChestHelper.getPage(PAGE, PageLoadLevel.DYNAMIC_ITEMS),
-				close,
+				NBTEditorClient.CURSOR_MANAGER::closeRoot,
 				(loaded, optional) -> {
 					if (optional.isEmpty()) {
-						if (!loaded)
-							close.run();
-						MainUtil.client.setScreen(null);
+						NBTEditorClient.CURSOR_MANAGER.closeRoot();
 						return;
 					}
 					
 					ClientChestPage pageData = optional.get();
 					
 					if (!pageData.isInThisVersion()) {
-						if (!loaded)
-							cursor.ifPresent(MainUtil::setInventoryCursorStack);
+						NBTEditorClient.CURSOR_MANAGER.closeRoot();
 						MainUtil.client.setScreen(new ClientChestDataVersionScreen(pageData.dataVersion()));
 						return;
 					}
 					
 					if (MainUtil.client.currentScreen instanceof ClientChestScreen screen) {
-						((ClientChestHandler) screen.handler).fillPage(pageData);
-						screen.dynamicItems = pageData.dynamicItems();
+						screen.setPageData(pageData);
+						MainUtil.setTextFieldValueSilently(screen.pageField, (PAGE + 1) + "", true);
 						screen.updatePageNavigation();
 					} else {
-						ClientChestHandler handler = new ClientChestHandler(pageData);
-						handler.setCursorStack(cursor.filter(item -> !loaded).orElse(
-								MainUtil.client.player.playerScreenHandler.getCursorStack()));
-						ClientChestScreen screen = new ClientChestScreen(handler);
-						screen.dynamicItems = pageData.dynamicItems();
-						MainUtil.client.setScreen(screen);
+						ClientChestScreen screen = new ClientChestScreen();
+						screen.setPageData(pageData);
+						NBTEditorClient.CURSOR_MANAGER.showBranch(screen);
 						NBTEditorClient.CLIENT_CHEST.warnIfCorrupt();
 					}
 				});
 	}
-	public static void show() {
-		show(Optional.empty());
-	}
-	
 	
 	private DynamicItems dynamicItems;
 	private boolean navigationClicked;
@@ -92,8 +76,14 @@ public class ClientChestScreen extends ClientHandledScreen {
 	private ButtonWidget prevPageJump;
 	private ButtonWidget nextPageJump;
 	
-	private ClientChestScreen(ClientChestHandler handler) {
-		super(handler, TextInst.translatable("nbteditor.client_chest"));
+	private ClientChestScreen() {
+		super(6, TextInst.translatable("nbteditor.client_chest"));
+	}
+	private void setPageData(ClientChestPage pageData) {
+		ItemStack[] items = pageData.getItemsOrThrow();
+		for (int i = 0; i < items.length; i++)
+			handler.getSlot(i).setStackNoCallbacks(items[i] == null ? ItemStack.EMPTY : items[i].copy());
+		dynamicItems = pageData.dynamicItems();
 	}
 	
 	@Override
@@ -104,20 +94,21 @@ public class ClientChestScreen extends ClientHandledScreen {
 		
 		nameField = new NamedTextFieldWidget(this.x - 87, this.y, 83, 16) {
 			@Override
-			public boolean mouseClicked(double mouseX, double mouseY, int button) {
-				boolean output = super.mouseClicked(mouseX, mouseY, button);
+			public boolean mouseClicked(Click click, boolean doubled) {
+				boolean output = super.mouseClicked(click, doubled);
 				if (output)
 					navigationClicked = true;
 				return output;
 			}
 			@Override
-			public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+			public boolean keyPressed(KeyInput keyInput) {
+				int keyCode = keyInput.key();
 				if (keyCode == GLFW.GLFW_KEY_ENTER && !nameField.isValid()) {
 					nameField.setValid(true);
 					ClientChestHelper.setNameOfPage(PAGE, nameField.getText());
 					return true;
 				}
-				return super.keyPressed(keyCode, scanCode, modifiers);
+				return super.keyPressed(keyInput);
 			}
 		}.name(TextInst.translatable("nbteditor.client_chest.page_name"));
 		nameField.setMaxLength(Integer.MAX_VALUE);
@@ -133,8 +124,8 @@ public class ClientChestScreen extends ClientHandledScreen {
 		
 		pageField = new TextFieldWidget(textRenderer, this.x - 63, this.y + 22, 35, 16, TextInst.of("")) {
 			@Override
-			public boolean mouseClicked(double mouseX, double mouseY, int button) {
-				boolean output = super.mouseClicked(mouseX, mouseY, button);
+			public boolean mouseClicked(Click click, boolean doubled) {
+				boolean output = super.mouseClicked(click, doubled);
 				if (output)
 					navigationClicked = true;
 				return output;
@@ -206,7 +197,8 @@ public class ClientChestScreen extends ClientHandledScreen {
 			navigationClicked = true;
 			client.setScreen(new FancyConfirmScreen(value -> {
 				if (value) {
-					this.handler.getInventory().clear();
+					handler.getInventory().clear();
+					dynamicItems = new DynamicItems();
 					save();
 				}
 				
@@ -238,7 +230,8 @@ public class ClientChestScreen extends ClientHandledScreen {
 		pageField.tick();
 	}
 	
-	public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+	public boolean keyPressed(KeyInput keyInput) {
+		int keyCode = keyInput.key();
 		navigationClicked = false;
 		
 		if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
@@ -268,10 +261,7 @@ public class ClientChestScreen extends ClientHandledScreen {
 			boolean lockedSlot = (focusedSlot.inventory == handler.getInventory() &&
 					dynamicItems.isSlotLocked(focusedSlot.getIndex()));
 			if (!lockedSlot || keyCode == GLFW.GLFW_KEY_DELETE) {
-				if (handleKeybind(keyCode, focusedSlot,
-						HandledScreenItemReferenceParent.create(
-								ClientChestScreen::show, () -> handler.setCursorStack(ItemStack.EMPTY)),
-						slot -> new ClientChestItemReference(PAGE, slot.getIndex()), handler.getCursorStack())) {
+				if (handleKeybind(keyCode, focusedSlot, ClientChestScreen::show, slot -> new ClientChestItemReference(PAGE, slot.getIndex()))) {
 					if (keyCode == GLFW.GLFW_KEY_DELETE && lockedSlot)
 						dynamicItems.remove(focusedSlot.getIndex());
 					return true;
@@ -279,17 +269,17 @@ public class ClientChestScreen extends ClientHandledScreen {
 			}
 		}
 		
-		return !this.nameField.keyPressed(keyCode, scanCode, modifiers) && !this.nameField.isActive() &&
-				!this.pageField.keyPressed(keyCode, scanCode, modifiers) && !this.pageField.isActive()
-				? super.keyPressed(keyCode, scanCode, modifiers) : true;
+		return !this.nameField.keyPressed(keyInput) && !this.nameField.isActive() &&
+				!this.pageField.keyPressed(keyInput) && !this.pageField.isActive()
+				? super.keyPressed(keyInput) : true;
 	}
 	
 	@Override
-	public boolean mouseClicked(double mouseX, double mouseY, int button) {
+	public boolean mouseClicked(Click click, boolean doubled) {
 		navigationClicked = false;
-		MVMisc.setKeyboardRepeatEvents(this.nameField.mouseClicked(mouseX, mouseY, button) ||
-				this.pageField.mouseClicked(mouseX, mouseY, button));
-		super.mouseClicked(mouseX, mouseY, button);
+		MVMisc.setKeyboardRepeatEvents(this.nameField.mouseClicked(click, doubled) ||
+				this.pageField.mouseClicked(click, doubled));
+		super.mouseClicked(click, doubled);
 		return true;
 	}
 	
@@ -320,8 +310,8 @@ public class ClientChestScreen extends ClientHandledScreen {
 	
 	private void save() {
 		ItemStack[] items = new ItemStack[54];
-		for (int i = 0; i < this.handler.getInventory().size(); i++)
-			items[i] = this.handler.getInventory().getStack(i).copy();
+		for (int i = 0; i < handler.getInventory().size(); i++)
+			items[i] = handler.getInventory().getStack(i).copy();
 		
 		ClientChestHelper.setPage(PAGE, items, dynamicItems);
 	}
@@ -346,14 +336,12 @@ public class ClientChestScreen extends ClientHandledScreen {
 		if (!prevPage.active)
 			return;
 		PAGE--;
-		pageField.setText((PAGE + 1) + "");
 		show();
 	}
 	private void nextPage() {
 		if (!nextPage.active)
 			return;
 		PAGE++;
-		pageField.setText((PAGE + 1) + "");
 		show();
 	}
 	
@@ -361,14 +349,12 @@ public class ClientChestScreen extends ClientHandledScreen {
 		if (!prevPageJump.active)
 			return;
 		PAGE = prevPageJumpTarget;
-		pageField.setText((PAGE + 1) + "");
 		show();
 	}
 	private void nextPageJump() {
 		if (!nextPageJump.active)
 			return;
 		PAGE = nextPageJumpTarget;
-		pageField.setText((PAGE + 1) + "");
 		show();
 	}
 	

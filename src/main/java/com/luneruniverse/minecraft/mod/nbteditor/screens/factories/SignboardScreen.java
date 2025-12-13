@@ -1,7 +1,5 @@
 package com.luneruniverse.minecraft.mod.nbteditor.screens.factories;
 
-import java.awt.Color;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -14,6 +12,7 @@ import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVMisc;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVTooltip;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.TextInst;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.Version;
+import com.luneruniverse.minecraft.mod.nbteditor.multiversion.nbt.manager.NBTManagers;
 import com.luneruniverse.minecraft.mod.nbteditor.nbtreferences.BlockReference;
 import com.luneruniverse.minecraft.mod.nbteditor.nbtreferences.NBTReference;
 import com.luneruniverse.minecraft.mod.nbteditor.nbtreferences.itemreferences.ItemReference;
@@ -22,24 +21,26 @@ import com.luneruniverse.minecraft.mod.nbteditor.screens.widgets.ButtonDropdownW
 import com.luneruniverse.minecraft.mod.nbteditor.screens.widgets.FormattedTextFieldWidget;
 import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.ItemTagReferences;
 import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.SignSideTagReferences;
-import com.luneruniverse.minecraft.mod.nbteditor.util.TextUtil;
+import com.luneruniverse.minecraft.mod.nbteditor.util.StyleUtil;
 
 import net.minecraft.block.AbstractSignBlock;
 import net.minecraft.block.Block;
+import net.minecraft.block.HangingSignBlock;
+import net.minecraft.block.WallHangingSignBlock;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.item.HangingSignItem;
 import net.minecraft.item.SignItem;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtOps;
-import net.minecraft.nbt.NbtString;
 import net.minecraft.text.ClickEvent;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
-import net.minecraft.text.TextCodecs;
 import net.minecraft.util.DyeColor;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
+import org.joml.Matrix3x2fStack;
+
+import static com.luneruniverse.minecraft.mod.nbteditor.NBTEditor.hasShiftDown;
 
 public class SignboardScreen<L extends LocalNBT> extends LocalEditorScreen<L> {
 	
@@ -52,32 +53,50 @@ public class SignboardScreen<L extends LocalNBT> extends LocalEditorScreen<L> {
 	private static int getRenderedColor(DyeColor dye) {
 		if (dye == DyeColor.BLACK)
 			return 0xFFF0EBCC;
-		Color color = new Color(dye.getSignColor());
-		int r = (int) (color.getRed() * 0.4D);
-		int g = (int) (color.getGreen() * 0.4D);
-		int b = (int) (color.getBlue() * 0.4D);
-		return new Color(r, g, b, 0).getRGB();
+		return MVMisc.scaleRgb(dye.getSignColor(), 0.4);
 	}
 	
-	private boolean newFeatures;
 	private final Identifier texture;
 	private boolean back;
 	private FormattedTextFieldWidget lines;
 	
 	public SignboardScreen(NBTReference<L> ref) {
 		super(TextInst.of("Signboard"), ref);
-		newFeatures = NEW_FEATURES;
-		if (newFeatures) {
+		
+		String woodType;
+		boolean hanging;
+		if (NEW_FEATURES) {
 			Block block = null;
 			if (ref instanceof ItemReference itemRef)
 				block = ((SignItem) itemRef.getItem().getItem()).getBlock();
 			else if (ref instanceof BlockReference blockRef)
 				block = blockRef.getBlock();
-			this.texture = IdentifierInst.of("minecraft", "textures/block/" +
-					AbstractSignBlock.getWoodType(block).name() + "_planks.png");
+			woodType = AbstractSignBlock.getWoodType(block).name();
+			hanging = block instanceof HangingSignBlock || block instanceof WallHangingSignBlock;
 		} else {
-			this.texture = IdentifierInst.of("minecraft", "textures/block/" +
-					ref.getId().getPath().replace("_sign", "_planks") + ".png");
+			String id = ref.getId().getPath();
+			woodType = id.replaceAll("(_wall)?(_hanging)?_sign$", "");
+			hanging = id.matches("^[a-z_]+_hanging_sign$");
+		}
+		String textureName;
+		if (hanging) {
+			textureName = switch (woodType) {
+				case "crimson" -> "stripped_crimson_stem";
+				case "warped" -> "stripped_warped_stem";
+				case "bamboo" -> "bamboo_planks";
+				default -> "stripped_" + woodType + "_log";
+			};
+		} else
+			textureName = woodType + "_planks";
+		texture = IdentifierInst.of("minecraft", "textures/block/" + textureName + ".png");
+		
+		if (NBTManagers.COMPONENTS_EXIST) {
+			if (localNBT instanceof LocalItem localItem) {
+				NbtCompound nbt = ItemTagReferences.BLOCK_ENTITY_DATA.get(localItem.getEditableItem());
+				nbt.putString("id",
+						localItem.getItemType() instanceof HangingSignItem ? "minecraft:hanging_sign" : "minecraft:sign");
+				ItemTagReferences.BLOCK_ENTITY_DATA.set(localItem.getEditableItem(), nbt);
+			}
 		}
 	}
 	
@@ -91,12 +110,12 @@ public class SignboardScreen<L extends LocalNBT> extends LocalEditorScreen<L> {
 				return new NbtCompound();
 		}
 		
-		if (newFeatures)
-			return nbt.getCompoundOrEmpty(back ? "back_text" : "front_text");
+		if (NEW_FEATURES)
+			return nbt.nbte$getCompoundOrDefault(back ? "back_text" : "front_text");
 		return nbt;
 	}
 	private void setSideNbt(NbtCompound sideNbt) {
-		if (!newFeatures) {
+		if (!NEW_FEATURES) {
 			if (localNBT instanceof LocalItem localItem)
 				ItemTagReferences.BLOCK_ENTITY_DATA.set(localItem.getEditableItem(), sideNbt);
 			else
@@ -121,7 +140,7 @@ public class SignboardScreen<L extends LocalNBT> extends LocalEditorScreen<L> {
 	}
 	
 	private void setWaxed(boolean waxed) {
-		if (!newFeatures)
+		if (!NEW_FEATURES)
 			throw new IllegalStateException("Incorrect version!");
 		
 		if (localNBT instanceof LocalItem localItem) {
@@ -141,7 +160,7 @@ public class SignboardScreen<L extends LocalNBT> extends LocalEditorScreen<L> {
 			nbt = ItemTagReferences.BLOCK_ENTITY_DATA.get(localItem.getEditableItem());
 		else
 			nbt = localNBT.getNBT();
-		return nbt != null && nbt.getBoolean("is_waxed").orElse(false);
+		return nbt != null && nbt.nbte$getBooleanOrDefault("is_waxed");
 	}
 	
 	private void setGlowing(boolean glowing) {
@@ -161,30 +180,15 @@ public class SignboardScreen<L extends LocalNBT> extends LocalEditorScreen<L> {
 	}
 	
 	private void setLines(List<Text> lines) {
-		List<NbtElement> serialized = new ArrayList<>();
-		try {
-			List<Text> t = lines.stream()
-					.map(this::fixClickEvent).map(line -> newFeatures ? fixEditable(line) : line).toList();
-			t.forEach(text -> serialized.add(TextCodecs.CODEC.encodeStart(NbtOps.INSTANCE, text).getOrThrow()));
-			modifySideNbt(nbt -> SignSideTagReferences.TEXT.set(nbt, serialized));
-		} catch (Throwable t) {
-			t.printStackTrace();
-		}
+		modifySideNbt(nbt -> SignSideTagReferences.TEXT.set(nbt, lines.stream()
+				.map(this::fixClickEvent).map(line -> NEW_FEATURES ? fixEditable(line) : line).toList()));
 		checkSave();
 	}
 	private List<Text> getLines() {
-		List<NbtElement> output = SignSideTagReferences.TEXT.get(getSideNbt());
-		List<Text> lines = new ArrayList<>();
-		try {
-
-			while (output.size() < 4)
-				output.add(NbtString.of("\"\""));
-			output.forEach(nbt -> lines.add(TextCodecs.CODEC.decode(NbtOps.INSTANCE, nbt).getOrThrow().getFirst()));
-		} catch (Throwable t) {
-			t.printStackTrace();
-		}
-
-		return lines;
+		List<Text> output = SignSideTagReferences.TEXT.get(getSideNbt());
+		while (output.size() < 4)
+			output.add(TextInst.of(""));
+		return output;
 	}
 	
 	private Text fixClickEvent(Text line) { // https://bugs.mojang.com/browse/MC-62833
@@ -206,7 +210,7 @@ public class SignboardScreen<L extends LocalNBT> extends LocalEditorScreen<L> {
 	}
 	
 	private Text fixEditable(Text line) { // {"extra":[{...}]} makes the sign uneditable
-		if (TextUtil.styleEqualsExact(line.getStyle(), Style.EMPTY) && line.getSiblings().size() == 1 &&
+		if (StyleUtil.identical(line.getStyle(), Style.EMPTY) && line.getSiblings().size() == 1 &&
 				line.getSiblings().get(0).getSiblings().isEmpty()) {
 			return line.getSiblings().get(0);
 		}
@@ -215,7 +219,7 @@ public class SignboardScreen<L extends LocalNBT> extends LocalEditorScreen<L> {
 	
 	@Override
 	protected void initEditor() {
-		if (newFeatures) {
+		if (NEW_FEATURES) {
 			addDrawableChild(MVMisc.newButton(16, 64, 100, 20,
 					TextInst.translatable("nbteditor.signboard.side." + (back ? "back" : "front")), btn -> {
 				back = !back;
@@ -230,17 +234,17 @@ public class SignboardScreen<L extends LocalNBT> extends LocalEditorScreen<L> {
 			}));
 		}
 		
-		int glowingBtnX = 16 + (newFeatures ? 104 * 2 : 0);
+		int glowingBtnX = 16 + (NEW_FEATURES ? 104 * 2 : 0);
 		int glowingBtnY = 64;
 		AtomicReference<ButtonWidget> glowingBtn = new AtomicReference<>();
 		
 		ButtonDropdownWidget colors = addSelectableChild(new ButtonDropdownWidget(glowingBtnX, glowingBtnY + 20, 20, 20, null, 20, 20) {
 			@Override
-			public void render(MatrixStack matrices, int mouseX, int mouseY, float delta) {
-				matrices.push();
-				matrices.translate(0.0, 0.0, 2.0);
+			public void render(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
+				matrices.pushMatrix();
+				matrices.translate(0.0f, 0.0f);
 				super.render(matrices, mouseX, mouseY, delta);
-				matrices.pop();
+				matrices.popMatrix();
 			}
 		});
 		for (DyeColor color : DyeColor.values()) {
@@ -278,7 +282,7 @@ public class SignboardScreen<L extends LocalNBT> extends LocalEditorScreen<L> {
 	}
 	
 	@Override
-	protected void preRenderEditor(MatrixStack matrices, int mouseX, int mouseY, float delta) {
+	protected void preRenderEditor(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
 		MVDrawableHelper.drawTexture(matrices, texture, 16, 64 + 24 * 2, 0, 0, width - 32, height - 80 - 24 * 2);
 	}
 	

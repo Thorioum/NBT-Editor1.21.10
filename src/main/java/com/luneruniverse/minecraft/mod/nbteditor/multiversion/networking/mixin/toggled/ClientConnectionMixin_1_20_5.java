@@ -1,6 +1,5 @@
 package com.luneruniverse.minecraft.mod.nbteditor.multiversion.networking.mixin.toggled;
 
-import net.minecraft.network.state.NetworkState;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -16,6 +15,7 @@ import net.minecraft.client.network.ClientPlayNetworkHandler;
 import net.minecraft.network.ClientConnection;
 import net.minecraft.network.NetworkSide;
 import net.minecraft.network.listener.PacketListener;
+import net.minecraft.network.state.NetworkState;
 import net.minecraft.server.network.ServerPlayNetworkHandler;
 
 @Mixin(ClientConnection.class)

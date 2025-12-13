@@ -13,7 +13,7 @@ import com.luneruniverse.minecraft.mod.nbteditor.multiversion.IdentifierInst;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVMisc;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.TextInst;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.commands.FabricClientCommandSource;
-import com.luneruniverse.minecraft.mod.nbteditor.multiversion.nbt.NBTManagers;
+import com.luneruniverse.minecraft.mod.nbteditor.multiversion.nbt.manager.NBTManagers;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
@@ -30,7 +30,7 @@ public class GetPresetCommand extends ClientCommand {
 	}
 	public static Supplier<ItemStack> registerPresetItem(String name) {
 		Supplier<ItemStack> output = () -> Optional.ofNullable(getItem(name)).orElseGet(() -> new ItemStack(Items.BARRIER)
-				.manager$setCustomName(TextInst.translatable("nbteditor.get.preset_item.missing")));
+				.nbte$setCustomName(TextInst.translatable("nbteditor.get.preset_item.missing")));
 		presetItems.put(name, output);
 		return output;
 	}

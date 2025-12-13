@@ -18,15 +18,15 @@ public class BlockTagReferences {
 	public static final TagReference<Optional<String>, LocalBlock> PROFILE_NAME = Version.<TagReference<Optional<String>, LocalBlock>>newSwitch()
 			.range("1.20.5", null, () -> TagReference.forLocalNBT(Optional::empty,
 					new NBTComponentTagReference<>("profile", ProfileComponent.CODEC, Optional::empty,
-							ProfileComponent::name,
-							name -> new ProfileComponent(name, Optional.empty(), new PropertyMap()))))
+							ProfileComponent::getName,
+							name -> ProfileComponent.ofDynamic(name.orElse("")))))
 			.range(null, "1.20.4", () -> TagReference.forLocalNBT(Optional::empty, new GameProfileNameNBTTagReference()))
 			.get();
 	public static final TagReference<Optional<GameProfile>, LocalBlock> PROFILE = Version.<TagReference<Optional<GameProfile>, LocalBlock>>newSwitch()
 			.range("1.20.5", null, () -> TagReference.forLocalNBT(Optional::empty,
 					new NBTComponentTagReference<>("profile", ProfileComponent.CODEC, Optional::empty,
-							profile -> Optional.of(profile.gameProfile()),
-							profile -> profile.map(ProfileComponent::new).orElse(null))))
+							profile -> Optional.of(profile.getGameProfile()),
+							profile -> profile.map(ProfileComponent::ofStatic).orElse(null))))
 			.range(null, "1.20.4", () -> TagReference.forLocalNBT(Optional::empty, new GameProfileNBTTagReference()))
 			.get();
 	

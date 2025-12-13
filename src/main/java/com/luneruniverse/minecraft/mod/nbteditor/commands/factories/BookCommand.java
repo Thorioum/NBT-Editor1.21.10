@@ -7,12 +7,12 @@ import java.util.List;
 import java.util.function.Consumer;
 
 import com.luneruniverse.minecraft.mod.nbteditor.commands.ClientCommand;
-import com.luneruniverse.minecraft.mod.nbteditor.containers.ContainerIO;
+import com.luneruniverse.minecraft.mod.nbteditor.containers.ContainerIOs;
 import com.luneruniverse.minecraft.mod.nbteditor.localnbt.LocalNBT;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVComponentType;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.TextInst;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.commands.FabricClientCommandSource;
-import com.luneruniverse.minecraft.mod.nbteditor.multiversion.nbt.NBTManagers;
+import com.luneruniverse.minecraft.mod.nbteditor.multiversion.nbt.manager.NBTManagers;
 import com.luneruniverse.minecraft.mod.nbteditor.nbtreferences.BlockReference;
 import com.luneruniverse.minecraft.mod.nbteditor.nbtreferences.NBTReference;
 import com.luneruniverse.minecraft.mod.nbteditor.nbtreferences.NBTReferenceFilter;
@@ -22,6 +22,7 @@ import com.luneruniverse.minecraft.mod.nbteditor.screens.factories.BookScreen;
 import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.ItemTagReferences;
 import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.WrittenBookTagReferences;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
+import com.luneruniverse.minecraft.mod.nbteditor.util.StyleUtil;
 import com.luneruniverse.minecraft.mod.nbteditor.util.TextUtil;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
@@ -39,9 +40,9 @@ public class BookCommand extends ClientCommand {
 				if (ref.getBlock() != Blocks.LECTERN)
 					return false;
 				LocalNBT nbt = ref.getLocalNBT();
-				if (!ContainerIO.isContainer(nbt))
+				if (!ContainerIOs.isSupported(nbt))
 					return false;
-				ItemStack[] contents = ContainerIO.read(nbt);
+				ItemStack[] contents = ContainerIOs.read(nbt);
 				return contents.length == 1 && contents[0].getItem() == Items.WRITTEN_BOOK;
 			},
 			null,
@@ -54,7 +55,7 @@ public class BookCommand extends ClientCommand {
 		List<Text> pages = WrittenBookTagReferences.PAGES.get(item);
 		List<String> convertedPages = new ArrayList<>();
 		for (Text page : pages) {
-			if (!formatted && TextUtil.isTextFormatted(page, true, "black"))
+			if (!formatted && TextUtil.isTextFormatted(page, StyleUtil.BOOK_STYLE))
 				formatted = true;
 			convertedPages.add(page.getString());
 		}

@@ -8,19 +8,22 @@ import com.luneruniverse.minecraft.mod.nbteditor.misc.MixinLink;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.IdentifierInst;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVDrawableHelper;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVTooltip;
-import com.luneruniverse.minecraft.mod.nbteditor.multiversion.nbt.NBTManagers;
-import com.luneruniverse.minecraft.mod.nbteditor.screens.nbtmenugenerators.MenuGenerator;
+import com.luneruniverse.minecraft.mod.nbteditor.multiversion.nbt.MVNbtCompoundParent;
+import com.luneruniverse.minecraft.mod.nbteditor.multiversion.nbt.manager.NBTManagers;
+import com.luneruniverse.minecraft.mod.nbteditor.screens.nbtfolder.NBTFolder;
 import com.luneruniverse.minecraft.mod.nbteditor.screens.widgets.List2D;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
+import com.luneruniverse.minecraft.mod.nbteditor.util.StringJsonWriterQuoted;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
+import net.minecraft.client.gui.Click;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.nbt.AbstractNbtList;
-import net.minecraft.nbt.NbtByte;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.util.Identifier;
+import org.joml.Matrix3x2fStack;
 
 public class NBTValue extends List2D.List2DValue {
 	
@@ -38,9 +41,6 @@ public class NBTValue extends List2D.List2DValue {
 	private static final Identifier INT_ARRAY = IdentifierInst.of("nbteditor", "textures/nbt/int_array.png");
 	private static final Identifier LONG_ARRAY = IdentifierInst.of("nbteditor", "textures/nbt/long_array.png");
 	private static final Identifier COMPOUND = IdentifierInst.of("nbteditor", "textures/nbt/compound.png");
-	
-	
-	
 	
 	private final NBTEditorScreen<?> screen;
 	private final String key;
@@ -62,40 +62,35 @@ public class NBTValue extends List2D.List2DValue {
 	}
 	
 	@Override
-	public void render(MatrixStack matrices, int mouseX, int mouseY, float delta) {
-		Identifier icon = null;
-		if (key == null)
+	public void render(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
+		Identifier icon;
+		if (key == null) {
 			icon = BACK;
-		else if (value.getType() == NbtElement.BYTE_TYPE)
-			icon = BYTE;
-		else if (value.getType() == NbtElement.SHORT_TYPE)
-			icon = SHORT;
-		else if (value.getType() == NbtElement.INT_TYPE)
-			icon = INT;
-		else if (value.getType() == NbtElement.LONG_TYPE)
-			icon = LONG;
-		else if (value.getType() == NbtElement.FLOAT_TYPE)
-			icon = FLOAT;
-		else if (value.getType() == NbtElement.DOUBLE_TYPE)
-			icon = DOUBLE;
-		else if (value.getType() == NbtElement.STRING_TYPE)
-			icon = STRING;
-		else if (value.getType() == NbtElement.LIST_TYPE)
-			icon = LIST;
-		else if (value.getType() == NbtElement.BYTE_ARRAY_TYPE)
-			icon = BYTE_ARRAY;
-		else if (value.getType() == NbtElement.INT_ARRAY_TYPE)
-			icon = INT_ARRAY;
-		else if (value.getType() == NbtElement.LONG_ARRAY_TYPE)
-			icon = LONG_ARRAY;
-		else if (value.getType() == NbtElement.COMPOUND_TYPE)
-			icon = COMPOUND;
+		} else {
+			icon = switch (value.getType()) {
+				case NbtElement.BYTE_TYPE -> BYTE;
+				case NbtElement.SHORT_TYPE -> SHORT;
+				case NbtElement.INT_TYPE -> INT;
+				case NbtElement.LONG_TYPE -> LONG;
+				case NbtElement.FLOAT_TYPE -> FLOAT;
+				case NbtElement.DOUBLE_TYPE -> DOUBLE;
+				case MVNbtCompoundParent.NUMBER_TYPE -> NUMBER;
+				case NbtElement.STRING_TYPE -> STRING;
+				case NbtElement.LIST_TYPE -> LIST;
+				case NbtElement.BYTE_ARRAY_TYPE -> BYTE_ARRAY;
+				case NbtElement.INT_ARRAY_TYPE -> INT_ARRAY;
+				case NbtElement.LONG_ARRAY_TYPE -> LONG_ARRAY;
+				case NbtElement.COMPOUND_TYPE -> COMPOUND;
+				default -> null;
+			};
+		}
 		if (icon != null)
 			MVDrawableHelper.drawTexture(matrices, icon, 0, 0, 0, 0, 32, 32, 32, 32);
 		
 		int color = -1;
 		String tooltip = null;
-		if (unsafe && selected) {
+		if (unsafe && selected || parentList != null &&
+				!MVNbtCompoundParent.NBT_CODE_REFACTORED && parentList.nbte$getHeldType().get() != value.getType()) {
 			color = 0xFFFFAA33;
 			tooltip = "nbteditor.nbt.marker.unsafe";
 		} else if (invalidComponent) {
@@ -117,23 +112,23 @@ public class NBTValue extends List2D.List2DValue {
 		if (key == null)
 			return;
 		
-		matrices.push();
-		matrices.scale((float) ConfigScreen.getKeyTextSize(), (float) ConfigScreen.getKeyTextSize(), 0);
+		matrices.pushMatrix();
+		matrices.scale((float) ConfigScreen.getKeyTextSize(), (float) ConfigScreen.getKeyTextSize());
 		double scale = 1 / ConfigScreen.getKeyTextSize();
 		MainUtil.drawWrappingString(matrices, textRenderer, key, (int) (16 * scale), (int) (24 * scale), (int) (32 * scale), -1, true, true);
-		matrices.pop();
+		matrices.popMatrix();
 	}
 	
 	@Override
-	public boolean mouseClicked(double mouseX, double mouseY, int button) {
-		if (isHovering((int) mouseX, (int) mouseY)) {
+	public boolean mouseClicked(Click click, boolean d) {
+		if (isHovering((int) click.x(), (int) click.y())) {
 			if (key == null) {
 				screen.selectNbt(null, true);
 				return true;
 			}
 			
-			MenuGenerator menuGen = MenuGenerator.TYPES.get(value.getType());
-			screen.selectNbt(this, selected && menuGen != null && !menuGen.hasEmptyKey(screen, value));
+			NBTFolder<?> folder = NBTFolder.get(value);
+			screen.selectNbt(this, selected && folder != null && !folder.hasEmptyKey());
 			selected = !selected;
 			return selected;
 		}
@@ -157,13 +152,7 @@ public class NBTValue extends List2D.List2DValue {
 		return key;
 	}
 	public String getValueText(boolean json) {
-		if (json && value instanceof NbtByte valueByte) {
-			if (valueByte.byteValue() == 0)
-				return "false";
-			if (valueByte.byteValue() == 1)
-				return "true";
-		}
-		return value.toString();
+		return json ? new StringJsonWriterQuoted().apply(value) : value.toString();
 	}
 	
 	public void setUnsafe(boolean unsafe) {
@@ -183,10 +172,10 @@ public class NBTValue extends List2D.List2DValue {
 		if (!NBTManagers.COMPONENTS_EXIST)
 			return;
 		if (localNBT instanceof LocalItem localItem) {
-			NbtCompound nbtOutput = localItem.getReadableItem().manager$getNbt();
+			NbtCompound nbtOutput = localItem.getReadableItem().nbte$getNbt();
 			if (component == null)
 				component = this.key;
-			this.invalidComponent = (nbtOutput == null);
+			this.invalidComponent = (nbtOutput == null || !nbtOutput.contains(MainUtil.addNamespace(component)));
 		}
 	}
 	public boolean isInvalidComponent() {

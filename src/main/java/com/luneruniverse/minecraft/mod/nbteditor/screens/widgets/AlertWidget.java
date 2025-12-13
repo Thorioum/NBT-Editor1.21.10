@@ -1,11 +1,16 @@
 package com.luneruniverse.minecraft.mod.nbteditor.screens.widgets;
 
+import java.util.Arrays;
+
+import net.minecraft.client.input.KeyInput;
+import org.joml.Matrix3x2fStack;
 import org.lwjgl.glfw.GLFW;
 
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVDrawableHelper;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVMisc;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.TextInst;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
+import com.luneruniverse.minecraft.mod.nbteditor.util.TextUtil;
 
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.util.math.MatrixStack;
@@ -20,7 +25,7 @@ public class AlertWidget extends GroupWidget implements InitializableOverlay<Scr
 	
 	public AlertWidget(Runnable onClose, Text... lines) {
 		this.onClose = onClose;
-		this.lines = lines;
+		this.lines = Arrays.stream(lines).flatMap(line -> TextUtil.splitText(line).stream()).toArray(Text[]::new);
 	}
 	
 	@Override
@@ -36,7 +41,7 @@ public class AlertWidget extends GroupWidget implements InitializableOverlay<Scr
 	}
 	
 	@Override
-	public void render(MatrixStack matrices, int mouseX, int mouseY, float delta) {
+	public void render(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
 		MainUtil.client.currentScreen.renderBackground(matrices);
 		for (int i = 0; i < lines.length; i++) {
 			MVDrawableHelper.drawCenteredTextWithShadow(matrices, MainUtil.client.textRenderer, lines[i],
@@ -47,13 +52,14 @@ public class AlertWidget extends GroupWidget implements InitializableOverlay<Scr
 	}
 	
 	@Override
-	public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+	public boolean keyPressed(KeyInput keyInput) {
+		int keyCode = keyInput.key();
 		if (keyCode == GLFW.GLFW_KEY_ESCAPE || keyCode == GLFW.GLFW_KEY_ENTER) {
 			onClose.run();
 			return true;
 		}
 		
-		return super.keyPressed(keyCode, scanCode, modifiers);
+		return super.keyPressed(keyInput);
 	}
 	
 }

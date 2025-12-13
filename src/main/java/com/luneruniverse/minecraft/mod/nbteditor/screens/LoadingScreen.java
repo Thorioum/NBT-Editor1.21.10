@@ -16,6 +16,7 @@ import com.luneruniverse.minecraft.mod.nbteditor.multiversion.TextInst;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 
 import net.minecraft.client.util.math.MatrixStack;
+import org.joml.Matrix3x2fStack;
 
 public class LoadingScreen extends MVScreen {
 	
@@ -86,7 +87,7 @@ public class LoadingScreen extends MVScreen {
 	}
 	
 	@Override
-	public void render(MatrixStack matrices, int mouseX, int mouseY, float delta) {
+	public void render(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
 		super.renderBackground(matrices);
 		super.render(matrices, mouseX, mouseY, delta);
 		MainUtil.renderLogo(matrices);

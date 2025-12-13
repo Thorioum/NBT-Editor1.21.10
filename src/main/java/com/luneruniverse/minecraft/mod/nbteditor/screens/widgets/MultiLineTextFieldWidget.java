@@ -12,6 +12,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
+import com.luneruniverse.minecraft.mod.nbteditor.NBTEditor;
+import net.minecraft.client.gui.Click;
+import net.minecraft.client.input.CharInput;
+import net.minecraft.client.input.KeyInput;
+import org.joml.Matrix3x2fStack;
 import org.lwjgl.glfw.GLFW;
 
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVDrawable;
@@ -62,10 +67,10 @@ public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable
 				btn.setMessage(TextInst.translatable("nbteditor.multi_line_text.regex." + (regex ? "on" : "off")));
 			}, new MVTooltip("nbteditor.multi_line_text.regex")));
 			addWidget(MVMisc.newButton(0, 40, 40, 20, TextInst.translatable("nbteditor.multi_line_text.find"), btn -> {
-				goToNext(Screen.hasShiftDown(), true);
+				goToNext(NBTEditor.hasShiftDown(), true);
 			}));
 			addWidget(MVMisc.newButton(44, 40, 64, 20, TextInst.translatable("nbteditor.multi_line_text.replace"), btn -> {
-				if (goToNext(Screen.hasShiftDown(), true))
+				if (goToNext(NBTEditor.hasShiftDown(), true))
 					replaceSel();
 			}));
 			addWidget(MVMisc.newButton(112, 40, 64, 20, TextInst.translatable("nbteditor.multi_line_text.replace_all"), btn -> {
@@ -156,13 +161,18 @@ public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable
 				return;
 			}
 			StringBuilder replacement = new StringBuilder();
-			lastRegexMatch.appendReplacement(replacement, replaceValue);
-			replacement.delete(0, lastRegexMatch.start());
+			try {
+				lastRegexMatch.appendReplacement(replacement, replaceValue);
+				replacement.delete(0, lastRegexMatch.start());
+			} catch (IllegalArgumentException | IndexOutOfBoundsException e) {
+				replacement.setLength(0);
+				replacement.append(replaceValue);
+			}
 			write(replacement.toString());
 		}
 		
 		@Override
-		public void renderPre(MatrixStack matrices, int mouseX, int mouseY, float delta) {
+		public void renderPre(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
 			MVDrawableHelper.fill(matrices, -16, -16, 216, 76, 0xC8101010);
 		}
 		
@@ -185,13 +195,14 @@ public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable
 		}
 		
 		@Override
-		public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+		public boolean keyPressed(KeyInput keyInput) {
+			int keyCode = keyInput.key();
 			if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
 				OverlaySupportingScreen.setOverlayStatic(null);
 				return true;
 			}
 			if (keyCode == GLFW.GLFW_KEY_ENTER) {
-				goToNext(Screen.hasShiftDown(), true);
+				goToNext(NBTEditor.hasShiftDown(), true);
 				return true;
 			}
 			if (keyCode == GLFW.GLFW_KEY_TAB) {
@@ -201,13 +212,13 @@ public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable
 					setFocused(find);
 				return true;
 			}
-			if (keyCode == GLFW.GLFW_KEY_R && Screen.hasControlDown() && !Screen.hasShiftDown() && !Screen.hasAltDown()) {
+			if (keyCode == GLFW.GLFW_KEY_R && NBTEditor.hasControlDown() && !NBTEditor.hasShiftDown() && !NBTEditor.hasAltDown()) {
 				regex = !regex;
 				regexBtn.setMessage(TextInst.translatable("nbteditor.multi_line_text.regex." + (regex ? "on" : "off")));
 				return true;
 			}
 			
-			return super.keyPressed(keyCode, scanCode, modifiers);
+			return super.keyPressed(keyInput);
 		}
 		
 		@Override
@@ -414,13 +425,13 @@ public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable
 	}
 	
 	@Override
-	public void render(MatrixStack matrices, int mouseX, int mouseY, float delta) {
+	public void render(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
 		MVDrawableHelper.fill(matrices, x, y, x + width, y + height, bgColor);
 		
-		MainUtil.enableScissor(x, y, width, height);
+		MVDrawableHelper.enableScissor(matrices, x, y, width, height);
 		
-		matrices.push();
-		matrices.translate(0.0, scroll, 0.0);
+		matrices.pushMatrix();
+		matrices.translate(0.0F, scroll);
 		
 		renderHighlightsBelow(matrices, mouseX, mouseY, delta);
 		
@@ -431,7 +442,7 @@ public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable
 		}
 		
 		Version.newSwitch()
-				.range("1.20.0", null, () -> matrices.translate(0.0, 0.0, 1.0))
+				.range("1.20.0", null, () -> matrices.translate(0.0f, 0.0f))
 				.range(null, "1.19.4", () -> {})
 				.run();
 		
@@ -443,7 +454,7 @@ public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable
 			MVDrawableHelper.fill(matrices, cursor.x, cursor.y, cursor.x + 1, cursor.y + textRenderer.fontHeight, cursorColor);
 		}
 		
-		matrices.pop();
+		matrices.popMatrix();
 		
 		scrollBar.render(matrices, mouseX, mouseY, delta);
 		
@@ -452,11 +463,11 @@ public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable
 			suggestor.render(matrices, mouseX, mouseY, delta);
 		}
 		
-		MainUtil.disableScissor();
+		MVDrawableHelper.disableScissor(matrices);
 	}
-	protected void renderHighlightsBelow(MatrixStack matrices, int mouseX, int mouseY, float delta) {}
-	protected void renderHighlightsAbove(MatrixStack matrices, int mouseX, int mouseY, float delta) {}
-	protected void renderHighlight(MatrixStack matrices, int start, int end, int color) {
+	protected void renderHighlightsBelow(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {}
+	protected void renderHighlightsAbove(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {}
+	protected void renderHighlight(Matrix3x2fStack matrices, int start, int end, int color) {
 		Point startPos = getXYPos(start);
 		Point endPos = getXYPos(end);
 		if (startPos.y == endPos.y)
@@ -515,33 +526,33 @@ public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable
 	}
 	
 	@Override
-	public boolean mouseClicked(double mouseX, double mouseY, int button) {
+	public boolean mouseClicked(Click click, boolean doubled) {
 		if (suggestor != null) {
 			syncToSuggestor();
-			if (suggestor.mouseClicked(mouseX, mouseY, button)) {
+			if (suggestor.mouseClicked(click, doubled)) {
 				syncFromSuggestor();
 				return true;
 			}
 		}
-		if (!isMouseOver(mouseX, mouseY))
+		if (!isMouseOver(click.x(), click.y()))
 			return false;
 		
-		if (scrollBar.mouseClicked(mouseX, mouseY, button))
+		if (scrollBar.mouseClicked(click, doubled))
 			return true;
 		
-		setCursor(getCharPos(mouseX, mouseY - scroll), true);
+		setCursor(getCharPos(click.x(), click.y() - scroll), true);
 		cursorX = -1;
 		return true;
 	}
 	
 	@Override
-	public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
-		if (scrollBar.mouseDragged(mouseX, mouseY, button, deltaX, deltaY))
+	public boolean mouseDragged(Click click, double deltaX, double deltaY) {
+		if (scrollBar.mouseDragged(click, deltaX, deltaY))
 			return true;
-		if (!isMouseOver(mouseX, mouseY))
+		if (!isMouseOver(click.x(), click.y()))
 			return false;
 		
-		int selEnd = getCharPos(mouseX, mouseY - scroll);
+		int selEnd = getCharPos(click.x(), click.y() - scroll);
 		onCursorMove(selEnd, Math.min(selStart, selEnd), Math.max(selStart, selEnd));
 		this.selEnd = selEnd;
 		cursor = selEnd;
@@ -635,7 +646,7 @@ public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable
 	public void setCursor(int cursor, boolean select) {
 		int selStart = this.selStart;
 		int selEnd = this.selEnd;
-		if (select && Screen.hasShiftDown())
+		if (select && NBTEditor.hasShiftDown())
 			selEnd = cursor;
 		else {
 			selStart = cursor;
@@ -690,15 +701,16 @@ public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable
 	}
 	
 	@Override
-	public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-		if (suggestor != null && (keyCode != GLFW.GLFW_KEY_UP && keyCode != GLFW.GLFW_KEY_DOWN || Screen.hasAltDown())) {
+	public boolean keyPressed(KeyInput keyInput) {
+		int keyCode = keyInput.key();
+		if (suggestor != null && (keyCode != GLFW.GLFW_KEY_UP && keyCode != GLFW.GLFW_KEY_DOWN || NBTEditor.hasAltDown())) {
 			syncToSuggestor();
-			if (suggestor.keyPressed(keyCode, scanCode, modifiers)) {
+			if (suggestor.keyPressed(keyInput)) {
 				syncFromSuggestor();
 				return true;
 			}
 		}
-		if (Screen.isSelectAll(keyCode)) {
+		if (NBTEditor.isSelectAll(keyCode)) {
 			onCursorMove(text.length(), 0, text.length());
 			selStart = 0;
 			selEnd = text.length();
@@ -706,16 +718,16 @@ public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable
 			cursorX = -1;
 			return true;
 		}
-		if (Screen.isCopy(keyCode)) {
+		if (NBTEditor.isCopy(keyCode)) {
 			MainUtil.client.keyboard.setClipboard(onCopy(getSelectedText(), getSelStart(), getSelEnd() - getSelStart()));
 			return true;
 		}
-		if (Screen.isPaste(keyCode)) {
+		if (NBTEditor.isPaste(keyCode)) {
 			this.write(pasteFilter(onPaste(MainUtil.client.keyboard.getClipboard(), getSelStart(), getSelEnd() - getSelStart())));
 			cursorX = -1;
 			return true;
 		}
-		if (Screen.isCut(keyCode)) {
+		if (NBTEditor.isCut(keyCode)) {
 			MainUtil.client.keyboard.setClipboard(onCopy(getSelectedText(), getSelStart(), getSelEnd() - getSelStart()));
 			this.write("");
 			cursorX = -1;
@@ -749,7 +761,7 @@ public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable
 		}
 		switch (keyCode) {
 			case GLFW.GLFW_KEY_LEFT: {
-				if (Screen.hasControlDown()) {
+				if (NBTEditor.hasControlDown()) {
 					this.setCursor(this.getWordSkipPosition(true, false), true);
 				} else {
 					this.moveCursor(-1);
@@ -758,7 +770,7 @@ public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable
 				return true;
 			}
 			case GLFW.GLFW_KEY_RIGHT: {
-				if (Screen.hasControlDown()) {
+				if (NBTEditor.hasControlDown()) {
 					this.setCursor(this.getWordSkipPosition(false, false), true);
 				} else {
 					this.moveCursor(1);
@@ -767,14 +779,14 @@ public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable
 				return true;
 			}
 			case GLFW.GLFW_KEY_UP: {
-				if (Screen.hasControlDown())
+				if (NBTEditor.hasControlDown())
 					setCursor(0, true);
 				else
 					moveCursorUp();
 				return true;
 			}
 			case GLFW.GLFW_KEY_DOWN: {
-				if (Screen.hasControlDown())
+				if (NBTEditor.hasControlDown())
 					setCursor(text.length(), true);
 				else
 					moveCursorDown();
@@ -833,13 +845,13 @@ public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable
 	}
 	
 	public static boolean isUndo(int code) {
-		return code == GLFW.GLFW_KEY_Z && Screen.hasControlDown() && !Screen.hasShiftDown() && !Screen.hasAltDown();
+		return code == GLFW.GLFW_KEY_Z && NBTEditor.hasControlDown() && !NBTEditor.hasShiftDown() && !NBTEditor.hasAltDown();
 	}
 	public static boolean isRedo(int code) {
-		return code == GLFW.GLFW_KEY_Y && Screen.hasControlDown() && !Screen.hasShiftDown() && !Screen.hasAltDown();
+		return code == GLFW.GLFW_KEY_Y && NBTEditor.hasControlDown() && !NBTEditor.hasShiftDown() && !NBTEditor.hasAltDown();
 	}
 	public static boolean isFind(int code) {
-		return code == GLFW.GLFW_KEY_F && Screen.hasControlDown() && !Screen.hasShiftDown() && !Screen.hasAltDown();
+		return code == GLFW.GLFW_KEY_F && NBTEditor.hasControlDown() && !NBTEditor.hasShiftDown() && !NBTEditor.hasAltDown();
 	}
 	
 	// passOneSpace requires that one section of whitespace is passed, either at the end or beginning of the search
@@ -878,11 +890,11 @@ public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable
 	}
 	
 	private int getCursorPosWithOffset(int offset) {
-		return Util.moveCursor(this.text, Screen.hasShiftDown() ? cursor : (offset > 0 ? getSelEnd() : getSelStart()), offset);
+		return Util.moveCursor(this.text, NBTEditor.hasShiftDown() ? cursor : (offset > 0 ? getSelEnd() : getSelStart()), offset);
 	}
 	
 	private void erase(boolean backwards) {
-		if (Screen.hasControlDown()) {
+		if (NBTEditor.hasControlDown()) {
 			this.eraseWords(backwards);
 		} else {
 			this.eraseCharacters(backwards ? -1 : 1);
@@ -926,9 +938,9 @@ public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable
 	}
 	
 	@Override
-	public boolean charTyped(char chr, int modifiers) {
-		if (MVMisc.isValidChar(chr)) {
-			this.write(Character.toString(chr));
+	public boolean charTyped(CharInput charInput) {
+		if (MVMisc.isValidChar((char) charInput.codepoint())) {
+			this.write(Character.toString(charInput.codepoint()));
 			cursorX = -1;
 			return true;
 		}

@@ -19,6 +19,7 @@ import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVTooltip;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.ScreenTexts;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.TextInst;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.Version;
+import com.luneruniverse.minecraft.mod.nbteditor.multiversion.nbt.MVNbtCompoundParent;
 import com.luneruniverse.minecraft.mod.nbteditor.screens.widgets.ImageToLoreWidget;
 import com.luneruniverse.minecraft.mod.nbteditor.screens.widgets.ImportPosWidget;
 import com.luneruniverse.minecraft.mod.nbteditor.screens.widgets.NamedTextFieldWidget;
@@ -30,12 +31,11 @@ import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtInt;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
+import org.joml.Matrix3x2fStack;
 
 public class ImportScreen extends OverlaySupportingScreen {
 	
@@ -50,9 +50,9 @@ public class ImportScreen extends OverlaySupportingScreen {
 			if (file.getName().endsWith(".nbt")) {
 				try (FileInputStream in = new FileInputStream(file)) {
 					NbtCompound nbt = MainUtil.readNBT(in);
-					if (defaultDataVersion.isEmpty() && !(nbt.get("DataVersion") instanceof NbtInt))
+					if (defaultDataVersion.isEmpty() && !nbt.nbte$contains("DataVersion", MVNbtCompoundParent.NUMBER_TYPE))
 						MainUtil.client.player.sendMessage(TextUtil.parseTranslatableFormatted("nbteditor.nbt.import.data_version.unknown", file.getName()), false);
-					if (nbt.getInt("DataVersion").orElse(0) > Version.getDataVersion())
+					if (nbt.nbte$getIntOrDefault("DataVersion") > Version.getDataVersion())
 						MainUtil.client.player.sendMessage(TextInst.translatable("nbteditor.nbt.import.data_version.new", file.getName()), false);
 					LocalNBT.deserialize(nbt, defaultDataVersion.orElse(Version.getDataVersion())).ifPresent(localNBT -> {
 						if (localNBT instanceof LocalItem item)
@@ -83,7 +83,7 @@ public class ImportScreen extends OverlaySupportingScreen {
 				name = name.substring(0, nameDot);
 			
 			ItemStack painting = new ItemStack(Items.PAINTING);
-			painting.manager$setCustomName(TextInst.literal(name).styled(style -> style.withItalic(false).withColor(Formatting.GOLD)));
+			painting.nbte$setCustomName(TextInst.literal(name).styled(style -> style.withItalic(false).withColor(Formatting.GOLD)));
 			ItemTagReferences.LORE.set(painting, imgLore);
 			MainUtil.getWithMessage(painting);
 		}, () -> {});
@@ -108,7 +108,7 @@ public class ImportScreen extends OverlaySupportingScreen {
 	}
 	
 	@Override
-	protected void renderMain(MatrixStack matrices, int mouseX, int mouseY, float delta) {
+	protected void renderMain(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
 		dataVersion.setValid(dataVersion.getText().isEmpty() ||
 				Version.getDataVersion(dataVersion.getText()).filter(value -> value <= Version.getDataVersion()).isPresent());
 		

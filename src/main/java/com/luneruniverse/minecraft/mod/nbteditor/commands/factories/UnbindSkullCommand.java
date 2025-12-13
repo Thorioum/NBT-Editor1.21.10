@@ -49,17 +49,17 @@ public class UnbindSkullCommand extends ClientCommand {
 				Optional<GameProfile> profile = (ref instanceof ItemReference itemRef ?
 						ItemTagReferences.PROFILE.get(itemRef.getItem()) :
 						BlockTagReferences.PROFILE.get((LocalBlock) ref.getLocalNBT()));
-				if (profile.isEmpty() || profile.get().getProperties().isEmpty()) {
+				if (profile.isEmpty() || profile.get().properties().isEmpty()) {
 					MainUtil.client.player.sendMessage(TextInst.translatable("nbteditor.unbind_skull.no_textures"), false);
 					return;
 				}
 				GameProfile newProfile = new GameProfile(new UUID(0L, 0L), "Unbound_Player");
-				newProfile.getProperties().putAll(profile.get().getProperties());
+				newProfile.properties().putAll(profile.get().properties());
 				if (ref instanceof ItemReference itemRef) {
 					ItemStack item = itemRef.getItem();
 					ItemTagReferences.PROFILE.set(item, Optional.of(newProfile));
-					if (!item.manager$hasCustomName()) {
-						item.manager$setCustomName(TextInst.translatable("block.minecraft.player_head.named", profile.get().getName())
+					if (!item.nbte$hasCustomName()) {
+						item.nbte$setCustomName(TextInst.translatable("block.minecraft.player_head.named", profile.get().name())
 								.styled(style -> style.withItalic(false).withColor(Formatting.YELLOW)));
 					}
 					itemRef.saveItem(item, TextInst.translatable("nbteditor.unbind_skull.unbound"));

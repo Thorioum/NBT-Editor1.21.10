@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.List;
 
-import com.google.gson.JsonParseException;
 import com.luneruniverse.minecraft.mod.nbteditor.NBTEditor;
 import com.luneruniverse.minecraft.mod.nbteditor.NBTEditorClient;
 import com.luneruniverse.minecraft.mod.nbteditor.commands.ClientCommand;
@@ -17,6 +16,7 @@ import com.luneruniverse.minecraft.mod.nbteditor.multiversion.TextInst;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.commands.FabricClientCommandSource;
 import com.luneruniverse.minecraft.mod.nbteditor.nbtreferences.itemreferences.ItemReference;
 import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.ItemTagReferences;
+import com.luneruniverse.minecraft.mod.nbteditor.util.StyleUtil;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
@@ -33,8 +33,10 @@ public class SignatureCommand extends ClientCommand {
 			signature = TextInst.translatable("nbteditor.sign.default");
 		else {
 			try {
-				signature = TextInst.fromJson(new String(Files.readAllBytes(SIGNATURE_FILE.toPath())));
-			} catch (IOException | JsonParseException e) {
+				signature = TextInst.fromString(new String(Files.readAllBytes(SIGNATURE_FILE.toPath())), true);
+				if (signature == null)
+					throw new NullPointerException("Signature is null");
+			} catch (IOException | IllegalArgumentException | NullPointerException e) {
 				NBTEditor.LOGGER.error("Error while loading signature", e);
 				signature = TextInst.translatable("nbteditor.sign.load_error");
 			}
@@ -89,7 +91,7 @@ public class SignatureCommand extends ClientCommand {
 					
 					return Command.SINGLE_SUCCESS;
 				}))
-				.then(literal("edit").then(argument("signature", FancyTextArgumentType.fancyText()).executes(context -> {
+				.then(literal("edit").then(argument("signature", FancyTextArgumentType.fancyText(StyleUtil.BASE_LORE_STYLE)).executes(context -> {
 					Text oldSignature = signature;
 					
 					try {
@@ -98,7 +100,7 @@ public class SignatureCommand extends ClientCommand {
 						throw new SimpleCommandExceptionType(TextInst.translatable("nbteditor.sign.new.missing_arg")).create();
 					}
 					try {
-						Files.write(SIGNATURE_FILE.toPath(), TextInst.toJsonString(signature).getBytes());
+						Files.write(SIGNATURE_FILE.toPath(), TextInst.toString(signature).getBytes());
 					} catch (IOException e) {
 						NBTEditor.LOGGER.error("Error while saving signature", e);
 						throw new SimpleCommandExceptionType(TextInst.translatable("nbteditor.sign.save_error")).create();

@@ -69,6 +69,11 @@ public class BlockReference implements NBTReference<LocalBlock> {
 	}
 	
 	@Override
+	public boolean exists() {
+		return true;
+	}
+	
+	@Override
 	public LocalBlock getLocalNBT() {
 		return new LocalBlock(block, state, nbt);
 	}
@@ -77,7 +82,7 @@ public class BlockReference implements NBTReference<LocalBlock> {
 		this.block = block.getBlock();
 		this.state = block.getState();
 		this.nbt = block.getNBT();
-		MVClientNetworking.send(new SetBlockC2SPacket(world, pos, block.getId(), state, nbt,
+		MVClientNetworking.send(new SetBlockC2SPacket(world, pos, block.getId(), state.copy(), nbt.copy(),
 				ConfigScreen.isRecreateBlocksAndEntities(), ConfigScreen.isTriggerBlockUpdates()));
 		onFinished.run();
 	}
@@ -94,7 +99,7 @@ public class BlockReference implements NBTReference<LocalBlock> {
 	public void saveNBT(Identifier id, NbtCompound toSave, Runnable onFinished) {
 		this.block = MVRegistry.BLOCK.get(id);
 		this.nbt = toSave;
-		MVClientNetworking.send(new SetBlockC2SPacket(world, pos, id, state, toSave,
+		MVClientNetworking.send(new SetBlockC2SPacket(world, pos, id, state.copy(), toSave.copy(),
 				ConfigScreen.isRecreateBlocksAndEntities(), ConfigScreen.isTriggerBlockUpdates()));
 		onFinished.run();
 	}
@@ -108,7 +113,7 @@ public class BlockReference implements NBTReference<LocalBlock> {
 	}
 	public void saveState(BlockStateProperties state, Runnable onFinished) {
 		this.state = state;
-		MVClientNetworking.send(new SetBlockC2SPacket(world, pos, MVRegistry.BLOCK.getId(block), state, nbt,
+		MVClientNetworking.send(new SetBlockC2SPacket(world, pos, MVRegistry.BLOCK.getId(block), state.copy(), nbt.copy(),
 				ConfigScreen.isRecreateBlocksAndEntities(), ConfigScreen.isTriggerBlockUpdates()));
 		onFinished.run();
 	}

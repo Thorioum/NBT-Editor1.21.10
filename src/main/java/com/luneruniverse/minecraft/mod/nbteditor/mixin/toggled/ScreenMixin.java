@@ -2,6 +2,7 @@ package com.luneruniverse.minecraft.mod.nbteditor.mixin.toggled;
 
 import java.util.List;
 
+import org.joml.Matrix3x2fStack;
 import org.joml.Vector2ic;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -21,7 +22,7 @@ import net.minecraft.client.util.math.MatrixStack;
 @Mixin(Screen.class)
 public class ScreenMixin {
 	@Inject(method = "method_32633", at = @At(value = "INVOKE", target = "Lnet/minecraft/class_4587;method_22903()V", shift = At.Shift.AFTER), remap = false)
-	private void renderTooltipFromComponents(MatrixStack matrices, List<TooltipComponent> tooltip, int x, int y, TooltipPositioner positioner, CallbackInfo info) {
+	private void renderTooltipFromComponents(Matrix3x2fStack matrices, List<TooltipComponent> tooltip, int x, int y, TooltipPositioner positioner, CallbackInfo info) {
 		if (!ConfigScreen.isTooltipOverflowFix())
 			return;
 		

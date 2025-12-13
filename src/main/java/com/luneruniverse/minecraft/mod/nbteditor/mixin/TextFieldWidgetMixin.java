@@ -23,7 +23,7 @@ import net.minecraft.util.Identifier;
 @Mixin(TextFieldWidget.class)
 public abstract class TextFieldWidgetMixin implements Tickable {
 	private static final Identifier TEXT_FIELD_INVALID = IdentifierInst.of("nbteditor", "widget/text_field_invalid");
-	@ModifyArg(method = "renderWidget", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/DrawContext;drawGuiTexture(Ljava/util/function/Function;Lnet/minecraft/util/Identifier;IIII)V", ordinal = 0))
+	@ModifyArg(method = "renderWidget", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/DrawContext;drawGuiTexture(Lcom/mojang/blaze3d/pipeline/RenderPipeline;Lnet/minecraft/util/Identifier;IIII)V", ordinal = 0))
 	@Group(name = "renderButton", min = 1)
 	private Identifier drawGuiTexture2(Identifier texture) {
 		TextFieldWidget source = (TextFieldWidget) (Object) this;
@@ -54,14 +54,6 @@ public abstract class TextFieldWidgetMixin implements Tickable {
 		if (source instanceof NamedTextFieldWidget named && !named.isValid())
 			return 0xFFDF4949;
 		return color;
-	}
-	
-	@Redirect(method = "method_1886(IIII)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/class_287;method_22912(DDD)Lnet/minecraft/class_4588;"), remap = false, require = 0)
-	@SuppressWarnings("target")
-	private VertexConsumer vertex(BufferBuilder buffer, double x, double y, double z) {
-		if (NamedTextFieldWidget.matrix == null)
-			return MVMisc.startVertex(buffer, x, y, z);
-		return NamedTextFieldWidget.matrix.applyToVertex(buffer, (float) x, (float) y, (float) z);
 	}
 	
 	private static final Supplier<Reflection.FieldReference> TextFieldWidget_focusedTicks =

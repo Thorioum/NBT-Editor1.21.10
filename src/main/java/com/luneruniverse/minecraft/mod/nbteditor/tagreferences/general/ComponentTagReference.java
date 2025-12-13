@@ -1,5 +1,6 @@
 package com.luneruniverse.minecraft.mod.nbteditor.tagreferences.general;
 
+import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -12,7 +13,7 @@ import net.minecraft.util.Unit;
 public class ComponentTagReference<T, C> implements TagReference<T, ItemStack> {
 	
 	public static <C> ComponentTagReference<Boolean, C> forExistance(MVComponentType<C> component, Supplier<C> supplier) {
-		return new ComponentTagReference<>(component, null, componentValue -> componentValue != null, (componentValue, value) -> {
+		return new ComponentTagReference<>(component, null, Objects::nonNull, (componentValue, value) -> {
 			if (value == null)
 				value = false;
 			if ((componentValue != null) == value)

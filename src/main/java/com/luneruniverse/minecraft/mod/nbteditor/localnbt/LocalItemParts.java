@@ -9,7 +9,7 @@ import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVDrawableHelper;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVRegistry;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.TextInst;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.Version;
-import com.luneruniverse.minecraft.mod.nbteditor.multiversion.nbt.NBTManagers;
+import com.luneruniverse.minecraft.mod.nbteditor.multiversion.nbt.manager.NBTManagers;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 
 import net.minecraft.client.util.math.MatrixStack;
@@ -19,6 +19,7 @@ import net.minecraft.item.Items;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
+import org.joml.Matrix3x2fStack;
 
 public class LocalItemParts extends LocalItem {
 	
@@ -31,7 +32,7 @@ public class LocalItemParts extends LocalItem {
 	
 	public LocalItemParts(ItemStack item) {
 		this.item = item.getItem();
-		this.nbt = item.manager$getNbt();
+		this.nbt = item.nbte$getNbt();
 		this.count = item.getCount();
 		
 		if (this.item == null)
@@ -73,7 +74,7 @@ public class LocalItemParts extends LocalItem {
 		cachedItem = new ItemStack(item, 1);
 		cachedNbt = (nbt == null ? null : nbt.copy());
 		try {
-			cachedItem.manager$setNbt(cachedNbt);
+			cachedItem.nbte$setNbt(cachedNbt);
 		} catch (Exception e) {
 			NBTEditor.LOGGER.warn("Error while updating item cache", e);
 			cachedItem = oldCachedItem;
@@ -113,16 +114,16 @@ public class LocalItemParts extends LocalItem {
 				}
 			} else {
 				NbtCompound nbt = getOrCreateNBT();
-				nbt.putString(nbt.contains("minecraft:custom_name") || !nbt.contains("custom_name") ?
-						"minecraft:custom_name" : "custom_name", TextInst.toJsonString(name));
+				nbt.put(nbt.contains("minecraft:custom_name") || !nbt.contains("custom_name") ?
+						"minecraft:custom_name" : "custom_name", TextInst.toMinecraft(name));
 			}
 		} else {
 			NbtCompound nbt = getOrCreateNBT();
-			NbtCompound display = nbt.getCompound("display").orElse(new NbtCompound());
+			NbtCompound display = nbt.nbte$getCompoundOrDefault("display");
 			if (name == null)
 				display.remove("Name");
 			else {
-				display.putString("Name", TextInst.toJsonString(name));
+				display.putString("Name", TextInst.toJson(name));
 				nbt.put("display", display);
 			}
 		}
@@ -174,12 +175,12 @@ public class LocalItemParts extends LocalItem {
 	}
 	
 	@Override
-	public void renderIcon(MatrixStack matrices, int x, int y) {
+	public void renderIcon(Matrix3x2fStack matrices, int x, int y, float tickDelta) {
 		MVDrawableHelper.renderItem(matrices, 200.0F, true, getCachedItem(), x, y);
 	}
 	
 	@Override
-	public Optional<ItemStack> toItem() {
+	public Optional<ItemStack> toItem(boolean cleanup) {
 		return Optional.of(getCachedItem().copy());
 	}
 	@Override

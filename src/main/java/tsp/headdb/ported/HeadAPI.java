@@ -268,8 +268,8 @@ public final class HeadAPI {
     public static List<LocalHead> getLocalHeads() {
         List<LocalHead> heads = new ArrayList<>();
         for (PlayerListEntry player : MainUtil.client.getNetworkHandler().getPlayerList()) {
-            heads.add(new LocalHead(player.getProfile().getId())
-                    .withName(player.getProfile().getName()));
+            heads.add(new LocalHead(player.getProfile().id())
+                    .withName(player.getProfile().name()));
         }
 
         return heads;

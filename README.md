@@ -1,8 +1,6 @@
-# NBT-Editor - 1.21.4
+# NBT-Editor - 1.21.10
 
-Mega has still not updated the nbteditor mod to 1.21.4, so i went ahead and forked and did it myself
-
-
+omg i love 1.21.10 thanks thorioum
 
 This is a mod built for editing items, blocks, and entities in Minecraft.
 

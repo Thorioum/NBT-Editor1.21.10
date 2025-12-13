@@ -22,6 +22,7 @@ import com.luneruniverse.minecraft.mod.nbteditor.util.BlockStateProperties;
 
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.item.BlockItem;
+import org.joml.Matrix3x2fStack;
 
 public class BlockStatesScreen<L extends LocalNBT> extends LocalEditorScreen<L> {
 	
@@ -62,10 +63,11 @@ public class BlockStatesScreen<L extends LocalNBT> extends LocalEditorScreen<L> 
 					
 					if (newValue.equals("unset"))
 						unset.add(property);
-					else
+					else {
 						unset.remove(property);
+						state.setValue(property, newValue);
+					}
 					
-					state.setValue(property, newValue);
 					if (localNBT instanceof LocalItem item) {
 						Map<String, String> blockStatesMap = state.getValuesMap();
 						blockStatesMap.keySet().removeAll(unset);
@@ -86,7 +88,7 @@ public class BlockStatesScreen<L extends LocalNBT> extends LocalEditorScreen<L> 
 	}
 	
 	@Override
-	public void renderEditor(MatrixStack matrices, int mouseX, int mouseY, float delta) {
+	public void renderEditor(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
 		if (!hasBlockStates)
 			MVDrawableHelper.drawTextWithShadow(matrices, textRenderer, TextInst.translatable("nbteditor.block_states.none"), 16, 64, -1);
 	}

@@ -7,9 +7,9 @@ import org.spongepowered.asm.mixin.Mixin;
 
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVComponentType;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.Reflection;
-import com.luneruniverse.minecraft.mod.nbteditor.multiversion.nbt.IntegratedNBTManager;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.nbt.MVItemStackParent;
-import com.luneruniverse.minecraft.mod.nbteditor.multiversion.nbt.NBTManagers;
+import com.luneruniverse.minecraft.mod.nbteditor.multiversion.nbt.manager.IntegratedNBTManager;
+import com.luneruniverse.minecraft.mod.nbteditor.multiversion.nbt.manager.NBTManagers;
 
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
@@ -18,24 +18,24 @@ import net.minecraft.text.Text;
 @Mixin(ItemStack.class)
 public class ItemStackMixin implements IntegratedNBTManager, MVItemStackParent {
 	@Override
-	public NbtCompound manager$serialize(boolean requireSuccess) {
+	public NbtCompound nbte$serialize(boolean requireSuccess) {
 		return NBTManagers.ITEM.serialize((ItemStack) (Object) this, requireSuccess);
 	}
 	
 	@Override
-	public boolean manager$hasNbt() {
+	public boolean nbte$hasNbt() {
 		return NBTManagers.ITEM.hasNbt((ItemStack) (Object) this);
 	}
 	@Override
-	public NbtCompound manager$getNbt() {
+	public NbtCompound nbte$getNbt() {
 		return NBTManagers.ITEM.getNbt((ItemStack) (Object) this);
 	}
 	@Override
-	public NbtCompound manager$getOrCreateNbt() {
+	public NbtCompound nbte$getOrCreateNbt() {
 		return NBTManagers.ITEM.getOrCreateNbt((ItemStack) (Object) this);
 	}
 	@Override
-	public void manager$setNbt(NbtCompound nbt) {
+	public void nbte$setNbt(NbtCompound nbt) {
 		NBTManagers.ITEM.setNbt((ItemStack) (Object) this, nbt);
 	}
 	
@@ -43,7 +43,7 @@ public class ItemStackMixin implements IntegratedNBTManager, MVItemStackParent {
 	private static final Supplier<Reflection.MethodInvoker> ItemStack_hasCustomName =
 			Reflection.getOptionalMethod(ItemStack.class, "method_7938", MethodType.methodType(boolean.class));
 	@Override
-	public boolean manager$hasCustomName() {
+	public boolean nbte$hasCustomName() {
 		if (NBTManagers.COMPONENTS_EXIST)
 			return ((ItemStack) (Object) this).contains(MVComponentType.CUSTOM_NAME);
 		else
@@ -52,7 +52,7 @@ public class ItemStackMixin implements IntegratedNBTManager, MVItemStackParent {
 	private static final Supplier<Reflection.MethodInvoker> ItemStack_setCustomName =
 			Reflection.getOptionalMethod(ItemStack.class, "method_7977", MethodType.methodType(ItemStack.class, Text.class));
 	@Override
-	public ItemStack manager$setCustomName(Text name) {
+	public ItemStack nbte$setCustomName(Text name) {
 		if (NBTManagers.COMPONENTS_EXIST)
 			((ItemStack) (Object) this).set(MVComponentType.CUSTOM_NAME, name);
 		else

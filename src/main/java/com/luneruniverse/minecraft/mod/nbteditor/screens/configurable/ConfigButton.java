@@ -3,6 +3,7 @@ package com.luneruniverse.minecraft.mod.nbteditor.screens.configurable;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVButtonWidget;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVTooltip;
 
+import net.minecraft.client.input.KeyInput;
 import net.minecraft.text.Text;
 
 public class ConfigButton extends MVButtonWidget implements ConfigPath {
@@ -51,7 +52,7 @@ public class ConfigButton extends MVButtonWidget implements ConfigPath {
 	
 	
 	@Override
-	public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+	public boolean keyPressed(KeyInput keyInput) {
 		return false; // Stop space from triggering the button
 	}
 	

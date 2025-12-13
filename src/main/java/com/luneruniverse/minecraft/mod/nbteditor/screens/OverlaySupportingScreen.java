@@ -3,11 +3,15 @@ package com.luneruniverse.minecraft.mod.nbteditor.screens;
 import com.luneruniverse.minecraft.mod.nbteditor.screens.widgets.InitializableOverlay;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 
+import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.Drawable;
 import net.minecraft.client.gui.Element;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.input.CharInput;
+import net.minecraft.client.input.KeyInput;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.Text;
+import org.joml.Matrix3x2fStack;
 
 public class OverlaySupportingScreen extends TickableSupportingScreen {
 	
@@ -76,22 +80,22 @@ public class OverlaySupportingScreen extends TickableSupportingScreen {
 	}
 	
 	@Override
-	public final void render(MatrixStack matrices, int mouseX, int mouseY, float delta) {
+	public final void render(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
 		int bgMouseX = (overlay == null ? mouseX : -314);
 		int bgMouseY = (overlay == null ? mouseY : -314);
 		renderMain(matrices, bgMouseX, bgMouseY, delta);
 		if (overlay != null) {
 			boolean translated = (overlayZ != 0);
 			if (translated) {
-				matrices.push();
-				matrices.translate(0.0, 0.0, overlayZ);
+				matrices.pushMatrix();
+				matrices.translate(0.0f, 0.0f);
 			}
 			((Drawable) overlay).render(matrices, mouseX, mouseY, delta);
 			if (translated)
-				matrices.pop();
+				matrices.popMatrix();
 		}
 	}
-	protected void renderMain(MatrixStack matrices, int mouseX, int mouseY, float delta) {
+	protected void renderMain(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
 		super.render(matrices, mouseX, mouseY, delta);
 	}
 	
@@ -105,17 +109,17 @@ public class OverlaySupportingScreen extends TickableSupportingScreen {
 	}
 	
 	@Override
-	public boolean mouseClicked(double mouseX, double mouseY, int button) {
+	public boolean mouseClicked(Click click, boolean doubled) {
 		if (overlay != null)
-			return overlay.mouseClicked(mouseX, mouseY, button);
-		return super.mouseClicked(mouseX, mouseY, button);
+			return overlay.mouseClicked(click, doubled);
+		return super.mouseClicked(click, doubled);
 	}
 	
 	@Override
-	public boolean mouseReleased(double mouseX, double mouseY, int button) {
+	public boolean mouseReleased(Click click) {
 		if (overlay != null)
-			return overlay.mouseReleased(mouseX, mouseY, button);
-		return super.mouseReleased(mouseX, mouseY, button);
+			return overlay.mouseReleased(click);
+		return super.mouseReleased(click);
 	}
 	
 	@Override
@@ -127,10 +131,10 @@ public class OverlaySupportingScreen extends TickableSupportingScreen {
 	}
 	
 	@Override
-	public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
+	public boolean mouseDragged(Click click, double deltaX, double deltaY) {
 		if (overlay != null)
-			return overlay.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
-		return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
+			return overlay.mouseDragged(click, deltaX, deltaY);
+		return super.mouseDragged(click, deltaX, deltaY);
 	}
 	
 	@Override
@@ -141,24 +145,24 @@ public class OverlaySupportingScreen extends TickableSupportingScreen {
 	}
 	
 	@Override
-	public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+	public boolean keyPressed(KeyInput keyInput) {
 		if (overlay != null)
-			return overlay.keyPressed(keyCode, scanCode, modifiers);
-		return super.keyPressed(keyCode, scanCode, modifiers);
+			return overlay.keyPressed(keyInput);
+		return super.keyPressed(keyInput);
 	}
 	
 	@Override
-	public boolean keyReleased(int keyCode, int scanCode, int modifiers) {
+	public boolean keyReleased(KeyInput keyInput) {
 		if (overlay != null)
-			return overlay.keyReleased(keyCode, scanCode, modifiers);
-		return super.keyReleased(keyCode, scanCode, modifiers);
+			return overlay.keyReleased(keyInput);
+		return super.keyReleased(keyInput);
 	}
 	
 	@Override
-	public boolean charTyped(char chr, int modifiers) {
+	public boolean charTyped(CharInput charInput) {
 		if (overlay != null)
-			return overlay.charTyped(chr, modifiers);
-		return super.charTyped(chr, modifiers);
+			return overlay.charTyped(charInput);
+		return super.charTyped(charInput);
 	}
 	
 }

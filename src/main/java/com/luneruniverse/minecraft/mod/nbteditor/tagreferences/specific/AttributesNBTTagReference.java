@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.IdentifierInst;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVRegistry;
+import com.luneruniverse.minecraft.mod.nbteditor.multiversion.nbt.MVNbtCompoundParent;
 import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.general.TagReference;
 import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.specific.data.AttributeData;
 import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.specific.data.AttributeData.AttributeModifierData.AttributeModifierId;
@@ -13,8 +14,9 @@ import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.specific.data.Att
 import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.specific.data.AttributeData.AttributeModifierData.Slot;
 
 import net.minecraft.entity.attribute.EntityAttribute;
-import net.minecraft.nbt.*;
-import net.minecraft.util.Uuids;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtElement;
+import net.minecraft.nbt.NbtList;
 
 public class AttributesNBTTagReference implements TagReference<List<AttributeData>, NbtCompound> {
 	
@@ -66,42 +68,42 @@ public class AttributesNBTTagReference implements TagReference<List<AttributeDat
 	
 	@Override
 	public List<AttributeData> get(NbtCompound object) {
-		NbtList attributesNbt = object.getList(layout.getAttributeListTag()).orElse(new NbtList());
+		NbtList attributesNbt = object.nbte$getListOrDefault(layout.getAttributeListTag(), NbtElement.COMPOUND_TYPE);
 		List<AttributeData> output = new ArrayList<>();
-		for (NbtElement attributeNbtElement : attributesNbt) {
+		for (NbtElement attributeNbtElement : attributesNbt.nbte$iterable()) {
 			NbtCompound attributeNbt = (NbtCompound) attributeNbtElement;
 			
-			EntityAttribute attribute = MVRegistry.ATTRIBUTE.get(IdentifierInst.of(
-					attributeNbt.getString(layout.getAttributeNameTag()).orElse("")));
+			EntityAttribute attribute = attributeNbt.nbte$getString(layout.getAttributeNameTag())
+					.map(IdentifierInst::of).map(MVRegistry.ATTRIBUTE::get).orElse(null);
 			if (attribute == null)
 				continue;
 			
-			if (!(attributeNbt.get(layout.getAmountTag()) instanceof NbtByte e && e.byteValue()>0))
+			if (!attributeNbt.nbte$contains(layout.getAmountTag(), MVNbtCompoundParent.NUMBER_TYPE))
 				continue;
-			double value = attributeNbt.getDouble(layout.getAmountTag()).orElse(0.0);
+			double value = attributeNbt.nbte$getDoubleOrDefault(layout.getAmountTag());
 			
 			if (layout.isModifiers()) {
-				if (!(attributeNbt.get("Operation") instanceof AbstractNbtNumber))
+				if (!attributeNbt.nbte$contains("Operation", MVNbtCompoundParent.NUMBER_TYPE))
 					continue;
-				int operation = attributeNbt.getInt("Operation").orElse(0);
+				int operation = attributeNbt.nbte$getIntOrDefault("Operation");
 				if (operation < 0 || operation >= Operation.values().length)
 					continue;
 				
 				Slot slot = Slot.ANY;
-				if (attributeNbt.get("Slot") instanceof NbtString) {
+				if (attributeNbt.nbte$contains("Slot", NbtElement.STRING_TYPE)) {
 					try {
-						slot = Slot.valueOf(attributeNbt.getString("Slot").orElse("").toUpperCase());
-					} catch (IllegalArgumentException e2) {
+						slot = Slot.valueOf(attributeNbt.nbte$getStringOrDefault("Slot").toUpperCase());
+					} catch (IllegalArgumentException e) {
 						continue;
 					}
-					if (slot.isOnlyForComponents())
+					if (!slot.isInThisVersion())
 						continue;
 				}
 				
-				if (!(attributeNbt.get("UUID") instanceof NbtByteArray))
+				if (!attributeNbt.nbte$containsUuid("UUID"))
 					continue;
-				UUID uuid = UUID.nameUUIDFromBytes(attributeNbt.getByteArray("UUID").orElse(new byte[]{}));
-
+				UUID uuid = attributeNbt.nbte$getUuid("UUID").get();
+				
 				output.add(new AttributeData(attribute, value, Operation.values()[operation], slot, new AttributeModifierId(uuid)));
 			} else
 				output.add(new AttributeData(attribute, value));
@@ -123,15 +125,14 @@ public class AttributesNBTTagReference implements TagReference<List<AttributeDat
 			attributeNbt.putDouble(layout.getAmountTag(), attribute.value());
 			
 			if (layout.isModifiers()) {
-				attributeNbt.putString("Name", attributeNbt.getString("AttributeName").orElse(""));
+				attributeNbt.putString("Name", attributeNbt.nbte$getStringOrDefault("AttributeName"));
 				attributeNbt.putInt("Operation", attribute.modifierData().get().operation().ordinal());
 				if (attribute.modifierData().get().slot() != Slot.ANY) {
-					if (attribute.modifierData().get().slot().isOnlyForComponents())
+					if (!attribute.modifierData().get().slot().isInThisVersion())
 						throw new IllegalArgumentException("The slot " + attribute.modifierData().get().slot() + " isn't available in this version of Minecraft!");
 					attributeNbt.putString("Slot", attribute.modifierData().get().slot().name().toLowerCase());
 				}
-				attributeNbt.put("UUID", new NbtByteArray(Uuids.toByteArray(attribute.modifierData().get().id().getUUID())));
-
+				attributeNbt.nbte$putUuid("UUID", attribute.modifierData().get().id().getUUID());
 			}
 			
 			output.add(attributeNbt);

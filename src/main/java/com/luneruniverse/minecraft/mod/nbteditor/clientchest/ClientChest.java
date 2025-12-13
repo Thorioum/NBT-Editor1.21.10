@@ -29,18 +29,21 @@ import com.luneruniverse.minecraft.mod.nbteditor.misc.MixinLink;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.DataVersionStatus;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.EditableText;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVMisc;
+import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVTextEvents;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.TextInst;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.Version;
-import com.luneruniverse.minecraft.mod.nbteditor.multiversion.nbt.NBTManagers;
+import com.luneruniverse.minecraft.mod.nbteditor.multiversion.nbt.MVNbtCompoundParent;
+import com.luneruniverse.minecraft.mod.nbteditor.multiversion.nbt.manager.NBTManagers;
 import com.luneruniverse.minecraft.mod.nbteditor.util.LoadQueue;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
-import com.luneruniverse.minecraft.mod.nbteditor.util.PartitionedLock;
 import com.luneruniverse.minecraft.mod.nbteditor.util.SaveQueue;
+import com.luneruniverse.minecraft.mod.nbteditor.util.lock.PartitionedReadWriteLock;
 
 import net.minecraft.datafixer.TypeReferences;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.*;
-import net.minecraft.text.ClickEvent;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtElement;
+import net.minecraft.nbt.NbtList;
 import net.minecraft.text.Text;
 
 public class ClientChest {
@@ -54,7 +57,7 @@ public class ClientChest {
 	private final Map<String, Integer> nameToPage;
 	private final Map<Integer, String> pageToName;
 	
-	private final PartitionedLock lock;
+	private final PartitionedReadWriteLock lock;
 	private final LoadingCache<Integer, LoadQueue<ClientChestPage>> loadQueues;
 	private final LoadingCache<Integer, SaveQueue<ClientChestPage>> saveQueues;
 	private final Map<Integer, Integer> uncachedProcessers;
@@ -77,12 +80,12 @@ public class ClientChest {
 			pageToName = new HashMap<>();
 		}
 		
-		lock = new PartitionedLock();
+		lock = new PartitionedReadWriteLock();
 		loadQueues = CacheBuilder.newBuilder().weakValues().build(new CacheLoader<>() {
 			@Override
 			public LoadQueue<ClientChestPage> load(Integer page) {
 				return new LoadQueue<>("ClientChest/Loading", level -> {
-					lock.lock(page);
+					lock.read().lock(page);
 					try {
 						return readPageSync(page, PageLoadLevel.values()[level]);
 					} catch (Throwable e) {
@@ -93,7 +96,7 @@ public class ClientChest {
 						ClientChest.this.cache.cacheEmptyPage(page);
 						return new ClientChestPage();
 					} finally {
-						lock.unlock(page);
+						lock.read().unlock(page);
 					}
 				}, true);
 			}
@@ -102,7 +105,7 @@ public class ClientChest {
 			@Override
 			public SaveQueue<ClientChestPage> load(Integer page) {
 				return new SaveQueue<>("ClientChest/Saving", pageData -> {
-					lock.lock(page);
+					lock.write().lock(page);
 					try {
 						writePageSync(page, pageData);
 					} catch (Throwable e) {
@@ -111,7 +114,7 @@ public class ClientChest {
 							throw error;
 						throw new RuntimeException("Error saving client chest page " + (page + 1), e);
 					} finally {
-						lock.unlock(page);
+						lock.write().unlock(page);
 					}
 				}, true);
 			}
@@ -124,14 +127,14 @@ public class ClientChest {
 		
 		CompletableFuture<Void> future = new CompletableFuture<>();
 		Thread thread = new Thread(() -> {
-			lock.lockAll();
+			lock.read().lockAll();
 			try {
 				this.cache.transferTo(cache);
 				this.cache = cache;
 				cachePageCounts.remove();
 				future.complete(null);
 			} finally {
-				lock.unlockAll();
+				lock.read().unlockAll();
 			}
 		}, "NBTEditor/Async/ClientChest/SwitchingCache");
 		thread.start();
@@ -179,11 +182,11 @@ public class ClientChest {
 	}
 	
 	public void stop() {
-		lock.stop();
+		lock.write().stop();
 	}
 	
 	public boolean isProcessingPage(int page) {
-		if (lock.isLocked(page) || isUncachedProcessingPage(page))
+		if (lock.read().isLocked(page) || isUncachedProcessingPage(page))
 			return true;
 		
 		LoadQueue<ClientChestPage> loadQueue = loadQueues.getIfPresent(page);
@@ -206,7 +209,7 @@ public class ClientChest {
 		
 		CompletableFuture<Void> future = new CompletableFuture<>();
 		Thread thread = new Thread(() -> {
-			lock.lockAll();
+			lock.read().lockAll();
 			try {
 				Exception toThrow = new Exception("Error loading page(s)");
 				for (int i = 0; i < cache.getDefaultLoadedPagesCount(); i++) {
@@ -226,7 +229,7 @@ public class ClientChest {
 				} else
 					future.complete(null);
 			} finally {
-				lock.unlockAll();
+				lock.read().unlockAll();
 			}
 		}, "NBTEditor/Async/ClientChest/Loading");
 		thread.setDaemon(true);
@@ -296,13 +299,13 @@ public class ClientChest {
 	}
 	
 	public CompletableFuture<Void> unloadAllPages(PageLoadLevel loadLevel) {
-		if (loadLevel == PageLoadLevel.DYNAMIC_ITEMS)
+		if (!CLIENT_CHEST_FOLDER.exists() || loadLevel == PageLoadLevel.DYNAMIC_ITEMS)
 			return CompletableFuture.completedFuture(null);
 		
 		startUncachedProcessingAll();
 		CompletableFuture<Void> future = new CompletableFuture<>();
 		Thread thread = new Thread(() -> {
-			lock.lockAll();
+			lock.read().lockAll();
 			try {
 				Exception toThrow = new Exception("Error unloading page(s)");
 				for (File file : CLIENT_CHEST_FOLDER.listFiles()) {
@@ -325,7 +328,7 @@ public class ClientChest {
 				} else
 					future.complete(null);
 			} finally {
-				lock.unlockAll();
+				lock.read().unlockAll();
 				finishUncachedProcessingAll();
 			}
 		}, "NBTEditor/Async/ClientChest/Unloading");
@@ -343,14 +346,14 @@ public class ClientChest {
 		startUncachedProcessing(page);
 		CompletableFuture<ClientChestPage> future = new CompletableFuture<>();
 		Thread thread = new Thread(() -> {
-			lock.lock(page);
+			lock.read().lock(page);
 			try {
 				future.complete(unloadPageSync(page, loadLevel));
 			} catch (Throwable e) {
 				NBTEditor.LOGGER.error("Error unloading client chest page " + (page + 1), e);
 				future.completeExceptionally(e);
 			} finally {
-				lock.unlock(page);
+				lock.read().unlock(page);
 				finishUncachedProcessing(page);
 			}
 		}, "NBTEditor/Async/ClientChest/Unloading/" + page);
@@ -371,7 +374,7 @@ public class ClientChest {
 		startUncachedProcessingAll();
 		CompletableFuture<Void> future = new CompletableFuture<>();
 		Thread thread = new Thread(() -> {
-			lock.lockAll();
+			lock.write().lockAll();
 			try {
 				Exception toThrow = new Exception("Error importing page(s)");
 				for (File file : CLIENT_CHEST_FOLDER.listFiles()) {
@@ -394,7 +397,7 @@ public class ClientChest {
 				} else
 					future.complete(null);
 			} finally {
-				lock.unlockAll();
+				lock.write().unlockAll();
 				finishUncachedProcessingAll();
 			}
 		}, "NBTEditor/Async/ClientChest/Importing");
@@ -412,7 +415,7 @@ public class ClientChest {
 		startUncachedProcessing(page);
 		CompletableFuture<Void> future = new CompletableFuture<>();
 		Thread thread = new Thread(() -> {
-			lock.lock(page);
+			lock.write().lock(page);
 			try {
 				importPageSync(page, false);
 				future.complete(null);
@@ -420,7 +423,7 @@ public class ClientChest {
 				NBTEditor.LOGGER.error("Error importing client chest page " + (page + 1), e);
 				future.completeExceptionally(e);
 			} finally {
-				lock.unlock(page);
+				lock.write().unlock(page);
 				finishUncachedProcessing(page);
 			}
 		}, "NBTEditor/Async/ClientChest/Importing/" + page);
@@ -435,7 +438,7 @@ public class ClientChest {
 		startUncachedProcessingAll();
 		CompletableFuture<Void> future = new CompletableFuture<>();
 		Thread thread = new Thread(() -> {
-			lock.lockAll();
+			lock.write().lockAll();
 			try {
 				Exception toThrow = new Exception("Error updating page(s)");
 				for (File file : CLIENT_CHEST_FOLDER.listFiles()) {
@@ -462,7 +465,7 @@ public class ClientChest {
 				} else
 					future.complete(null);
 			} finally {
-				lock.unlockAll();
+				lock.write().unlockAll();
 				finishUncachedProcessingAll();
 			}
 		}, "NBTEditor/Async/ClientChest/Updating");
@@ -486,14 +489,14 @@ public class ClientChest {
 		startUncachedProcessing(page);
 		CompletableFuture<ClientChestPage> future = new CompletableFuture<>();
 		Thread thread = new Thread(() -> {
-			lock.lock(page);
+			lock.write().lock(page);
 			try {
 				future.complete(updatePageSync(page, defaultDataVersion, false));
 			} catch (Throwable e) {
 				NBTEditor.LOGGER.error("Error updating client chest page " + (page + 1), e);
 				future.completeExceptionally(e);
 			} finally {
-				lock.unlock(page);
+				lock.write().unlock(page);
 				finishUncachedProcessing(page);
 			}
 		}, "NBTEditor/Async/ClientChest/Updating/" + page);
@@ -512,7 +515,7 @@ public class ClientChest {
 		startUncachedProcessing(page);
 		CompletableFuture<Void> future = new CompletableFuture<>();
 		Thread thread = new Thread(() -> {
-			lock.lock(page);
+			lock.write().lock(page);
 			try {
 				discardPageSync(page);
 				future.complete(null);
@@ -520,7 +523,7 @@ public class ClientChest {
 				NBTEditor.LOGGER.error("Error discarding client chest page " + (page + 1), e);
 				future.completeExceptionally(e);
 			} finally {
-				lock.unlock(page);
+				lock.write().unlock(page);
 				finishUncachedProcessing(page);
 			}
 		}, "NBTEditor/Async/ClientChest/Discarding/" + page);
@@ -576,11 +579,7 @@ public class ClientChest {
 		File file = getFile(page);
 		if (!file.exists())
 			return Optional.of(Version.getDataVersion());
-		
-		NbtCompound pageNbt = MVMisc.readNbt(file);
-		if (!(pageNbt.get("DataVersion") instanceof AbstractNbtNumber))
-			return Optional.empty();
-		return Optional.of(pageNbt.getInt("DataVersion").orElse(0));
+		return MVMisc.readNbt(file).nbte$getInt("DataVersion");
 	}
 	private DataVersionStatus readDataVersionStatusSync(int page) throws Exception {
 		return DataVersionStatus.of(readDataVersionSync(page));
@@ -609,27 +608,28 @@ public class ClientChest {
 		}
 		
 		NbtCompound pageNbt = MVMisc.readNbt(file);
-		if (!(pageNbt.get("DataVersion") instanceof AbstractNbtNumber)) {
+		if (!pageNbt.nbte$contains("DataVersion", MVNbtCompoundParent.NUMBER_TYPE)) {
 			ClientChestPage output = ClientChestPage.unknownDataVersion();
 			cache.cachePage(page, output);
 			return output;
 		}
-		int dataVersion = pageNbt.getInt("DataVersion").orElse(0);
+		int dataVersion = pageNbt.nbte$getIntOrDefault("DataVersion");
 		if (dataVersion != Version.getDataVersion()) {
 			ClientChestPage output = ClientChestPage.wrongDataVersion(dataVersion);
 			cache.cachePage(page, output);
 			return output;
 		}
 		
-		NbtList itemsNbt = pageNbt.getList("items").orElse(new NbtList());
+		NbtList itemsNbt = pageNbt.nbte$getList("items", NbtElement.COMPOUND_TYPE)
+				.orElseThrow(() -> new Exception("Invalid items list"));
 		ItemStack[] items = new ItemStack[54];
 		DynamicItems dynamicItems = new DynamicItems();
 		boolean empty = true;
 		int i = -1;
-		for (NbtElement itemElementNbt : itemsNbt) {
+		for (NbtElement itemElementNbt : itemsNbt.nbte$iterable()) {
 			i++;
 			NbtCompound itemNbt = (NbtCompound) itemElementNbt;
-			if ((itemNbt.get("dynamic") instanceof NbtByte) && itemNbt.getBoolean("dynamic").orElse(false)) {
+			if (itemNbt.nbte$contains("dynamic", NbtElement.BYTE_TYPE) && itemNbt.nbte$getBooleanOrDefault("dynamic")) {
 				itemNbt.remove("dynamic");
 				dynamicItems.add(i, itemNbt, false);
 				empty = false;
@@ -676,7 +676,7 @@ public class ClientChest {
 			if (dynamicItems.isSlot(i))
 				itemNbt = dynamicItems.getOriginalNbt(i);
 			else
-				itemNbt = (items[i] == null ? ItemStack.EMPTY : items[i]).manager$serialize(true);
+				itemNbt = (items[i] == null ? ItemStack.EMPTY : items[i]).nbte$serialize(true);
 			
 			if (dynamicItems.isSlot(i)) {
 				itemNbt = itemNbt.copy();
@@ -724,7 +724,7 @@ public class ClientChest {
 		}
 		
 		NbtCompound pageNbt = MVMisc.readNbt(file);
-		if (!(pageNbt.get("DataVersion") instanceof AbstractNbtNumber)) {
+		if (pageNbt.nbte$contains("DataVersion", MVNbtCompoundParent.NUMBER_TYPE)) {
 			if (ignoreInvalidDataVersion)
 				return;
 			throw new IllegalStateException("Cannot import a page with a DataVersion tag!");
@@ -733,7 +733,10 @@ public class ClientChest {
 		Files.copy(file.toPath(), new File(CLIENT_CHEST_FOLDER, "importing_page" + page + "_" + System.currentTimeMillis() + ".nbt").toPath());
 		
 		pageNbt.putInt("DataVersion", Version.getDataVersion());
-		MixinLink.throwHiddenException(() -> MVMisc.writeNbt(pageNbt, file));
+		
+		File tmpFile = new File(CLIENT_CHEST_FOLDER, "saving_page" + page + "_" + System.currentTimeMillis() + ".nbt");
+		MixinLink.throwHiddenException(() -> MVMisc.writeNbt(pageNbt, tmpFile));
+		Files.move(tmpFile.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
 		
 		PageLoadLevel loadLevel = getLoadLevel(page);
 		cache.discardPageCache(page);
@@ -751,8 +754,8 @@ public class ClientChest {
 		NbtCompound pageNbt = MVMisc.readNbt(file);
 		int dataVersion;
 		try {
-			dataVersion = ((pageNbt.get("DataVersion") instanceof AbstractNbtNumber) ? pageNbt.getInt("DataVersion").orElse(0) :
-					defaultDataVersion.orElseThrow(() -> new IllegalStateException("Missing DataVersion tag and default DataVersion!")));
+			dataVersion = pageNbt.nbte$getInt("DataVersion").or(() -> defaultDataVersion)
+					.orElseThrow(() -> new IllegalStateException("Missing DataVersion tag and default DataVersion!"));
 			if (dataVersion == Version.getDataVersion())
 				throw new IllegalStateException("Cannot update an already up to date page!");
 			if (dataVersion > Version.getDataVersion())
@@ -765,19 +768,22 @@ public class ClientChest {
 		
 		Files.copy(file.toPath(), new File(CLIENT_CHEST_FOLDER, "updating_page" + page + "_" + System.currentTimeMillis() + ".nbt").toPath());
 		
-		NbtList itemsNbt = pageNbt.getList("items").orElse(new NbtList());
+		NbtList itemsNbt = pageNbt.nbte$getList("items", NbtElement.COMPOUND_TYPE)
+				.orElseThrow(() -> new Exception("Invalid items list"));
 		ItemStack[] items = new ItemStack[54];
 		DynamicItems dynamicItems = new DynamicItems();
 		boolean empty = true;
 		int i = -1;
-		for (NbtElement itemElementNbt : itemsNbt) {
+		for (NbtElement itemElementNbt : itemsNbt.nbte$iterable()) {
 			i++;
 			NbtCompound itemNbt = (NbtCompound) itemElementNbt;
-			boolean dynamic = ((itemNbt.get("dynamic") instanceof NbtByte) && itemNbt.getBoolean("dynamic").orElse(false));
+			boolean dynamic = (itemNbt.nbte$contains("dynamic", NbtElement.BYTE_TYPE) &&
+					itemNbt.nbte$getBooleanOrDefault("dynamic"));
 			if (dynamic)
 				itemNbt.remove("dynamic");
 
 			ExtraDataFixes.applyFixes(itemNbt,dataVersion);
+
 			itemNbt = MainUtil.updateDynamic(TypeReferences.ITEM_STACK, itemNbt, dataVersion);
 			
 			if (dynamic) {
@@ -808,7 +814,7 @@ public class ClientChest {
 			throw new IllegalStateException("Cannot discard an up to date page!");
 		
 		NbtCompound pageNbt = MVMisc.readNbt(file);
-		if ((pageNbt.get("DataVersion") instanceof AbstractNbtNumber) && pageNbt.getInt("DataVersion").orElse(0) == Version.getDataVersion())
+		if (pageNbt.nbte$getInt("DataVersion").filter(dataVersion -> dataVersion == Version.getDataVersion()).isPresent())
 			throw new IllegalStateException("Cannot discard an up to date page!");
 		
 		cache.cacheEmptyPage(page);
@@ -839,7 +845,7 @@ public class ClientChest {
 	}
 	public static Text attachShowFolder(EditableText text) {
 		return text.append(" ").append(TextInst.translatable("nbteditor.file_options.show").styled(
-				style -> style.withClickEvent(new ClickEvent.OpenFile(CLIENT_CHEST_FOLDER.getAbsolutePath()))));
+				style -> style.withClickEvent(MVTextEvents.ClickAction.OPEN_FILE.newEvent(CLIENT_CHEST_FOLDER.getAbsolutePath()))));
 	}
 	
 }

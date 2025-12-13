@@ -1,5 +1,6 @@
 package com.luneruniverse.minecraft.mod.nbteditor.multiversion.commands.mixin.client;
 
+import net.minecraft.client.input.KeyInput;
 import org.apache.commons.lang3.StringUtils;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -21,14 +22,14 @@ public class ChatScreenMixin {
 	
 	@Inject(method = "keyPressed", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screen/ChatScreen;sendMessage(Ljava/lang/String;Z)V"), cancellable = true)
 	@Group(name = "keyPressed", min = 1)
-	private void enterPressed_new(int keyCode, int scanCode, int modifiers, CallbackInfoReturnable<Boolean> info) {
-		enterPressed_impl(info);
+	private void enterPressed_new(KeyInput input, CallbackInfoReturnable<Boolean> cir) {
+		enterPressed_impl(cir);
 	}
 	@Inject(method = "keyPressed", at = @At(value = "INVOKE", target = "Lnet/minecraft/class_408;method_44056(Ljava/lang/String;Z)Z"), cancellable = true, remap = false)
 	@Group(name = "keyPressed", min = 1)
 	@SuppressWarnings("target")
-	private void enterPressed_mid(int keyCode, int scanCode, int modifiers, CallbackInfoReturnable<Boolean> info) {
-		enterPressed_impl(info);
+	private void enterPressed_mid(KeyInput input, CallbackInfoReturnable<Boolean> cir) {
+		enterPressed_impl(cir);
 	}
 	@Inject(method = "method_25404(III)Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/class_408;method_25427(Ljava/lang/String;)V"), cancellable = true, remap = false)
 	@Group(name = "keyPressed", min = 1)
@@ -38,7 +39,7 @@ public class ChatScreenMixin {
 	}
 	private void enterPressed_impl(CallbackInfoReturnable<Boolean> info) {
 		String text = StringUtils.normalizeSpace(chatField.getText().trim());
-		if (text.isEmpty() || text.length() <= 256)
+		if (text.length() <= 256)
 			return;
 		if (text.charAt(0) == '/' && ClientCommandInternals.executeCommand(text.substring(1))) {
 			MainUtil.client.inGameHud.getChatHud().addToMessageHistory(text);
@@ -46,6 +47,6 @@ public class ChatScreenMixin {
 				MainUtil.client.setScreen(null);
 			info.setReturnValue(true);
 		} else
-			chatField.text = (text.length() <= 256 ? text : text.substring(0, 256));
+			chatField.text = text.substring(0, 256);
 	}
 }

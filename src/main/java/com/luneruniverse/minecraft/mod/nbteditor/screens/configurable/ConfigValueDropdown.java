@@ -12,7 +12,10 @@ import com.luneruniverse.minecraft.mod.nbteditor.multiversion.TextInst;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.Click;
+import net.minecraft.client.input.KeyInput;
 import net.minecraft.client.util.math.MatrixStack;
+import org.joml.Matrix3x2fStack;
 
 public class ConfigValueDropdown<T> extends MVButtonWidget implements ConfigValue<T, ConfigValueDropdown<T>> {
 	
@@ -76,10 +79,9 @@ public class ConfigValueDropdown<T> extends MVButtonWidget implements ConfigValu
 	}
 	
 	@Override
-	public void renderButton(MatrixStack matrices, int mouseX, int mouseY, float delta) {
-		float[] translation = MVMatrix4f.getTranslation(matrices);
-		matrices.push();
-		matrices.translate(0.0, 0.0, (MainUtil.client.getWindow().getScaledHeight() - translation[1]) / 20);
+	public void renderButton(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
+		matrices.pushMatrix();
+		matrices.translate(0.0f, 0.0f);
 		
 		super.renderButton(matrices, mouseX, mouseY, delta);
 		if (open) {
@@ -104,36 +106,19 @@ public class ConfigValueDropdown<T> extends MVButtonWidget implements ConfigValu
 		if (isSelected() && value instanceof ConfigTooltipSupplier)
 			((ConfigTooltipSupplier) value).getTooltip().render(matrices, mouseX, mouseY);
 		
-		matrices.pop();
+		matrices.popMatrix();
 	}
+	
 	@Override
-	public boolean isMouseOver(double mouseX, double mouseY) {
-		if(this.active && this.visible && open) {
+	public boolean mouseClicked(Click click, boolean doubled) {
+		boolean output = super.mouseClicked(click, doubled);
+		if (!output && this.active && this.visible && open && click.x() >= this.x && click.x() < this.x + this.width) {
 			int i = 0;
 			for (T option : allValues) {
 				if (option.equals(value))
 					continue;
 				int y = this.y + (++i * this.height);
-				if (mouseY >= y && mouseY < y + this.height) {
-					this.playDownSound(MinecraftClient.getInstance().getSoundManager());
-					setValue(option);
-					open = false;
-					return true;
-				}
-			}
-		}
-		return isHovered();
-	}
-	@Override
-	public boolean mouseClicked(double mouseX, double mouseY, int button) {
-		boolean output = super.mouseClicked(mouseX, mouseY, button);
-		if (!output && this.active && this.visible && open && mouseX >= this.x && mouseX < this.x + this.width) {
-			int i = 0;
-			for (T option : allValues) {
-				if (option.equals(value))
-					continue;
-				int y = this.y + (++i * this.height);
-				if (mouseY >= y && mouseY < y + this.height) {
+				if (click.y() >= y && click.y() < y + this.height) {
 					this.playDownSound(MinecraftClient.getInstance().getSoundManager());
 					setValue(option);
 					open = false;
@@ -203,7 +188,7 @@ public class ConfigValueDropdown<T> extends MVButtonWidget implements ConfigValu
 	
 	
 	@Override
-	public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+	public boolean keyPressed(KeyInput keyInput) {
 		return false; // Stop space from triggering the button
 	}
 	

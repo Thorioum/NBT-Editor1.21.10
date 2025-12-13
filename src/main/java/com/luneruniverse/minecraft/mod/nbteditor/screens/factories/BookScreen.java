@@ -4,6 +4,8 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.minecraft.client.input.KeyInput;
+import org.joml.Matrix3x2fStack;
 import org.lwjgl.glfw.GLFW;
 
 import com.luneruniverse.minecraft.mod.nbteditor.localnbt.LocalItem;
@@ -11,6 +13,7 @@ import com.luneruniverse.minecraft.mod.nbteditor.misc.MixinLink;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.EditableText;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVDrawableHelper;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVMisc;
+import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVTextEvents;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVTooltip;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.TextInst;
 import com.luneruniverse.minecraft.mod.nbteditor.nbtreferences.itemreferences.ItemReference;
@@ -159,15 +162,16 @@ public class BookScreen extends LocalEditorScreen<LocalItem> {
 		if (style.getClickEvent() == null)
 			return style;
 		return MixinLink.withRunClickEvent(style, () -> {
+			MVTextEvents.ClickAction<?> clickAction = MVTextEvents.ClickAction.getAction(style.getClickEvent());
 			net.minecraft.client.gui.screen.ingame.BookScreen preview = getOverlay();
 			setOverlay(new AlertWidget(
-					() -> setOverlayScreen(preview, 200),
+					() -> setOverlayScreen(preview, 500),
 					TextInst.translatable("nbteditor.book.preview.click.title"),
 					TextInst.of(""),
-					TextInst.translatable("nbteditor.book.preview.click.action",
-							MVMisc.getClickEventActionName(style.getClickEvent().getAction())),
+					TextInst.translatable("nbteditor.book.preview.click.action", clickAction.getName()),
 					TextInst.of(""),
-					TextInst.translatable("nbteditor.book.preview.click.value", "")), 200);
+					TextInst.translatable("nbteditor.book.preview.click.value", clickAction.getStringifiedValue(style.getClickEvent()))),
+					500);
 		});
 	}
 	
@@ -204,12 +208,12 @@ public class BookScreen extends LocalEditorScreen<LocalItem> {
 					net.minecraft.client.gui.screen.ingame.BookScreen preview =
 							new net.minecraft.client.gui.screen.ingame.BookScreen(getPreviewItem()) {
 						@Override
-						public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-							if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
+						public boolean keyPressed(KeyInput keyInput) {
+							if (keyInput.key() == GLFW.GLFW_KEY_ESCAPE) {
 								setOverlay(null);
 								return true;
 							}
-							return super.keyPressed(keyCode, scanCode, modifiers);
+							return super.keyPressed(keyInput);
 						}
 					};
 					setOverlayScreen(preview, 200);
@@ -246,15 +250,17 @@ public class BookScreen extends LocalEditorScreen<LocalItem> {
 	}
 	
 	@Override
-	protected void renderEditor(MatrixStack matrices, int fdf8eb, int mouseY, float delta) {
+	protected void renderEditor(Matrix3x2fStack matrices, int fdf8eb, int mouseY, float delta) {
 		MVDrawableHelper.drawTextWithShadow(matrices, textRenderer, TextInst.translatable("nbteditor.book.page", page + 1, getPageCount()),
 				16 + 108 * 3 - 4 + 24 * 3, 64 + 10 - textRenderer.fontHeight / 2, -1);
-		renderTip(matrices, "nbteditor.formatted_text.tip");
 	}
 	
 	@Override
-	public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-		if (super.keyPressed(keyCode, scanCode, modifiers))
+	public boolean keyPressed(KeyInput keyInput) {
+		int keyCode = keyInput.key();
+		if (getOverlay() != null)
+			return super.keyPressed(keyInput);
+		if (super.keyPressed(keyInput))
 			return true;
 		
 		if (keyCode == GLFW.GLFW_KEY_PAGE_UP || keyCode == GLFW.GLFW_KEY_PAGE_DOWN) {

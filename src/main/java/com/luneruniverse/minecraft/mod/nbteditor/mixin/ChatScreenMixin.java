@@ -1,5 +1,6 @@
 package com.luneruniverse.minecraft.mod.nbteditor.mixin;
 
+import net.minecraft.client.input.KeyInput;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Group;
@@ -30,18 +31,12 @@ public class ChatScreenMixin {
 	private void render(DrawContext context, int mouseX, int mouseY, float delta, CallbackInfo info) {
 		MixinLink.renderChatLimitWarning((ChatScreen) (Object) this, MVDrawableHelper.getMatrices(context));
 	}
-	@Inject(method = "method_25394(Lnet/minecraft/class_4587;IIF)V", at = @At("HEAD"))
-	@Group(name = "render", min = 1)
-	@SuppressWarnings("target")
-	private void render(MatrixStack matrices, int mouseX, int mouseY, float delta, CallbackInfo info) {
-		MixinLink.renderChatLimitWarning((ChatScreen) (Object) this, matrices);
-	}
 	
 	@Inject(method = "keyPressed", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/MinecraftClient;setScreen(Lnet/minecraft/client/gui/screen/Screen;)V"), cancellable = true)
-	private void keyPressed(int keyCode, int scanCode, int modifiers, CallbackInfoReturnable<Boolean> info) {
+	private void keyPressed(KeyInput input, CallbackInfoReturnable<Boolean> cir) {
 		if (!(MainUtil.client.currentScreen instanceof ChatScreen)) {
-			info.setReturnValue(true);
-			info.cancel();
+			cir.setReturnValue(true);
+			cir.cancel();
 		}
 	}
 }

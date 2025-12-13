@@ -4,14 +4,13 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.luneruniverse.minecraft.mod.nbteditor.localnbt.LocalBlock;
 import com.luneruniverse.minecraft.mod.nbteditor.localnbt.LocalEntity;
 import com.luneruniverse.minecraft.mod.nbteditor.localnbt.LocalItem;
 import com.luneruniverse.minecraft.mod.nbteditor.localnbt.LocalNBT;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVComponentType;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVMisc;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.TextInst;
-import com.luneruniverse.minecraft.mod.nbteditor.multiversion.nbt.NBTManagers;
+import com.luneruniverse.minecraft.mod.nbteditor.multiversion.nbt.manager.NBTManagers;
 import com.luneruniverse.minecraft.mod.nbteditor.nbtreferences.NBTReference;
 import com.luneruniverse.minecraft.mod.nbteditor.nbtreferences.itemreferences.ItemReference;
 import com.luneruniverse.minecraft.mod.nbteditor.screens.LocalEditorScreen;
@@ -20,11 +19,11 @@ import com.luneruniverse.minecraft.mod.nbteditor.screens.widgets.ImageToLoreWidg
 import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.EntityTagReferences;
 import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.ItemTagReferences;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
+import com.luneruniverse.minecraft.mod.nbteditor.util.StyleUtil;
 
 import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.text.Style;
 import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import org.joml.Matrix3x2fStack;
 
 public class DisplayScreen<L extends LocalNBT> extends LocalEditorScreen<L> {
 	
@@ -40,21 +39,9 @@ public class DisplayScreen<L extends LocalNBT> extends LocalEditorScreen<L> {
 	protected void initEditor() {
 		MVMisc.setKeyboardRepeatEvents(true);
 		
-		Style baseNameStyle = Style.EMPTY;
-		if (localNBT instanceof LocalItem item) {
-			if (!itemNameType)
-				baseNameStyle = baseNameStyle.withFormatting(Formatting.ITALIC);
-			baseNameStyle = baseNameStyle.withFormatting(item.getEditableItem().getRarity().formatting);
-		} else if (localNBT instanceof LocalBlock)
-			;
-		else if (localNBT instanceof LocalEntity)
-			baseNameStyle = baseNameStyle.withFormatting(Formatting.WHITE);
-		else
-			throw new IllegalStateException("DisplayScreen doesn't support " + localNBT.getClass().getName());
-		
 		nameFormatted = FormattedTextFieldWidget.create(nameFormatted, 16, 64, width - 32, 24 + textRenderer.fontHeight * 3,
 				itemNameType ? MainUtil.getBaseItemNameSafely(((LocalItem) localNBT).getEditableItem()) : localNBT.getName(),
-						false, baseNameStyle, text -> {
+						false, StyleUtil.getBaseNameStyle(localNBT, itemNameType), text -> {
 			if (itemNameType)
 				((LocalItem) localNBT).getEditableItem().set(MVComponentType.ITEM_NAME, text);
 			else
@@ -67,7 +54,7 @@ public class DisplayScreen<L extends LocalNBT> extends LocalEditorScreen<L> {
 		
 		if (localNBT instanceof LocalItem item) {
 			lore = FormattedTextFieldWidget.create(lore, 16, nextY, width - 32, height - 16 - 20 - 4 - nextY,
-					ItemTagReferences.LORE.get(item.getEditableItem()), Style.EMPTY.withFormatting(Formatting.ITALIC, Formatting.DARK_PURPLE), lines -> {
+					ItemTagReferences.LORE.get(item.getEditableItem()), StyleUtil.BASE_LORE_STYLE, lines -> {
 				if (lines.size() == 1 && lines.get(0).getString().isEmpty())
 					ItemTagReferences.LORE.set(item.getEditableItem(), new ArrayList<>());
 				else
@@ -76,6 +63,8 @@ public class DisplayScreen<L extends LocalNBT> extends LocalEditorScreen<L> {
 			});
 			addSelectableChild(nameFormatted);
 			addSelectableChild(lore);
+			addDrawableChild(MVMisc.newButton(16, height - 16 - 20, 100, 20, TextInst.translatable("nbteditor.hide_flags"),
+					btn -> closeSafely(() -> client.setScreen(new HideFlagsScreen((ItemReference) ref)))));
 			if (NBTManagers.COMPONENTS_EXIST) {
 				addDrawableChild(MVMisc.newButton(124, height - 16 - 20, 150, 20,
 						TextInst.translatable("nbteditor.display.name_type." + (itemNameType ? "item" : "custom")), btn -> {
@@ -103,13 +92,11 @@ public class DisplayScreen<L extends LocalNBT> extends LocalEditorScreen<L> {
 	}
 	
 	@Override
-	protected void renderEditor(MatrixStack matrices, int mouseX, int mouseY, float delta) {
-		matrices.push();
-		matrices.translate(0.0, 0.0, 1.0);
+	protected void renderEditor(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
+		matrices.pushMatrix();
+		matrices.translate(0.0f, 0.0f);
 		nameFormatted.render(matrices, mouseX, mouseY, delta);
-		matrices.pop();
-		
-		renderTip(matrices, "nbteditor.formatted_text.tip");
+		matrices.popMatrix();
 	}
 	
 	@Override

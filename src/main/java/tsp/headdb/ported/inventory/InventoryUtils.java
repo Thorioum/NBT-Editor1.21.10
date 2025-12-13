@@ -5,13 +5,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVComponentType;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.TextInst;
-import com.luneruniverse.minecraft.mod.nbteditor.multiversion.nbt.NBTManagers;
 import com.luneruniverse.minecraft.mod.nbteditor.screens.containers.ClientHandledScreen;
-import com.luneruniverse.minecraft.mod.nbteditor.screens.containers.ClientScreenHandler;
-import com.luneruniverse.minecraft.mod.nbteditor.screens.util.StringInputScreen;
+import com.luneruniverse.minecraft.mod.nbteditor.screens.widgets.InputOverlay;
+import com.luneruniverse.minecraft.mod.nbteditor.screens.widgets.StringInput;
 import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.ItemTagReferences;
+import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.specific.data.hideflags.HideFlag;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 
 import net.minecraft.inventory.Inventory;
@@ -19,7 +18,6 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.screen.slot.Slot;
 import net.minecraft.screen.slot.SlotActionType;
-import net.minecraft.util.Unit;
 import tsp.headdb.ported.Category;
 import tsp.headdb.ported.Head;
 import tsp.headdb.ported.HeadAPI;
@@ -142,7 +140,7 @@ public class InventoryUtils {
     }
 
     public static void openDatabase() {
-    	ClientHandledScreen screen = new ClientHandledScreen(new ClientScreenHandler(6),
+    	ClientHandledScreen screen = new ClientHandledScreen(6,
     			TextInst.of(Utils.colorize("&c&lHeadDB &8(" + HeadAPI.getHeads().size() + ")"))) {
     		@Override
     		protected void onMouseClick(Slot slot, int slotId, int button, SlotActionType actionType) {
@@ -166,9 +164,10 @@ public class InventoryUtils {
                             return;
                         }
                         if (name.equalsIgnoreCase("search")) {
-                        	new StringInputScreen(this, (text) -> {
-                        		InventoryUtils.openSearchDatabase(text);
-                        	}, (text) -> true).show("Search query");
+                        	InputOverlay.show(
+                        			TextInst.of("Search"),
+                        			StringInput.builder().withPlaceholder(TextInst.of("Query")).build(),
+                        			InventoryUtils::openSearchDatabase);
                             return;
                         }
 
@@ -189,7 +188,7 @@ public class InventoryUtils {
 
         for (Category category : Category.getValues()) {
             ItemStack item = getUIItem(category.getName(), category.getItem());
-            item.manager$setCustomName(TextInst.of(Utils.colorize(category.getColor() + "&l" + category.getTranslatedName().toUpperCase())));
+            item.nbte$setCustomName(TextInst.of(Utils.colorize(category.getColor() + "&l" + category.getTranslatedName().toUpperCase())));
             ItemTagReferences.LORE.set(item, List.of(TextInst.of(
             		Utils.colorize("&e" + TextInst.translatable("nbteditor.hdb.head_count", HeadAPI.getHeads(category).size()).getString()))));
             inventory.setStack(getUILocation(category.getName(), category.getLocation()), item);
@@ -230,6 +229,9 @@ public class InventoryUtils {
         ItemStack item = getUIItem("fill", new ItemStack(Items.BLACK_STAINED_GLASS_PANE));
         // Do not bother filling the inventory if item to fill it with is AIR.
         if (item == null || item.isEmpty()) return;
+        
+        if (HideFlag.TOOLTIP != null)
+        	ItemTagReferences.HIDE_FLAGS.set(item, Map.of(HideFlag.TOOLTIP, true));
 
         // Fill any non-empty inventory slots with the given item.
         int size = inv.size();
@@ -242,7 +244,7 @@ public class InventoryUtils {
     }
 
     private static ItemStack buildButton(ItemStack item, String name, String... lore) {
-        item.manager$setCustomName(TextInst.of(Utils.colorize(name)));
+        item.nbte$setCustomName(TextInst.of(Utils.colorize(name)));
         ItemTagReferences.LORE.set(item, Arrays.stream(lore).map(Utils::colorize).map(TextInst::of).toList());
         return item;
     }

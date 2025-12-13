@@ -7,6 +7,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.luneruniverse.minecraft.mod.nbteditor.NBTEditor;
+import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVMisc;
 import com.luneruniverse.minecraft.mod.nbteditor.screens.containers.ClientHandledScreen;
 import com.luneruniverse.minecraft.mod.nbteditor.server.NBTEditorServer;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
@@ -28,13 +29,11 @@ public abstract class ClientConnectionMixin {
 			return;
 		
 		if (MainUtil.client.currentScreen instanceof ClientHandledScreen) {
-			if (ClientHandledScreen.isUpdatingServerInventory())
-				return;
-			
 			if (packet instanceof ClickSlotC2SPacket slotPacket) {
 				info.cancel();
-				NBTEditor.LOGGER.warn("Tried to send ClickSlotC2SPacket while not updating server inventory: slot=" +
-						slotPacket.slot() + ", button=" + slotPacket.button() + ", action=" + slotPacket.actionType());
+				NBTEditor.LOGGER.warn("Tried to send a slot click packet while on a ClientHandledScreen: slot=" +
+						MVMisc.getSlot(slotPacket) + ", button=" + MVMisc.getButton(slotPacket) + ", action=" +
+						MVMisc.getActionType(slotPacket));
 			}
 		}
 	}

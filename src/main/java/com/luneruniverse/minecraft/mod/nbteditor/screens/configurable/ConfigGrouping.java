@@ -8,6 +8,9 @@ import java.util.Map;
 
 import com.luneruniverse.minecraft.mod.nbteditor.util.OrderedMap;
 
+import net.minecraft.client.gui.Click;
+import net.minecraft.client.input.CharInput;
+import net.minecraft.client.input.KeyInput;
 import net.minecraft.text.Text;
 
 public abstract class ConfigGrouping<K, T extends ConfigGrouping<K, T>> implements ConfigPathNamed {
@@ -88,36 +91,36 @@ public abstract class ConfigGrouping<K, T extends ConfigGrouping<K, T>> implemen
 	
 	// Make sure subclasses offset the mouse properly
 	@Override
-	public abstract boolean mouseClicked(double mouseX, double mouseY, int button);
+	public abstract boolean mouseClicked(Click click, boolean b);
 	@Override
-	public abstract boolean mouseReleased(double mouseX, double mouseY, int button);
+	public abstract boolean mouseReleased(Click click);
 	@Override
 	public abstract void mouseMoved(double mouseX, double mouseY);
 	@Override
-	public abstract boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY);
+	public abstract boolean mouseDragged(Click click, double deltaX, double deltaY);
 	@Override
 	public abstract boolean mouseScrolled(double mouseX, double mouseY, double xAmount, double yAmount);
 	
 	@Override
-	public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+	public boolean keyPressed(KeyInput keyInput) {
 		for (ConfigPath path : new ArrayList<>(paths.values())) {
-			if (path.keyPressed(keyCode, scanCode, modifiers))
+			if (path.keyPressed(keyInput))
 				return true;
 		}
 		return false;
 	}
 	@Override
-	public boolean keyReleased(int keyCode, int scanCode, int modifiers) {
+	public boolean keyReleased(KeyInput keyInput) {
 		for (ConfigPath path : new ArrayList<>(paths.values())) {
-			if (path.keyReleased(keyCode, scanCode, modifiers))
+			if (path.keyReleased(keyInput))
 				return true;
 		}
 		return false;
 	}
 	@Override
-	public boolean charTyped(char chr, int modifiers) {
+	public boolean charTyped(CharInput charInput) {
 		for (ConfigPath path : new ArrayList<>(paths.values())) {
-			if (path.charTyped(chr, modifiers))
+			if (path.charTyped(charInput))
 				return true;
 		}
 		return false;

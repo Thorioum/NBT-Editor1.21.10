@@ -2,16 +2,18 @@ package com.luneruniverse.minecraft.mod.nbteditor.mixin.toggled;
 
 import java.util.List;
 
+import org.joml.Matrix3x2fStack;
 import org.joml.Vector2ic;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Group;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.luneruniverse.minecraft.mod.nbteditor.misc.MixinLink;
+import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVMatrix4f;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVMisc;
 import com.luneruniverse.minecraft.mod.nbteditor.screens.ConfigScreen;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
@@ -27,14 +29,13 @@ import net.minecraft.util.Identifier;
 public abstract class DrawContextMixin {
 	
 	@Shadow
-	public abstract MatrixStack getMatrices();
+	public abstract Matrix3x2fStack getMatrices();
 	
-	@Inject(method = "drawTooltip(Lnet/minecraft/client/font/TextRenderer;Ljava/util/List;IILnet/minecraft/client/gui/tooltip/TooltipPositioner;Lnet/minecraft/util/Identifier;)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/util/math/MatrixStack;push()V", shift = At.Shift.AFTER))
+	@Inject(method = "drawTooltipImmediately", at = @At(value = "INVOKE", target = "Lorg/joml/Matrix3x2fStack;pushMatrix()Lorg/joml/Matrix3x2fStack;", shift = At.Shift.AFTER))
 	@Group(name = "drawTooltip", min = 1)
 	private void drawTooltip(TextRenderer textRenderer, List<TooltipComponent> tooltip, int x, int y, TooltipPositioner positioner, Identifier texture, CallbackInfo info) {
 		drawTooltip_impl(tooltip, x, y, positioner);
 	}
-	@Unique
 	private void drawTooltip_impl(List<TooltipComponent> tooltip, int x, int y, TooltipPositioner positioner) {
 		if (!ConfigScreen.isTooltipOverflowFix())
 			return;
@@ -45,6 +46,15 @@ public abstract class DrawContextMixin {
 		int screenHeight = MainUtil.client.getWindow().getScaledHeight();
 		
 		MixinLink.renderTooltipFromComponents(getMatrices(), pos.x(), pos.y(), size[0], size[1], screenWidth, screenHeight);
+	}
+	
+	@ModifyVariable(method = "scissorContains", at = @At("HEAD"), ordinal = 0, require = 0)
+	private int scissorContainsX(int x) {
+		return x;
+	}
+	@ModifyVariable(method = "scissorContains", at = @At("HEAD"), ordinal = 1, require = 0)
+	private int scissorContainsY(int y) {
+		return y;
 	}
 	
 }

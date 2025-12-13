@@ -3,6 +3,8 @@ package com.luneruniverse.minecraft.mod.nbteditor.multiversion;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import net.minecraft.client.gui.Click;
+import org.joml.Matrix3x2fStack;
 import org.lwjgl.glfw.GLFW;
 
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
@@ -46,7 +48,7 @@ public class MVSliderWidget extends MVButtonWidget {
 	}
 	
 	@Override
-	public void renderButton(MatrixStack matrices, int mouseX, int mouseY, float delta) {
+	public void renderButton(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
 		if (renderSlider(matrices, mouseX, mouseY, delta)) {
 			MVDrawableHelper.drawTexture(matrices, this.hovered || this.isFocused() ? HANDLE_HIGHLIGHTED : HANDLE,
 					x + (int) (value * (width - 8)), y, 0, 0, 8, 20, 8, 20);
@@ -61,29 +63,29 @@ public class MVSliderWidget extends MVButtonWidget {
 			}.render(matrices, mouseX, mouseY, delta);
 		}
 	}
-	protected boolean renderSlider(MatrixStack matrices, int mouseX, int mouseY, float delta) {
+	protected boolean renderSlider(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
 		return false;
 	}
 	
 	@Override
-	public boolean mouseClicked(double mouseX, double mouseY, int button) {
-		if (button != GLFW.GLFW_MOUSE_BUTTON_1 || !isMouseOver(mouseX, mouseY))
+	public boolean mouseClicked(Click click, boolean doubled) {
+		if (click.button() != GLFW.GLFW_MOUSE_BUTTON_1 || !isMouseOver(click.x(), click.y()))
 			return false;
-		setValueFromMouse(mouseX);
+		setValueFromMouse(click.x());
 		return true;
 	}
 	
 	@Override
-	public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
-		if (button != GLFW.GLFW_MOUSE_BUTTON_1)
+	public boolean mouseDragged(Click click, double deltaX, double deltaY) {
+		if (click.button() != GLFW.GLFW_MOUSE_BUTTON_1)
 			return false;
-		setValueFromMouse(mouseX);
+		setValueFromMouse(click.x());
 		return true;
 	}
 	
 	@Override
-	public boolean mouseReleased(double mouseX, double mouseY, int button) {
-		if (button != GLFW.GLFW_MOUSE_BUTTON_1)
+	public boolean mouseReleased(Click click) {
+		if (click.button() != GLFW.GLFW_MOUSE_BUTTON_1)
 			return false;
 		playDownSound(MinecraftClient.getInstance().getSoundManager());
 		return true;

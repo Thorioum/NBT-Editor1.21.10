@@ -3,32 +3,28 @@ package com.luneruniverse.minecraft.mod.nbteditor.util;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.luneruniverse.minecraft.mod.nbteditor.NBTEditor;
-import com.luneruniverse.minecraft.mod.nbteditor.commands.arguments.FancyTextArgumentType;
+import com.luneruniverse.minecraft.mod.nbteditor.fancytext.FancyText;
 import com.luneruniverse.minecraft.mod.nbteditor.misc.MixinLink;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.EditableText;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVMisc;
+import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVTextEvents;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.TextInst;
 import com.luneruniverse.minecraft.mod.nbteditor.screens.util.FancyConfirmScreen;
-import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
-import net.minecraft.text.ClickEvent;
-import net.minecraft.text.ClickEvent.Action;
+import net.minecraft.nbt.InvalidNbtException;
 import net.minecraft.text.StringVisitable.StyledVisitor;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
-import net.minecraft.text.TextColor;
 import net.minecraft.util.Formatting;
 
 public class TextUtil {
@@ -43,12 +39,19 @@ public class TextUtil {
 			
 			if (str.startsWith("[LINK] ")) {
 				String url = str.substring("[LINK] ".length());
-				line = TextInst.literal(url).styled(style -> style.withClickEvent(new ClickEvent.OpenUrl(URI.create(url)))
+				URI uri;
+				try {
+					uri = new URI(url);
+				} catch (URISyntaxException e) {
+					throw new IllegalArgumentException("Invalid link: " + url, e);
+				}
+				line = TextInst.literal(url)
+						.styled(style -> style.withClickEvent(MVTextEvents.ClickAction.OPEN_URL.newEvent(uri))
 						.withUnderline(true).withItalic(true).withColor(Formatting.GOLD));
 			}
 			if (str.startsWith("[FORMAT] ")) {
 				String toFormat = str.substring("[FORMAT] ".length());
-				line = parseFormattedText(toFormat);
+				line = FancyText.parse(toFormat);
 			}
 			lines.add(line);
 		}
@@ -64,16 +67,8 @@ public class TextUtil {
 		return output;
 	}
 	
-	public static Text parseFormattedText(String text) {
-		try {
-			return FancyTextArgumentType.fancyText(false).parse(new StringReader(text));
-		} catch (CommandSyntaxException e) {
-			return TextInst.literal(text);
-		}
-	}
-	
 	public static Text parseTranslatableFormatted(String key, Object... args) {
-		return parseFormattedText(TextInst.translatable(key, args).getString());
+		return FancyText.parse(TextInst.translatable(key, args).getString());
 	}
 	
 	public static Text substring(Text text, int start, int end) {
@@ -154,7 +149,7 @@ public class TextUtil {
 	
 	public static Text attachFileTextOptions(EditableText link, File file) {
 		return link.append(" ").append(TextInst.translatable("nbteditor.file_options.show").styled(style ->
-				style.withClickEvent(new ClickEvent.OpenFile(
+				style.withClickEvent(MVTextEvents.ClickAction.OPEN_FILE.newEvent(
 						file.getAbsoluteFile().getParentFile().getAbsolutePath()))))
 				.append(" ").append(TextInst.translatable("nbteditor.file_options.delete").styled(style ->
 				MixinLink.withRunClickEvent(style, () -> MainUtil.client.setScreen(
@@ -176,89 +171,16 @@ public class TextUtil {
 								TextInst.translatable("nbteditor.file_options.delete.desc", file.getName()))))));
 	}
 	
-	public static boolean isTextFormatted(Text text, boolean allowNonNull, String baseColor) {
-		return isTextFormatted(TextInst.toJsonTree(text), allowNonNull, baseColor);
-	}
-	private static boolean isTextFormatted(JsonElement dataElement, boolean allowNonNull, String baseColor) {
-		if (!(dataElement instanceof JsonObject data))
-			return false;
+	public static boolean isTextFormatted(Text text, Style base) {
+		if (StyleUtil.hasFormatting(text.getStyle(), base))
+			return true;
 		
-		if (data.has("extra")) {
-			for (JsonElement part : data.get("extra").getAsJsonArray()) {
-				if (isTextFormatted(part, allowNonNull, baseColor))
-					return true;
-			}
+		for (Text sibling : text.getSiblings()) {
+			if (isTextFormatted(sibling, base))
+				return true;
 		}
 		
-		if (!allowNonNull)
-			return data.keySet().stream().anyMatch(key -> !key.equals("text") && !key.equals("extra"));
-		
-		if (data.has("bold") && data.get("bold").getAsBoolean())
-			return true;
-		if (data.has("italic") && data.get("italic").getAsBoolean())
-			return true;
-		if (data.has("underlined") && data.get("underlined").getAsBoolean())
-			return true;
-		if (data.has("strikethrough") && data.get("strikethrough").getAsBoolean())
-			return true;
-		if (data.has("obfuscated") && data.get("obfuscated").getAsBoolean())
-			return true;
-		if (data.has("color") && (baseColor == null || !data.get("color").getAsString().equals(baseColor)))
-			return true;
-		if (data.has("insertion") && data.get("insertion").getAsBoolean())
-			return true;
-		if (data.has("clickEvent"))
-			return true;
-		if (data.has("hoverEvent"))
-			return true;
-		if (data.has("font") && !data.get("font").getAsString().equals(Style.DEFAULT_FONT_ID.toString()))
-			return true;
-		
 		return false;
-	}
-	
-	public static boolean styleEqualsExact(Style a, Style b) {
-		return Objects.equals(a.getColor(), b.getColor()) &&
-				a.bold == b.bold &&
-				a.italic == b.italic &&
-				a.underlined == b.underlined &&
-				a.strikethrough == b.strikethrough &&
-				a.obfuscated == b.obfuscated &&
-				Objects.equals(a.getClickEvent(), b.getClickEvent()) &&
-				Objects.equals(a.getHoverEvent(), b.getHoverEvent()) &&
-				Objects.equals(a.getInsertion(), b.getInsertion()) &&
-				Objects.equals(a.getFont(), b.getFont());
-	}
-	
-	public static boolean hasFormatting(Style style, Formatting formatting) {
-		return styleEqualsExact(style, style.withFormatting(formatting));
-	}
-	
-	public static Style removeFormatting(Style style, Formatting formatting, boolean force) {
-		if (formatting == Formatting.RESET)
-			return style;
-		if (formatting.isColor())
-			return style.withColor(force ? Formatting.WHITE : null);
-		Boolean newValue = (force ? false : null);
-		return switch (formatting) {
-			case BOLD -> style.withBold(newValue);
-			case ITALIC -> style.withItalic(newValue);
-			case UNDERLINE -> style.withUnderline(newValue);
-			case STRIKETHROUGH -> style.withStrikethrough(newValue);
-			case OBFUSCATED -> style.withObfuscated(newValue);
-			default -> throw new IllegalArgumentException("Unknown formatting: " + formatting);
-		};
-	}
-	
-	public static Style forceReset(Style base) {
-		return Style.EMPTY
-				.withColor(base.getColor() == null ||
-						base.getColor().equals(TextColor.fromFormatting(Formatting.WHITE)) ? null : Formatting.WHITE)
-				.withBold(base.bold == null || !base.bold ? null : false)
-				.withItalic(base.italic == null || !base.italic ? null : false)
-				.withUnderline(base.underlined == null || !base.underlined ? null : false)
-				.withStrikethrough(base.strikethrough == null || !base.strikethrough ? null : false)
-				.withObfuscated(base.obfuscated == null || !base.obfuscated ? null : false);
 	}
 	
 	public static int lastIndexOf(Text text, int ch) {
@@ -274,6 +196,20 @@ public class TextUtil {
 		return output.getPlain();
 	}
 	
+	public static Text fromStringSafely(String str, boolean eitherFormat) {
+		try {
+			Text output = TextInst.fromString(str, eitherFormat);
+			if (output != null)
+				return output;
+		} catch (IllegalArgumentException e) {}
+		return TextInst.of(str);
+	}
+	public static Text fromSNbtSafely(String snbt) {
+		try {
+			return TextInst.fromSNbt(snbt);
+		} catch (CommandSyntaxException | InvalidNbtException e) {}
+		return TextInst.of(snbt);
+	}
 	public static Text fromJsonSafely(String json) {
 		try {
 			Text output = TextInst.fromJson(json);

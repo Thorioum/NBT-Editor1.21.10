@@ -4,12 +4,7 @@ import static com.luneruniverse.minecraft.mod.nbteditor.multiversion.commands.Cl
 import static com.luneruniverse.minecraft.mod.nbteditor.multiversion.commands.ClientCommandManager.literal;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import com.luneruniverse.minecraft.mod.nbteditor.NBTEditor;
 import com.luneruniverse.minecraft.mod.nbteditor.NBTEditorClient;
@@ -20,81 +15,29 @@ import com.luneruniverse.minecraft.mod.nbteditor.localnbt.LocalItem;
 import com.luneruniverse.minecraft.mod.nbteditor.localnbt.LocalNBT;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVMisc;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVRegistry;
+import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVTextEvents;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.TextInst;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.Version;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.commands.FabricClientCommandSource;
-import com.luneruniverse.minecraft.mod.nbteditor.multiversion.nbt.NBTManagers;
+import com.luneruniverse.minecraft.mod.nbteditor.multiversion.nbt.manager.NBTManagers;
 import com.luneruniverse.minecraft.mod.nbteditor.nbtreferences.NBTReference;
 import com.luneruniverse.minecraft.mod.nbteditor.nbtreferences.NBTReferenceFilter;
-import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.TagNames;
+import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.ItemTagReferences;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 import com.luneruniverse.minecraft.mod.nbteditor.util.TextUtil;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 
-import net.minecraft.SharedConstants;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtList;
-import net.minecraft.text.ClickEvent;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.path.PathUtil;
 
 public class NBTExportCommand extends ClientCommand {
-	private static final Pattern FILE_NAME_WITH_COUNT = Pattern.compile("(<name>.*) \\((<count>\\d*)\\)", 66);
-	private static final int MAX_NAME_LENGTH = 255;
-	private static final Pattern RESERVED_WINDOWS_NAMES = Pattern.compile(".*\\.|(?:COM|CLOCK\\$|CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(?:\\..*)?", 2);
-	private static final Pattern VALID_FILE_NAME = Pattern.compile("[-._a-z0-9]+");
-	public static String replaceInvalidChars(String fileName) {
-		for (char c : SharedConstants.INVALID_CHARS_LEVEL_NAME) {
-			fileName = fileName.replace(c, '_');
-		}
-
-		return fileName.replaceAll("[./\"]", "_");
-	}
-	public static String getNextUniqueName(Path path, String name, String extension) throws IOException {
-		name = replaceInvalidChars(name);
-		if (RESERVED_WINDOWS_NAMES.matcher(name).matches()) {
-			name = "_" + name + "_";
-		}
-
-		Matcher matcher = FILE_NAME_WITH_COUNT.matcher(name);
-		int i = 0;
-		if (matcher.matches()) {
-			name = matcher.group("name");
-			i = Integer.parseInt(matcher.group("count"));
-		}
-
-		if (name.length() > 255 - extension.length()) {
-			name = name.substring(0, 255 - extension.length());
-		}
-
-		while (true) {
-			String string = name;
-			if (i != 0) {
-				String string2 = " (" + i + ")";
-				int j = 255 - string2.length();
-				if (name.length() > j) {
-					string = name.substring(0, j);
-				}
-
-				string = string + string2;
-			}
-
-			string = string + extension;
-			Path path2 = path.resolve(string);
-
-			try {
-				Path path3 = Files.createDirectory(path2);
-				Files.deleteIfExists(path3);
-				return path.relativize(path3).toString();
-			} catch (FileAlreadyExistsException var8) {
-				i++;
-			}
-		}
-	}
+	
 	public static final NBTReferenceFilter EXPORT_FILTER = NBTReferenceFilter.create(
 			ref -> true,
 			ref -> true,
@@ -119,7 +62,7 @@ public class NBTExportCommand extends ClientCommand {
 	private static void stripEntityTags(NbtCompound nbt, String... tags) {
 		for (String tag : tags)
 			nbt.remove(tag);
-		for (NbtElement passenger : nbt.getList("Passengers").orElseGet(NbtList::new))
+		for (NbtElement passenger : nbt.nbte$getPartialListOrDefault("Passengers", NbtElement.COMPOUND_TYPE).nbte$iterable())
 			stripEntityTags((NbtCompound) passenger, tags);
 	}
 	
@@ -127,10 +70,10 @@ public class NBTExportCommand extends ClientCommand {
 		return MVRegistry.ITEM.getId(item.getItem()).toString() + NBTManagers.ITEM.getNbtString(item) + " " + item.getCount();
 	}
 	private static String getBlockArgs(LocalBlock block) {
-		return block.getId().toString() + block.getState().toString() + (block.getNBT() == null ? "" : block.getNBT().asString());
+		return block.getId().toString() + block.getState().toString() + (block.getNBT() == null ? "" : block.getNBT().toString());
 	}
 	private static String getEntityArgs(LocalEntity entity) {
-		return entity.getId().toString() + " ~ ~ ~" + (entity.getNBT() == null ? "" : " " + entity.getNBT().asString());
+		return entity.getId().toString() + " ~ ~ ~" + (entity.getNBT() == null ? "" : " " + entity.getNBT().toString());
 	}
 	
 	private static String getCommand(String itemPrefix, String blockPrefix, String entityPrefix, LocalNBT nbt, boolean stripEntityUUIDs) {
@@ -159,12 +102,12 @@ public class NBTExportCommand extends ClientCommand {
 		try {
 			if (!exportDir.exists())
 				Files.createDirectory(exportDir.toPath());
-			File output = new File(exportDir, getNextUniqueName(exportDir.toPath(), name, ".nbt"));
+			File output = new File(exportDir, PathUtil.getNextUniqueName(exportDir.toPath(), name, ".nbt"));
 			nbt.putInt("DataVersion", Version.getDataVersion());
 			MVMisc.writeCompressedNbt(nbt, output);
 			MainUtil.client.player.sendMessage(TextUtil.attachFileTextOptions(TextInst.translatable("nbteditor.nbt.export.file.success",
 					TextInst.literal(output.getName()).formatted(Formatting.UNDERLINE).styled(style ->
-					style.withClickEvent(new ClickEvent.OpenFile(output.getAbsolutePath())))), output), false);
+					style.withClickEvent(MVTextEvents.ClickAction.OPEN_FILE.newEvent(output.getAbsolutePath())))), output), false);
 		} catch (Exception e) {
 			NBTEditor.LOGGER.error("Error while exporting item", e);
 			MainUtil.client.player.sendMessage(TextInst.translatable("nbteditor.nbt.export.file.error", e.getMessage()), false);
@@ -190,8 +133,10 @@ public class NBTExportCommand extends ClientCommand {
 			})).then(literal("cmdblock").executes(context -> {
 				NBTReference.getReference(EXPORT_FILTER, false, ref -> {
 					ItemStack cmdBlock = new ItemStack(Items.COMMAND_BLOCK);
-					cmdBlock.manager$modifySubNbt(TagNames.BLOCK_ENTITY_TAG,
-							nbt -> MainUtil.fillId(nbt).putString("Command", getVanillaCommand(ref)));
+					NbtCompound blockEntityTag = new NbtCompound();
+					MainUtil.fillId(blockEntityTag, "minecraft:command_block");
+					blockEntityTag.putString("Command", getVanillaCommand(ref));
+					ItemTagReferences.BLOCK_ENTITY_DATA.set(cmdBlock, blockEntityTag);
 					MainUtil.getWithMessage(cmdBlock);
 				});
 				return Command.SINGLE_SUCCESS;
@@ -200,10 +145,7 @@ public class NBTExportCommand extends ClientCommand {
 				return Command.SINGLE_SUCCESS;
 			})).then(literal("item").executes(context -> {
 				NBTReference.getReference(EXPORT_ITEM_FILTER, false, ref -> {
-					LocalNBT localNBT = ref.getLocalNBT();
-					if (localNBT instanceof LocalEntity localEntity)
-						localNBT = stripEntityTags(localEntity, "UUID", "Pos");
-					localNBT.toItem().ifPresentOrElse(MainUtil::getWithMessage,
+					ref.getLocalNBT().toItem(true).ifPresentOrElse(MainUtil::getWithMessage,
 							() -> MainUtil.client.player.sendMessage(TextInst.translatable("nbteditor.nbt.export.item.error"), false));
 				});
 				return Command.SINGLE_SUCCESS;

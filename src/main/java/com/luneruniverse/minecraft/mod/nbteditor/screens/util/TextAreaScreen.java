@@ -14,7 +14,9 @@ import com.mojang.brigadier.suggestion.Suggestions;
 
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.input.KeyInput;
 import net.minecraft.client.util.math.MatrixStack;
+import org.joml.Matrix3x2fStack;
 
 public class TextAreaScreen extends OverlaySupportingScreen {
 	
@@ -71,16 +73,16 @@ public class TextAreaScreen extends OverlaySupportingScreen {
 	}
 	
 	@Override
-	public void renderMain(MatrixStack matrices, int mouseX, int mouseY, float delta) {
+	public void renderMain(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
 		super.renderBackground(matrices);
 		super.renderMain(matrices, mouseX, mouseY, delta);
 	}
 	
 	@Override
-	public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-		if (getOverlay() == null && textArea.keyPressed(keyCode, scanCode, modifiers))
+	public boolean keyPressed(KeyInput keyInput) {
+		if (getOverlay() == null && textArea.keyPressed(keyInput))
 			return true;
-		return super.keyPressed(keyCode, scanCode, modifiers);
+		return super.keyPressed(keyInput);
 	}
 	
 	@Override

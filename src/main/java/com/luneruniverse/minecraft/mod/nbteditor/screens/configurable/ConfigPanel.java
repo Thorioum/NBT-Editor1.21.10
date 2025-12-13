@@ -8,6 +8,7 @@ import com.luneruniverse.minecraft.mod.nbteditor.screens.widgets.Panel;
 
 import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
 import net.minecraft.client.util.math.MatrixStack;
+import org.joml.Matrix3x2fStack;
 
 public class ConfigPanel extends Panel<ConfigPath> implements Tickable {
 	
@@ -38,7 +39,7 @@ public class ConfigPanel extends Panel<ConfigPath> implements Tickable {
 	}
 	
 	@Override
-	public void render(MatrixStack matrices, int mouseX, int mouseY, float delta) {
+	public void render(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
 		boolean prevOneTooltip = MVTooltip.isOneTooltip();
 		if (!prevOneTooltip)
 			MVTooltip.setOneTooltip(true, true);

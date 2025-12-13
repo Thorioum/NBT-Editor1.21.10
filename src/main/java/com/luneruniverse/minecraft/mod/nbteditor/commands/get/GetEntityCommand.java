@@ -15,6 +15,7 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.suggestion.Suggestions;
+import com.mt1006.nbt_ac.autocomplete.NbtSuggestionManager;
 
 import net.minecraft.command.argument.NbtCompoundArgumentType;
 import net.minecraft.command.argument.PosArgument;
@@ -48,7 +49,7 @@ public class GetEntityCommand extends ClientCommand {
 			LocalEntity entity = new LocalEntity(entityType, nbtArg);
 			
 			if (pos == null) {
-				entity.toItem().ifPresentOrElse(MainUtil::getWithMessage,
+				entity.toItem(false).ifPresentOrElse(MainUtil::getWithMessage,
 						() -> MainUtil.client.player.sendMessage(TextInst.translatable("nbteditor.nbt.export.item.error"), false));
 			} else if (NBTEditorClient.SERVER_CONN.isEditingExpanded())
 				entity.summon(MainUtil.client.world.getRegistryKey(), pos);
@@ -63,7 +64,7 @@ public class GetEntityCommand extends ClientCommand {
 			EntityType<?> entityType = context.getArgument("entity", EntityType.class);
 			String name = "entity/" + EntityType.getId(entityType);
 			String tag = suggestionsBuilder.getRemaining();
-			return Suggestions.empty();
+			return NbtSuggestionManager.loadFromName(name, tag, suggestionsBuilder, false);
 		};
 		
 		builder.then(argument("entity", SummonableEntityArgumentType.summonableEntity())

@@ -3,6 +3,8 @@ package com.luneruniverse.minecraft.mod.nbteditor.screens;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
+import net.minecraft.client.input.KeyInput;
+import org.joml.Matrix3x2fStack;
 import org.lwjgl.glfw.GLFW;
 
 import com.luneruniverse.minecraft.mod.nbteditor.NBTEditorClient;
@@ -136,7 +138,7 @@ public class ClientChestDataVersionScreen extends TickableSupportingScreen {
 	}
 	
 	@Override
-	public void render(MatrixStack matrices, int mouseX, int mouseY, float delta) {
+	public void render(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
 		boolean fullButtons = (dataVersionStatus != DataVersionStatus.TOO_UPDATED);
 		
 		if (fullButtons) {
@@ -164,7 +166,8 @@ public class ClientChestDataVersionScreen extends TickableSupportingScreen {
 	}
 	
 	@Override
-	public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+	public boolean keyPressed(KeyInput keyInput) {
+		int keyCode = keyInput.key();
 		if (keyCode == GLFW.GLFW_KEY_PAGE_UP || keyCode == GLFW.GLFW_KEY_PAGE_DOWN) {
 			boolean prev = (keyCode == GLFW.GLFW_KEY_PAGE_DOWN);
 			if (ConfigScreen.isInvertedPageKeybinds())
@@ -175,7 +178,7 @@ public class ClientChestDataVersionScreen extends TickableSupportingScreen {
 				nextPage();
 		}
 		
-		return super.keyPressed(keyCode, scanCode, modifiers);
+		return super.keyPressed(keyInput);
 	}
 	
 	private void prevPage() {

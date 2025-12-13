@@ -12,20 +12,26 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.networking.MVServerNetworking;
 import com.luneruniverse.minecraft.mod.nbteditor.packets.ContainerScreenS2CPacket;
 import com.luneruniverse.minecraft.mod.nbteditor.server.ServerMVMisc;
+import com.luneruniverse.minecraft.mod.nbteditor.server.ServerMainUtil;
+import com.luneruniverse.minecraft.mod.nbteditor.server.ServerMixinLink;
 
+import net.minecraft.block.ChestBlock;
 import net.minecraft.block.entity.LockableContainerBlockEntity;
 import net.minecraft.entity.passive.AbstractHorseEntity;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.screen.GenericContainerScreenHandler;
 import net.minecraft.screen.NamedScreenHandlerFactory;
 import net.minecraft.screen.ScreenHandler;
+import net.minecraft.screen.slot.Slot;
 import net.minecraft.server.network.ServerPlayerEntity;
 
 @Mixin(ServerPlayerEntity.class)
 public class ServerPlayerEntityMixin {
 	@Inject(method = "openHandledScreen", at = @At("HEAD"))
 	private void openHandledScreen(NamedScreenHandlerFactory factory, CallbackInfoReturnable<OptionalInt> info) {
-		if (factory instanceof LockableContainerBlockEntity || ServerMVMisc.isInstanceOfVehicleInventory(factory))
+		if (factory instanceof LockableContainerBlockEntity ||
+				ServerMainUtil.getRootEnclosingClass(factory.getClass()) == ChestBlock.class || // Double chests
+				ServerMVMisc.isInstanceOfVehicleInventory(factory))
 			MVServerNetworking.send((ServerPlayerEntity) (Object) this, new ContainerScreenS2CPacket());
 	}
 	@ModifyVariable(method = "openHandledScreen", at = @At("STORE"), ordinal = 0)
@@ -38,5 +44,11 @@ public class ServerPlayerEntityMixin {
 	@Inject(method = "openHorseInventory", at = @At("HEAD"))
 	private void openHorseInventory(AbstractHorseEntity horse, Inventory inventory, CallbackInfo info) {
 		MVServerNetworking.send((ServerPlayerEntity) (Object) this, new ContainerScreenS2CPacket());
+	}
+	
+	@Inject(method = "onScreenHandlerOpened", at = @At("HEAD"))
+	private void onScreenHandlerOpened(ScreenHandler screenHandler, CallbackInfo info) {
+		for (Slot slot : screenHandler.slots)
+			ServerMixinLink.SLOT_OWNER.put(slot, (ServerPlayerEntity) (Object) this);
 	}
 }

@@ -7,6 +7,7 @@ import java.util.function.Consumer;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVMisc;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVTooltip;
 
+import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.text.Text;
 
@@ -50,8 +51,8 @@ public class ButtonDropdownWidget extends GroupWidget {
 		}
 		
 		@Override
-		public boolean mouseClicked(double mouseX, double mouseY, int button) {
-			boolean output = super.mouseClicked(mouseX, mouseY, button);
+		public boolean mouseClicked(Click click, boolean doubled) {
+			boolean output = super.mouseClicked(click, doubled);
 			if (!output)
 				close.accept(this);
 			return output;

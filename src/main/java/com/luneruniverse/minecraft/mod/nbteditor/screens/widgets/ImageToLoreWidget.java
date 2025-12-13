@@ -14,6 +14,8 @@ import java.util.function.Consumer;
 
 import javax.imageio.ImageIO;
 
+import net.minecraft.client.input.KeyInput;
+import org.joml.Matrix3x2fStack;
 import org.lwjgl.glfw.GLFW;
 
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.EditableText;
@@ -21,8 +23,8 @@ import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVDrawableHelper;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVMisc;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.ScreenTexts;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.TextInst;
+import com.luneruniverse.minecraft.mod.nbteditor.screens.OverlayScreen;
 import com.luneruniverse.minecraft.mod.nbteditor.screens.OverlaySupportingScreen;
-import com.luneruniverse.minecraft.mod.nbteditor.screens.WidgetScreen;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 
 import net.minecraft.client.font.TextRenderer;
@@ -59,7 +61,7 @@ public class ImageToLoreWidget extends GroupWidget implements InitializableOverl
 		if (imgs.isEmpty())
 			return false;
 		
-		WidgetScreen.setOverlayOrScreen(new ImageToLoreWidget(optional -> {
+		OverlayScreen.setOverlayOrScreen(new ImageToLoreWidget(optional -> {
 			OverlaySupportingScreen.setOverlayStatic(null);
 			
 			if (optional.isEmpty())
@@ -84,7 +86,7 @@ public class ImageToLoreWidget extends GroupWidget implements InitializableOverl
 			});
 			
 			onDone.run();
-		}), 200, true);
+		}), 500, true);
 		
 		return true;
 	}
@@ -136,9 +138,8 @@ public class ImageToLoreWidget extends GroupWidget implements InitializableOverl
 	}
 	
 	@Override
-	public void render(MatrixStack matrices, int mouseX, int mouseY, float delta) {
-		if (!(MainUtil.client.currentScreen instanceof WidgetScreen))
-			MVDrawableHelper.fill(matrices, width / 2 - 102 - 16, height / 2 - 18 - 16, width / 2 + 102 + 16, height / 2 + 22 + 16, 0xC8101010);
+	public void render(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
+		MainUtil.client.currentScreen.renderBackground(matrices);
 		super.render(matrices, mouseX, mouseY, delta);
 		MVDrawableHelper.drawCenteredTextWithShadow(matrices, textRenderer, TextInst.translatable("nbteditor.img_to_lore"),
 				width / 2, height / 2 - textRenderer.fontHeight - 22, -1);
@@ -146,7 +147,8 @@ public class ImageToLoreWidget extends GroupWidget implements InitializableOverl
 	}
 	
 	@Override
-	public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+	public boolean keyPressed(KeyInput keyInput) {
+		int keyCode = keyInput.key();
 		if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
 			OverlaySupportingScreen.setOverlayStatic(null);
 			return true;
@@ -157,7 +159,7 @@ public class ImageToLoreWidget extends GroupWidget implements InitializableOverl
 			return true;
 		}
 		
-		return super.keyPressed(keyCode, scanCode, modifiers);
+		return super.keyPressed(keyInput);
 	}
 	
 }

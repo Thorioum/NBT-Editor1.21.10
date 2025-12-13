@@ -10,11 +10,10 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.IdentifierInst;
-import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVMisc;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVRegistry;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.Reflection;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.TextInst;
-import com.luneruniverse.minecraft.mod.nbteditor.multiversion.nbt.NBTManagers;
+import com.luneruniverse.minecraft.mod.nbteditor.multiversion.nbt.manager.NBTManagers;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.networking.MVServerNetworking;
 import com.luneruniverse.minecraft.mod.nbteditor.packets.GetBlockC2SPacket;
 import com.luneruniverse.minecraft.mod.nbteditor.packets.GetEntityC2SPacket;
@@ -38,9 +37,13 @@ import net.minecraft.block.entity.LecternBlockEntity;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.Entity.RemovalReason;
 import net.minecraft.entity.EntityType;
+import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.inventory.Inventory;
-import net.minecraft.nbt.*;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtDouble;
+import net.minecraft.nbt.NbtElement;
+import net.minecraft.nbt.NbtList;
 import net.minecraft.screen.GenericContainerScreenHandler;
 import net.minecraft.screen.LecternScreenHandler;
 import net.minecraft.screen.SimpleNamedScreenHandlerFactory;
@@ -49,7 +52,6 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.InvalidIdentifierException;
-import net.minecraft.util.Uuids;
 import net.minecraft.util.math.Vec3d;
 
 public class NBTEditorServer implements MVServerNetworking.PlayNetworkStateEvents.Start {
@@ -94,14 +96,14 @@ public class NBTEditorServer implements MVServerNetworking.PlayNetworkStateEvent
 	}
 	
 	private void onSetCursorPacket(SetCursorC2SPacket packet, ServerPlayerEntity player) {
-		if (!player.hasPermissionLevel(2))
+		if (!ServerMVMisc.hasPermissionLevel(player, 2))
 			return;
 		
-		player.currentScreenHandler.setCursorStack(packet.getItem());
+		MainUtil.setCursorStackSilently(player.currentScreenHandler, packet.getItem());
 	}
 	
 	private void onSetSlotPacket(SetSlotC2SPacket packet, ServerPlayerEntity player) {
-		if (!player.hasPermissionLevel(2))
+		if (!ServerMVMisc.hasPermissionLevel(player, 2))
 			return;
 		if (player.currentScreenHandler == player.playerScreenHandler)
 			return;
@@ -114,7 +116,7 @@ public class NBTEditorServer implements MVServerNetworking.PlayNetworkStateEvent
 	}
 	
 	private void onOpenEnderChestPacket(OpenEnderChestC2SPacket packet, ServerPlayerEntity player) {
-		if (!player.hasPermissionLevel(2))
+		if (!ServerMVMisc.hasPermissionLevel(player, 2))
 			return;
 		
 		player.openHandledScreen(new SimpleNamedScreenHandlerFactory((syncId, inventory, player2) ->
@@ -123,10 +125,10 @@ public class NBTEditorServer implements MVServerNetworking.PlayNetworkStateEvent
 	}
 	
 	private void onGetBlockPacket(GetBlockC2SPacket packet, ServerPlayerEntity player) {
-		if (!player.hasPermissionLevel(2))
+		if (!ServerMVMisc.hasPermissionLevel(player, 2))
 			return;
 		
-		ServerWorld world = player.getServer().getWorld(packet.getWorld());
+		ServerWorld world = player.server.getWorld(packet.getWorld());
 		if (world != null) {
 			BlockEntity blockEntity = world.getBlockEntity(packet.getPos());
 			if (blockEntity != null) {
@@ -138,7 +140,7 @@ public class NBTEditorServer implements MVServerNetworking.PlayNetworkStateEvent
 		MVServerNetworking.send(player, new ViewBlockS2CPacket(packet.getRequestId(), packet.getWorld(), packet.getPos(), null, null, null));
 	}
 	private void onGetLecternBlockPacket(GetLecternBlockC2SPacket packet, ServerPlayerEntity player) {
-		if (!player.hasPermissionLevel(2))
+		if (!ServerMVMisc.hasPermissionLevel(player, 2))
 			return;
 		
 		if (player.currentScreenHandler instanceof LecternScreenHandler handler) {
@@ -162,10 +164,10 @@ public class NBTEditorServer implements MVServerNetworking.PlayNetworkStateEvent
 	}
 	
 	private void onGetEntityPacket(GetEntityC2SPacket packet, ServerPlayerEntity player) {
-		if (!player.hasPermissionLevel(2))
+		if (!ServerMVMisc.hasPermissionLevel(player, 2))
 			return;
 		
-		ServerWorld world = player.getServer().getWorld(packet.getWorld());
+		ServerWorld world = player.server.getWorld(packet.getWorld());
 		if (world != null) {
 			Entity entity = world.getEntity(packet.getUUID());
 			if (entity != null && !(entity instanceof PlayerEntity)) {
@@ -181,10 +183,10 @@ public class NBTEditorServer implements MVServerNetworking.PlayNetworkStateEvent
 	}
 	
 	private void onSetBlockPacket(SetBlockC2SPacket packet, ServerPlayerEntity player) {
-		if (!player.hasPermissionLevel(2))
+		if (!ServerMVMisc.hasPermissionLevel(player, 2))
 			return;
 		
-		ServerWorld world = player.getServer().getWorld(packet.getWorld());
+		ServerWorld world = player.server.getWorld(packet.getWorld());
 		if (world == null)
 			return;
 		
@@ -215,10 +217,10 @@ public class NBTEditorServer implements MVServerNetworking.PlayNetworkStateEvent
 	}
 	
 	private void onSetEntityPacket(SetEntityC2SPacket packet, ServerPlayerEntity player) {
-		if (!player.hasPermissionLevel(2))
+		if (!ServerMVMisc.hasPermissionLevel(player, 2))
 			return;
 		
-		ServerWorld world = player.getServer().getWorld(packet.getWorld());
+		ServerWorld world = player.server.getWorld(packet.getWorld());
 		if (world == null)
 			return;
 		
@@ -227,31 +229,39 @@ public class NBTEditorServer implements MVServerNetworking.PlayNetworkStateEvent
 			return;
 		
 		UUID newUUID = packet.getUUID();
-		if (packet.getNbt().contains("UUID")) {
-			newUUID = UUID.nameUUIDFromBytes(packet.getNbt().getByteArray("UUID").orElse(new byte[]{}));
+		if (packet.getNbt().nbte$containsUuid("UUID")) {
+			newUUID = packet.getNbt().nbte$getUuid("UUID").get();
 			if (!packet.getUUID().equals(newUUID) && world.getEntity(newUUID) != null) {
 				newUUID = packet.getUUID();
-				packet.getNbt().put("UUID", new NbtByteArray(Uuids.toByteArray(newUUID)));
+				packet.getNbt().nbte$putUuid("UUID", newUUID);
 			}
 		} else
-			packet.getNbt().put("UUID", new NbtByteArray(Uuids.toByteArray(packet.getUUID())));
+			packet.getNbt().nbte$putUuid("UUID", packet.getUUID());
 		
 		EntityType<?> entityType = MVRegistry.ENTITY_TYPE.get(packet.getId());
 		
 		if (packet.isRecreate() || !entity.getUuid().equals(newUUID) || entity.getType() != entityType) {
 			Entity vehicle = entity.getVehicle();
-			Vec3d pos = entity.getPos();
+			Vec3d pos = entity.getEntityPos();
+			float yaw = entity.getYaw();
+			float bodyYaw = (entity instanceof LivingEntity livingEntity ? livingEntity.bodyYaw : 0);
+			float headYaw = entity.getHeadYaw();
+			float pitch = entity.getPitch();
 			entity.streamPassengersAndSelf().forEach(passengerOrSelf -> {
 				passengerOrSelf.stopRiding();
 				passengerOrSelf.remove(RemovalReason.DISCARDED);
 			});
-			entity = MVMisc.createEntity(entityType, world);
+			entity = ServerMVMisc.createEntity(entityType, world);
 			entity.setUuid(newUUID);
 			entity.setPosition(pos);
+			entity.setYaw(yaw);
+			entity.setBodyYaw(bodyYaw);
+			entity.setHeadYaw(headYaw);
+			entity.setPitch(pitch);
 			world.spawnEntity(entity);
 			readEntityNbtWithPassengers(world, entity, packet.getNbt());
 			if (vehicle != null)
-				entity.startRiding(vehicle, true);
+				entity.startRiding(vehicle, true,true);
 		} else {
 			entity.getDataTracker().reset();
 			readEntityNbtWithPassengers(world, entity, packet.getNbt());
@@ -259,25 +269,25 @@ public class NBTEditorServer implements MVServerNetworking.PlayNetworkStateEvent
 	}
 	
 	private void onSummonEntityPacket(SummonEntityC2SPacket packet, ServerPlayerEntity player) {
-		if (!player.hasPermissionLevel(2))
+		if (!ServerMVMisc.hasPermissionLevel(player, 2))
 			return;
 		
-		ServerWorld world = player.getServer().getWorld(packet.getWorld());
+		ServerWorld world = player.server.getWorld(packet.getWorld());
 		if (world == null) {
 			MVServerNetworking.send(player, new ViewEntityS2CPacket(packet.getRequestId(), null, null, null, null));
 			return;
 		}
 		
 		UUID uuid = UUID.randomUUID();
-		if (packet.getNbt().contains("UUID")) {
-			UUID nbtUUID = UUID.nameUUIDFromBytes(packet.getNbt().getByteArray("UUID").orElse(new byte[]{}));
+		if (packet.getNbt().nbte$containsUuid("UUID")) {
+			UUID nbtUUID = packet.getNbt().nbte$getUuid("UUID").get();
 			if (world.getEntity(nbtUUID) == null)
 				uuid = nbtUUID;
 			else
-				packet.getNbt().put("UUID", new NbtByteArray(Uuids.toByteArray(uuid)));
+				packet.getNbt().nbte$putUuid("UUID", uuid);
 		}
 		
-		Entity entity = MVMisc.createEntity(MVRegistry.ENTITY_TYPE.get(packet.getId()), world);
+		Entity entity = ServerMVMisc.createEntity(MVRegistry.ENTITY_TYPE.get(packet.getId()), world);
 		entity.setUuid(uuid);
 		entity.setPosition(packet.getPos());
 		packet.getNbt().put("Pos", Stream.of(packet.getPos().x, packet.getPos().y, packet.getPos().z)
@@ -294,24 +304,22 @@ public class NBTEditorServer implements MVServerNetworking.PlayNetworkStateEvent
 		NBTManagers.ENTITY.setNbt(entity, nbt);
 		
 		Map<UUID, Entity> passengers = entity.getPassengerList().stream().collect(Collectors.toMap(Entity::getUuid, Function.identity()));
-		NbtList passengersNbt = nbt.getList("Passengers").orElse(new NbtList());
+		NbtList passengersNbt = nbt.nbte$getPartialListOrDefault("Passengers", NbtElement.COMPOUND_TYPE);
 		Set<UUID> passengerUUIDs = new HashSet<>();
 		
-		for (NbtElement passengerNbtElement : passengersNbt) {
+		for (NbtElement passengerNbtElement : passengersNbt.nbte$iterable()) {
 			NbtCompound passengerNbt = (NbtCompound) passengerNbtElement;
-			if (!passengerNbt.contains("UUID"))
-				passengerNbt.put("UUID", new NbtByteArray(Uuids.toByteArray(UUID.randomUUID())));
-			UUID passengerUUID = UUID.nameUUIDFromBytes(passengerNbt.getByteArray("UUID").orElse(new byte[]{}));
-			if (!passengerUUIDs.add(passengerUUID)) {
+			UUID passengerUUID = passengerNbt.nbte$getUuid("UUID").orElse(null);
+			if (passengerUUID == null || !passengerUUIDs.add(passengerUUID)) {
 				passengerUUID = UUID.randomUUID();
-				passengerNbt.put("UUID", new NbtByteArray(Uuids.toByteArray(passengerUUID)));
+				passengerNbt.nbte$putUuid("UUID", passengerUUID);
 			}
 			Entity passenger = passengers.get(passengerUUID);
 			
 			Identifier passengerId = null;
-			if (passengerNbt.get("id") instanceof NbtString) {
+			if (passengerNbt.nbte$contains("id", NbtElement.STRING_TYPE)) {
 				try {
-					passengerId = IdentifierInst.of(passengerNbt.getString("id").orElse(""));
+					passengerId = IdentifierInst.of(passengerNbt.nbte$getStringOrDefault("id"));
 					if (!MVRegistry.ENTITY_TYPE.containsId(passengerId))
 						passengerId = null;
 				} catch (InvalidIdentifierException e) {}
@@ -330,11 +338,11 @@ public class NBTEditorServer implements MVServerNetworking.PlayNetworkStateEvent
 				EntityType<?> passengerType = MVRegistry.ENTITY_TYPE.get(passengerId);
 				if (world.getEntity(passengerUUID) != null) {
 					passengerUUID = UUID.randomUUID();
-					passengerNbt.put("UUID", new NbtByteArray(Uuids.toByteArray(passengerUUID)));
+					passengerNbt.nbte$putUuid("UUID", passengerUUID);
 				}
-				passenger = MVMisc.createEntity(passengerType, world);
+				passenger = ServerMVMisc.createEntity(passengerType, world);
 				passenger.setUuid(passengerUUID);
-				passenger.startRiding(entity, true);
+				passenger.startRiding(entity, true,true);
 				world.spawnEntity(passenger);
 			}
 			

@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.joml.Matrix3x2fStack;
 import org.lwjgl.opengl.GL20;
 
 import com.luneruniverse.minecraft.mod.nbteditor.misc.MixinLink;
@@ -47,7 +48,7 @@ public class MVTooltip {
 		}
 		return false;
 	}
-	public static boolean renderOneTooltip(MatrixStack matrices, int mouseX, int mouseY) {
+	public static boolean renderOneTooltip(Matrix3x2fStack matrices, int mouseX, int mouseY) {
 		MVTooltip tooltip = setOneTooltip(false, false);
 		if (tooltip == null)
 			return false;
@@ -113,12 +114,12 @@ public class MVTooltip {
 				return null;
 			if (args.length != 4) // onTooltip
 				throw new RuntimeException("Unexpected method call: " + method.getName());
-			render((MatrixStack) args[1], (int) args[2], (int) args[3]);
+			render((Matrix3x2fStack) args[1], (int) args[2], (int) args[3]);
 			return null;
 		});
 	}
 	
-	public void render(MatrixStack matrices, int mouseX, int mouseY) {
+	public void render(Matrix3x2fStack matrices, int mouseX, int mouseY) {
 		if (oneTooltip) {
 			if (lastTooltip || theOneTooltip == null)
 				theOneTooltip = this;
@@ -127,18 +128,16 @@ public class MVTooltip {
 		
 		// Undo translations and render at actual position
 		// This allows Screen#renderTooltip to adjust for window height
-		float[] translation = MVMatrix4f.getTranslation(matrices);
-		matrices.push();
-		matrices.translate(-translation[0], -translation[1], 0.0);
-		boolean scissor = GL20.glIsEnabled(GL20.GL_SCISSOR_TEST);
+		matrices.pushMatrix();
+		boolean scissor = MVGlStateManager.isScissorEnabled();
 		if (scissor)
 			GL20.glDisable(GL20.GL_SCISSOR_TEST);
 		
-		MVDrawableHelper.renderTooltip(matrices, lines, mouseX + (int) translation[0], mouseY + (int) translation[1]);
+		MVDrawableHelper.renderTooltip(matrices, lines, mouseX, mouseY);
 		
 		if (scissor)
 			GL20.glEnable(GL20.GL_SCISSOR_TEST);
-		matrices.pop();
+		matrices.popMatrix();
 	}
 	
 }

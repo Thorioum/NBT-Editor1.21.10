@@ -1,5 +1,8 @@
 package com.luneruniverse.minecraft.mod.nbteditor;
 
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.util.InputUtil;
+import net.minecraft.util.Util;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -28,7 +31,39 @@ public class NBTEditor implements ModInitializer {
 	
 	public static final Logger LOGGER = LogManager.getLogger("nbteditor");
 	public static NBTEditorServer SERVER;
-	
+	public static boolean IS_SYSTEM_MAC = Util.getOperatingSystem() == Util.OperatingSystem.OSX;
+
+	public static boolean hasControlDown() {
+		if (IS_SYSTEM_MAC) {
+			return InputUtil.isKeyPressed(MinecraftClient.getInstance().getWindow(), 343) || InputUtil.isKeyPressed(MinecraftClient.getInstance().getWindow(), 347);
+		} else {
+			return InputUtil.isKeyPressed(MinecraftClient.getInstance().getWindow(), 341) || InputUtil.isKeyPressed(MinecraftClient.getInstance().getWindow(), 345);
+		}
+	}
+
+	public static boolean hasShiftDown() {
+		return InputUtil.isKeyPressed(MinecraftClient.getInstance().getWindow(), 340) || InputUtil.isKeyPressed(MinecraftClient.getInstance().getWindow(), 344);
+	}
+
+	public static boolean hasAltDown() {
+		return InputUtil.isKeyPressed(MinecraftClient.getInstance().getWindow(), 342) || InputUtil.isKeyPressed(MinecraftClient.getInstance().getWindow(), 346);
+	}
+	public static boolean isCut(int code) {
+		return code == 88 && hasControlDown() && !hasShiftDown() && !hasAltDown();
+	}
+
+	public static boolean isPaste(int code) {
+		return code == 86 && hasControlDown() && !hasShiftDown() && !hasAltDown();
+	}
+
+	public static boolean isCopy(int code) {
+		return code == 67 && hasControlDown() && !hasShiftDown() && !hasAltDown();
+	}
+
+	public static boolean isSelectAll(int code) {
+		return code == 65 && hasControlDown() && !hasShiftDown() && !hasAltDown();
+	}
+
 	@Override
 	public void onInitialize() {
 		MVNetworking.registerPacket(ContainerScreenS2CPacket.ID, ContainerScreenS2CPacket::new);

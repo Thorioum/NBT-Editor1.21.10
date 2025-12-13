@@ -4,13 +4,14 @@ import java.lang.invoke.MethodType;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
 
+import net.minecraft.client.render.entity.EntityRenderManager;
+import org.joml.Matrix3x2fStack;
 import org.joml.Quaternionf;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 
-import net.minecraft.client.render.entity.EntityRenderDispatcher;
 import net.minecraft.client.util.math.MatrixStack;
 
 public class MVQuaternionf {
@@ -67,23 +68,22 @@ public class MVQuaternionf {
 		return value;
 	}
 	
-	// Wrapper handler
 	private final Cache<String, Reflection.MethodInvoker> methodCache = CacheBuilder.newBuilder().build();
 	@SuppressWarnings("unchecked")
-	private <R> R call(String oldMethod, String newMethod, MethodType type, Object... args) {
+	private <R> R call(String oldMethod, String newMethod, Supplier<MethodType> type, Object... args) {
 		String method = Version.<String>newSwitch()
 				.range("1.19.3", null, () -> newMethod)
 				.range(null, "1.19.2", () -> oldMethod)
 				.get();
 		try {
-			return (R) methodCache.get(method, () -> Reflection.getMethod(Quaternionf_class, method, type)).invoke(value, args);
+			return (R) methodCache.get(method, () -> Reflection.getMethod(Quaternionf_class, method, type.get())).invoke(value, args);
 		} catch (ExecutionException | UncheckedExecutionException e) {
 			throw new RuntimeException("Error invoking method", e);
 		}
 	}
 	
 	public MVQuaternionf multiply(MVQuaternionf right) {
-		call("method_4925", "mul", MethodType.methodType(return_class, Quaternionfc_class), right.getInternalValue());
+		call("method_4925", "mul", () -> MethodType.methodType(return_class, Quaternionfc_class), right.getInternalValue());
 		return this;
 	}
 	
@@ -101,7 +101,7 @@ public class MVQuaternionf {
 	}
 	
 	public MVQuaternionf conjugate() {
-		call("method_4926", "conjugate", MethodType.methodType(return_class));
+		call("method_4926", "conjugate", () -> MethodType.methodType(return_class));
 		return this;
 	}
 	
@@ -113,23 +113,6 @@ public class MVQuaternionf {
 				.range(null, "1.19.2", () -> Quaternionf_copy.get().invoke(value))
 				.get());
 	}
-	
-	private static final Supplier<Reflection.MethodInvoker> MatrixStack_multiply =
-			Reflection.getOptionalMethod(MatrixStack.class, "method_22907", MethodType.methodType(void.class, Quaternionf_class));
-	public void applyToMatrixStack(MatrixStack matrices) {
-		Version.newSwitch()
-				.range("1.19.3", null, () -> matrices.multiply((Quaternionf) value))
-				.range(null, "1.19.2", () -> MatrixStack_multiply.get().invoke(matrices, value))
-				.run();
-	}
-	
-	private static final Supplier<Reflection.MethodInvoker> EntityRenderDispatcher_setRotation =
-			Reflection.getOptionalMethod(EntityRenderDispatcher.class, "method_24196", MethodType.methodType(void.class, Quaternionf_class));
-	public void applyToEntityRenderDispatcher(EntityRenderDispatcher dispatcher) {
-		Version.newSwitch()
-				.range("1.19.3", null, () -> dispatcher.setRotation((Quaternionf) value))
-				.range(null, "1.19.2", () -> EntityRenderDispatcher_setRotation.get().invoke(dispatcher, value))
-				.run();
-	}
+
 	
 }

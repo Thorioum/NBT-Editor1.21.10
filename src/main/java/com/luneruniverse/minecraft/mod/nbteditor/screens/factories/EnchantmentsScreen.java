@@ -25,6 +25,7 @@ import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.specific.data.Enc
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.item.ItemStack;
+import org.joml.Matrix3x2fStack;
 
 public class EnchantmentsScreen extends LocalEditorScreen<LocalItem> {
 	
@@ -104,7 +105,7 @@ public class EnchantmentsScreen extends LocalEditorScreen<LocalItem> {
 	}
 	
 	@Override
-	protected void renderEditor(MatrixStack matrices, int mouseX, int mouseY, float delta) {
+	protected void renderEditor(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
 		renderTip(matrices, "nbteditor.enchantments.tip");
 	}
 	

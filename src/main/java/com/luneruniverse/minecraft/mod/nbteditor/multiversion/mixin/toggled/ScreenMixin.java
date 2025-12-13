@@ -15,9 +15,6 @@ import net.minecraft.text.OrderedText;
 
 @Mixin(Screen.class)
 public class ScreenMixin {
-	@Inject(method = "setTooltip(Ljava/util/List;Lnet/minecraft/client/gui/tooltip/TooltipPositioner;Z)V", at = @At("HEAD"), cancellable = true)
-	private void setTooltip(List<OrderedText> tooltip, TooltipPositioner positioner, boolean focused, CallbackInfo info) {
-		if (MVTooltip.setExternalOneTooltip(tooltip))
-			info.cancel();
-	}
+
+	
 }

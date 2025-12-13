@@ -10,6 +10,7 @@ import java.util.function.Predicate;
 
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVDrawable;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVElement;
+import com.luneruniverse.minecraft.mod.nbteditor.multiversion.OldEventBehavior;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.Version;
 import com.luneruniverse.minecraft.mod.nbteditor.screens.Tickable;
 
@@ -19,8 +20,9 @@ import net.minecraft.client.gui.Element;
 import net.minecraft.client.gui.Selectable;
 import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
 import net.minecraft.client.util.math.MatrixStack;
+import org.joml.Matrix3x2fStack;
 
-public class GroupWidget extends AbstractParentElement implements MVDrawable, MVElement, Tickable, Selectable {
+public class GroupWidget extends AbstractParentElement implements MVDrawable, MVElement, Tickable, Selectable, OldEventBehavior {
 	
 	private final List<Drawable> drawables;
 	private final List<Element> elements;
@@ -124,7 +126,7 @@ public class GroupWidget extends AbstractParentElement implements MVDrawable, MV
 	}
 	
 	@Override
-	public void render(MatrixStack matrices, int mouseX, int mouseY, float delta) {
+	public void render(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
 		for (Drawable drawable : drawables)
 			drawable.render(matrices, mouseX, mouseY, delta);
 	}

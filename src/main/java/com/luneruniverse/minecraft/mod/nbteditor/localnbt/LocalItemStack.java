@@ -5,7 +5,7 @@ import java.util.Set;
 
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVDrawableHelper;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVRegistry;
-import com.luneruniverse.minecraft.mod.nbteditor.multiversion.nbt.NBTManagers;
+import com.luneruniverse.minecraft.mod.nbteditor.multiversion.nbt.manager.NBTManagers;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 
 import net.minecraft.client.util.math.MatrixStack;
@@ -16,6 +16,7 @@ import net.minecraft.item.Items;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
+import org.joml.Matrix3x2fStack;
 
 public class LocalItemStack extends LocalItem {
 	
@@ -63,7 +64,7 @@ public class LocalItemStack extends LocalItem {
 	}
 	@Override
 	public void setName(Text name) {
-		item.manager$setCustomName(name);
+		item.nbte$setCustomName(name);
 	}
 	@Override
 	public String getDefaultName() {
@@ -98,29 +99,29 @@ public class LocalItemStack extends LocalItem {
 	
 	@Override
 	public NbtCompound getNBT() {
-		return item.manager$getNbt();
+		return item.nbte$getNbt();
 	}
 	@Override
 	public void setNBT(NbtCompound nbt) {
-		item.manager$setNbt(nbt);
+		item.nbte$setNbt(nbt);
 	}
 	@Override
 	public NbtCompound getOrCreateNBT() {
-		return item.manager$getOrCreateNbt();
+		return item.nbte$getOrCreateNbt();
 	}
 	
 	@Override
-	public void renderIcon(MatrixStack matrices, int x, int y) {
+	public void renderIcon(Matrix3x2fStack matrices, int x, int y, float tickDelta) {
 		MVDrawableHelper.renderItem(matrices, 200.0F, true, item, x, y);
 	}
 	
 	@Override
-	public Optional<ItemStack> toItem() {
+	public Optional<ItemStack> toItem(boolean cleanup) {
 		return Optional.of(item.copy());
 	}
 	@Override
 	public NbtCompound serialize() {
-		NbtCompound output = item.manager$serialize(true);
+		NbtCompound output = item.nbte$serialize(true);
 		output.putString("type", "item");
 		return output;
 	}

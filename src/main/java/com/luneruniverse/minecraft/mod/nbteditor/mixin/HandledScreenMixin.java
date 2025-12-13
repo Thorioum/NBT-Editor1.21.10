@@ -1,5 +1,6 @@
 package com.luneruniverse.minecraft.mod.nbteditor.mixin;
 
+import net.minecraft.client.input.KeyInput;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -34,10 +35,10 @@ public class HandledScreenMixin {
 	}
 	
 	@Inject(method = "keyPressed", at = @At(value = "HEAD"), cancellable = true)
-	private void keyPressed(int keyCode, int scanCode, int modifiers, CallbackInfoReturnable<Boolean> info) {
+	private void keyPressed(KeyInput input, CallbackInfoReturnable<Boolean> cir) {
 		HandledScreen<?> source = (HandledScreen<?>) (Object) this;
 		if (source instanceof CreativeInventoryScreen || source instanceof ClientHandledScreen)
 			return;
-		MixinLink.keyPressed(source, keyCode, scanCode, modifiers, info);
+		MixinLink.keyPressed(source, input.key(), input.scancode(), input.modifiers(), cir);
 	}
 }

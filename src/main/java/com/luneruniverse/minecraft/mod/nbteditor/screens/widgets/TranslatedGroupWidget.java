@@ -1,15 +1,17 @@
 package com.luneruniverse.minecraft.mod.nbteditor.screens.widgets;
 
+import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.Drawable;
 import net.minecraft.client.gui.Element;
 import net.minecraft.client.util.math.MatrixStack;
+import org.joml.Matrix3x2fStack;
 
 public class TranslatedGroupWidget extends GroupWidget {
 	
 	public static <T extends Drawable & Element> TranslatedGroupWidget forWidget(T widget, double x, double y, double z) {
 		TranslatedGroupWidget output = new TranslatedGroupWidget(x, y, z) {
 			@Override
-			protected void renderPre(MatrixStack matrices, int mouseX, int mouseY, float delta) {
+			protected void renderPre(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
 				setFocused(isMultiFocused() ? widget : null);
 			}
 		};
@@ -45,26 +47,26 @@ public class TranslatedGroupWidget extends GroupWidget {
 	}
 	
 	@Override
-	public final void render(MatrixStack matrices, int mouseX, int mouseY, float delta) {
-		matrices.push();
-		matrices.translate(x, y, z);
+	public final void render(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
+		matrices.pushMatrix();
+		matrices.translate((float) x, (float) y);
 		mouseX -= (int) x;
 		mouseY -= (int) y;
 		renderPre(matrices, mouseX, mouseY, delta);
 		super.render(matrices, mouseX, mouseY, delta);
 		renderPost(matrices, mouseX, mouseY, delta);
-		matrices.pop();
+		matrices.popMatrix();
 	}
-	protected void renderPre(MatrixStack matrices, int mouseX, int mouseY, float delta) {}
-	protected void renderPost(MatrixStack matrices, int mouseX, int mouseY, float delta) {}
+	protected void renderPre(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {}
+	protected void renderPost(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {}
 	
 	@Override
-	public boolean mouseClicked(double mouseX, double mouseY, int button) {
-		mouseX -= x;
-		mouseY -= y;
-		return mouseClickedPre(mouseX, mouseY, button) ||
-				super.mouseClicked(mouseX, mouseY, button) ||
-				mouseClickedPost(mouseX, mouseY, button);
+	public boolean mouseClicked(Click click, boolean doubled) {
+		click = new Click(click.x() - x, click.y() - y,click.buttonInfo());
+
+		return mouseClickedPre(click.x(),click.y(),click.button()) ||
+				super.mouseClicked(click, doubled) ||
+				mouseClickedPost(click.x(),click.y(),click.button());
 	}
 	protected boolean mouseClickedPre(double mouseX, double mouseY, int button) {
 		return false;
@@ -74,12 +76,12 @@ public class TranslatedGroupWidget extends GroupWidget {
 	}
 	
 	@Override
-	public boolean mouseReleased(double mouseX, double mouseY, int button) {
-		mouseX -= x;
-		mouseY -= y;
-		return mouseReleasedPre(mouseX, mouseY, button) ||
-				super.mouseReleased(mouseX, mouseY, button) ||
-				mouseReleasedPost(mouseX, mouseY, button);
+	public boolean mouseReleased(Click click) {
+		click = new Click(click.x() - x, click.y() - y,click.buttonInfo());
+
+		return mouseReleasedPre(click.x(),click.y(),click.button()) ||
+				super.mouseReleased(click) ||
+				mouseReleasedPost(click.x(),click.y(),click.button());
 	}
 	protected boolean mouseReleasedPre(double mouseX, double mouseY, int button) {
 		return false;
@@ -100,12 +102,12 @@ public class TranslatedGroupWidget extends GroupWidget {
 	protected void mouseMovedPost(double mouseX, double mouseY) {}
 	
 	@Override
-	public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
-		mouseX -= x;
-		mouseY -= y;
-		return mouseDraggedPre(mouseX, mouseY, button, deltaX, deltaY) ||
-				super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY) ||
-				mouseDraggedPost(mouseX, mouseY, button, deltaX, deltaY);
+	public boolean mouseDragged(Click click, double deltaX, double deltaY) {
+		click = new Click(click.x() - x, click.y() - y,click.buttonInfo());
+
+		return mouseDraggedPre(click.x(),click.y(),click.button(), deltaX, deltaY) ||
+				super.mouseDragged(click, deltaX, deltaY) ||
+				mouseDraggedPost(click.x(),click.y(),click.button(), deltaX, deltaY);
 	}
 	protected boolean mouseDraggedPre(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
 		return false;

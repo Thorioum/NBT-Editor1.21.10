@@ -1,7 +1,5 @@
 package com.luneruniverse.minecraft.mod.nbteditor.multiversion;
 
-import com.mojang.blaze3d.systems.RenderSystem;
-
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.screen.ScreenTexts;
@@ -32,7 +30,10 @@ class MVTexturedButtonWidget_1_20_2 extends ButtonWidget {
 		drawTexture(context, this.texture, getX(), getY(), this.u, this.v, this.hoveredVOffset, this.width, this.height,
 				this.textureWidth, this.textureHeight);
 	}
-	
+
+	public boolean isNarratable() {
+		return this.visible && this.active;
+	}
 	public void drawTexture(DrawContext context, Identifier texture, int x, int y, int u, int v, int hoveredVOffset,
 			int width, int height, int textureWidth, int textureHeight) {
 		int i = v;
@@ -41,6 +42,7 @@ class MVTexturedButtonWidget_1_20_2 extends ButtonWidget {
 		} else if (isSelected()) {
 			i += hoveredVOffset;
 		}
+		MVGlStateManager._enableDepthTest();
 		MVDrawableHelper.drawTexture(MVDrawableHelper.getMatrices(context), texture, x, y, u, i, width, height, textureWidth, textureHeight);
 	}
 	

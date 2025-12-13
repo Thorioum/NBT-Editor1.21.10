@@ -10,7 +10,6 @@ import com.mojang.authlib.GameProfile;
 
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtString;
 
 public class GameProfileNBTTagReference implements TagReference<Optional<GameProfile>, NbtCompound> {
 	
@@ -20,10 +19,10 @@ public class GameProfileNBTTagReference implements TagReference<Optional<GamePro
 			Reflection.getMethod(NbtHelper, "method_10683", MethodType.methodType(GameProfile.class, NbtCompound.class));
 	@Override
 	public Optional<GameProfile> get(NbtCompound object) {
-		if (object.get("SkullOwner") instanceof NbtString)
-			return Optional.of(new GameProfile(new UUID(0L, 0L), object.getString("SkullOwner").orElse("")));
-		if (object.get("SkullOwner") instanceof NbtCompound)
-			return Optional.ofNullable(NbtHelper_toGameProfile.invoke(null, object.getCompoundOrEmpty("SkullOwner")));
+		if (object.nbte$contains("SkullOwner", NbtElement.STRING_TYPE))
+			return Optional.of(new GameProfile(new UUID(0L, 0L), object.nbte$getStringOrDefault("SkullOwner")));
+		if (object.nbte$contains("SkullOwner", NbtElement.COMPOUND_TYPE))
+			return Optional.ofNullable(NbtHelper_toGameProfile.invoke(null, object.nbte$getCompoundOrDefault("SkullOwner")));
 		return Optional.empty();
 	}
 	
