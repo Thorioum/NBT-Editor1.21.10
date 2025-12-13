@@ -137,10 +137,10 @@ import net.minecraft.util.profiler.Profilers;
 import net.minecraft.world.BlockRenderView;
 
 public class MVMisc {
-	
+
 	private static final Supplier<Class<?>> SequencedSet = Reflection.getOptionalClass("java.util.SequencedSet");
-	
-	
+
+
 	private static final Supplier<Reflection.MethodInvoker> ResourceFactory_getResource =
 			Reflection.getOptionalMethod(ResourceFactory.class, "method_14486", MethodType.methodType(Resource.class, Identifier.class));
 	private static final Supplier<Reflection.MethodInvoker> Resource_getInputStream =
@@ -171,7 +171,7 @@ public class MVMisc {
 			throw e.getCause();
 		}
 	}
-	
+
 	public static Object registryAccess;
 	private static final Supplier<Reflection.MethodInvoker> ItemStackArgumentType_itemStack =
 			Reflection.getOptionalMethod(ItemStackArgumentType.class, "method_9776", MethodType.methodType(ItemStackArgumentType.class));
@@ -197,7 +197,7 @@ public class MVMisc {
 				.range(null, "1.20.4", () -> TextArgumentType_text.get().invoke(null))
 				.get();
 	}
-	
+
 	public static void registerCommands(Consumer<CommandDispatcher<FabricClientCommandSource>> callback) {
 		Version.newSwitch()
 				.range("1.19.0", null, () -> ClientCommandRegistrationCallback.EVENT.register((dispatcher, access) -> {
@@ -209,7 +209,7 @@ public class MVMisc {
 				}))
 				.run();
 	}
-	
+
 	public static ButtonWidget newButton(int x, int y, int width, int height, Text message, ButtonWidget.PressAction onPress, MVTooltip tooltip) {
 		if (Version.<Boolean>newSwitch()
 				.range("1.19.4", null, false)
@@ -231,7 +231,7 @@ public class MVMisc {
 					try {
 						Object oldTooltip = (tooltip == null ? MVTooltip.EMPTY : tooltip).toOldTooltip();
 						return ButtonWidget.class.getConstructor(int.class, int.class, int.class, int.class, Text.class,
-								ButtonWidget.PressAction.class, Reflection.getClass("net.minecraft.class_4185$class_5316"))
+										ButtonWidget.PressAction.class, Reflection.getClass("net.minecraft.class_4185$class_5316"))
 								.newInstance(x, finalY, width, finalHeight, message, onPress, oldTooltip);
 					} catch (Exception e) {
 						throw new RuntimeException("Error creating old button", e);
@@ -242,7 +242,7 @@ public class MVMisc {
 	public static ButtonWidget newButton(int x, int y, int width, int height, Text message, ButtonWidget.PressAction onPress) {
 		return newButton(x, y, width, height, message, onPress, null);
 	}
-	
+
 	public static ButtonWidget newTexturedButton(int x, int y, int width, int height, int hoveredVOffset, Identifier img, ButtonWidget.PressAction onPress, MVTooltip tooltip) {
 		ButtonWidget output = Version.<ButtonWidget>newSwitch()
 				.range("1.20.2", null, () -> new MVTexturedButtonWidget_1_20_2(
@@ -265,7 +265,7 @@ public class MVMisc {
 	public static ButtonWidget newTexturedButton(int x, int y, int width, int height, int hoveredVOffset, Identifier img, ButtonWidget.PressAction onPress) {
 		return newTexturedButton(x, y, width, height, hoveredVOffset, img, onPress, null);
 	}
-	
+
 	private static final Supplier<Reflection.MethodInvoker> CreativeInventoryScreen_getSelectedTab =
 			Reflection.getOptionalMethod(CreativeInventoryScreen.class, "method_2469", MethodType.methodType(int.class));
 	private static final Supplier<Reflection.FieldReference> ItemGroup_INVENTORY =
@@ -278,12 +278,12 @@ public class MVMisc {
 					.range("1.19.3", null, () -> screen.isInventoryTabSelected())
 					.range(null, "1.19.2", () -> // screen.getSelectedTab() == ItemGroup.INVENTORY.getIndex()
 							(int) CreativeInventoryScreen_getSelectedTab.get().invoke(screen) ==
-							(int) ItemGroup_getIndex.get().invoke(ItemGroup_INVENTORY.get().get(null)))
+									(int) ItemGroup_getIndex.get().invoke(ItemGroup_INVENTORY.get().get(null)))
 					.get();
 		}
 		return false;
 	}
-	
+
 	private static final Supplier<Reflection.MethodInvoker> Keyboard_setRepeatEvents =
 			Reflection.getOptionalMethod(Keyboard.class, "method_1462", MethodType.methodType(void.class, boolean.class));
 	public static void setKeyboardRepeatEvents(boolean repeatEvents) {
@@ -292,7 +292,7 @@ public class MVMisc {
 				.range(null, "1.19.2", () -> Keyboard_setRepeatEvents.get().invoke(MainUtil.client.keyboard, repeatEvents))
 				.run();
 	}
-	
+
 	public static boolean isValidChar(char c) {
 		return c != '§' && c >= ' ' && c != 127;
 	}
@@ -307,7 +307,7 @@ public class MVMisc {
 		}
 		return output.toString();
 	}
-	
+
 	private static final Supplier<Reflection.MethodInvoker> Text_asString =
 			Reflection.getOptionalMethod(Text.class, "method_10851", MethodType.methodType(String.class));
 	public static String getContent(Text text) {
@@ -323,10 +323,10 @@ public class MVMisc {
 				.range(null, "1.18.2", () -> Text_asString.get().invoke(text))
 				.get();
 	}
-	
+
 	private static final Supplier<Reflection.MethodInvoker> TooltipPositioner_getPosition =
 			Reflection.getOptionalMethod(() -> TooltipPositioner.class, () -> "method_47944", () ->
-			MethodType.methodType(Vector2ic.class, Screen.class, int.class, int.class, int.class, int.class));
+					MethodType.methodType(Vector2ic.class, Screen.class, int.class, int.class, int.class, int.class));
 	public static Vector2ic getPosition(Object positioner, Screen screen, int x, int y, int width, int height) {
 		return Version.<Vector2ic>newSwitch()
 				.range("1.20.0", null, () -> ((TooltipPositioner) positioner).getPosition(
@@ -334,7 +334,7 @@ public class MVMisc {
 				.range("1.19.3", "1.19.4", () -> TooltipPositioner_getPosition.get().invoke(positioner, screen, x, y, width, height))
 				.get();
 	}
-	
+
 	private static final Supplier<Class<?>> SuspiciousStewItem = Reflection.getOptionalClass("net.minecraft.class_1830");
 	private static final Supplier<Reflection.MethodInvoker> SuspiciousStewItem_addEffectsToStew =
 			Reflection.getOptionalMethod(SuspiciousStewItem, () -> "method_53209", () -> MethodType.methodType(void.class, ItemStack.class, List.class));
@@ -347,7 +347,7 @@ public class MVMisc {
 				.range(null, "1.20.1", () -> SuspiciousStewItem_addEffectToStew.get().invoke(null, item, effect, duration))
 				.run();
 	}
-	
+
 	private static final Supplier<Reflection.MethodInvoker> ClientPlayNetworkHandler_sendPacket =
 			Reflection.getOptionalMethod(ClientPlayNetworkHandler.class, "method_2883", MethodType.methodType(void.class, Packet.class));
 	public static void sendC2SPacket(Packet<?> packet) {
@@ -356,7 +356,7 @@ public class MVMisc {
 				.range(null, "1.20.1", () -> ClientPlayNetworkHandler_sendPacket.get().invoke(MainUtil.client.getNetworkHandler(), packet))
 				.run();
 	}
-	
+
 	private static final Supplier<Reflection.MethodInvoker> NbtIo_read =
 			Reflection.getOptionalMethod(NbtIo.class, "method_10627", MethodType.methodType(NbtCompound.class, DataInput.class));
 	private static final Supplier<Reflection.MethodInvoker> NbtIo_readCompressed =
@@ -450,7 +450,7 @@ public class MVMisc {
 			writeCompressedNbt(nbt, stream);
 		}
 	}
-	
+
 	private static final Supplier<Class<?>> VertexFormat = Reflection.getOptionalClass("net.minecraft.class_293");
 	private static final Supplier<Class<?>> VertexFormat$DrawMode = Reflection.getOptionalClass("net.minecraft.class_293$class_5596");
 	private static final Supplier<Reflection.MethodInvoker> Tessellator_getBuffer =
@@ -461,7 +461,10 @@ public class MVMisc {
 			Reflection.getOptionalMethod(RenderSystem.class, "setShader", MethodType.methodType(void.class, Supplier.class));
 	public static VertexConsumer beginDrawingShader(Matrix3x2fStack matrices, MVShader shader) {
 		return Version.<VertexConsumer>newSwitch()
-				.range("1.20.0", null, () -> MVDrawableHelper.getVertexConsumerProvider().draw(shader.getLayer()))
+				.range("1.20.0", null, () -> {
+					var a = MVDrawableHelper.getVertexConsumerProvider();
+					return a.getBuffer(shader.getLayer());
+				})
 				.range(null, "1.19.4", () -> {
 					MVShader1 shader1 = (MVShader1) shader;
 					RenderSystem_setShader.get().invoke(null, (Supplier<ShaderProgram>) shader1::getShaderProgram);
@@ -483,10 +486,13 @@ public class MVMisc {
 			Reflection.getOptionalMethod(BufferRenderer, () -> "method_43433", () -> MethodType.methodType(void.class, BufferBuilder$BuiltBuffer.get()));
 	public static void endDrawingShader(Matrix3x2fStack matrices, VertexConsumer vertexConsumer) {
 		Version.newSwitch()
-				.range("1.20.0", null, () -> System.out.println("fuck you"))
+				.range("1.20.0", null, () -> {
+					var a = MVDrawableHelper.getVertexConsumerProvider();
+					a.draw();
+				})
 				.run();
 	}
-	
+
 	private static final Supplier<Reflection.MethodInvoker> TextFieldWidget_setCursor =
 			Reflection.getOptionalMethod(TextFieldWidget.class, "method_1883", MethodType.methodType(void.class, int.class));
 	public static void setCursor(TextFieldWidget textField, int cursor) {
@@ -495,7 +501,7 @@ public class MVMisc {
 				.range(null, "1.20.1", () -> TextFieldWidget_setCursor.get().invoke(textField, cursor))
 				.run();
 	}
-	
+
 	private static final Supplier<Reflection.MethodInvoker> BlockRenderManager_renderBlock_java_util_Random =
 			Reflection.getOptionalMethod(BlockRenderManager.class, "method_3355", MethodType.methodType(boolean.class, BlockState.class, BlockPos.class, BlockRenderView.class, MatrixStack.class, VertexConsumer.class, boolean.class, java.util.Random.class));
 	private static final Supplier<Reflection.MethodInvoker> BlockRenderManager_renderBlock_net_minecraft_Random =
@@ -507,7 +513,7 @@ public class MVMisc {
 				.range(null, "1.18.2", () -> BlockRenderManager_renderBlock_java_util_Random.get().invoke(renderer, state, pos, world, matrices, vertexConsumer, cull, new java.util.Random()))
 				.run();
 	}
-	
+
 	private static final Supplier<Reflection.MethodInvoker> SpawnEggItem_getEntityType_NbtCompound =
 			Reflection.getOptionalMethod(SpawnEggItem.class, "method_8015", MethodType.methodType(EntityType.class, NbtCompound.class));
 	private static final Supplier<Reflection.MethodInvoker> SpawnEggItem_getEntityType_ItemStack =
@@ -520,7 +526,7 @@ public class MVMisc {
 				.range(null, "1.20.4", () -> SpawnEggItem_getEntityType_NbtCompound.get().invoke(spawnEggItem, item.nbte$getNbt()))
 				.get();
 	}
-	
+
 	public static StatusEffectInstance newStatusEffectInstance(StatusEffect effect, int duration) {
 		return Version.<StatusEffectInstance>newSwitch()
 				.range("1.20.5", null, () -> new StatusEffectInstance(Registries.STATUS_EFFECT.getEntry(effect), duration))
@@ -533,7 +539,7 @@ public class MVMisc {
 				.range(null, "1.20.4", () -> Reflection.newInstance(StatusEffectInstance.class, new Class<?>[] {StatusEffect.class, int.class, int.class, boolean.class, boolean.class, boolean.class}, effect, duration, amplifier, ambient, showParticles, showIcon))
 				.get();
 	}
-	
+
 	private static final Supplier<Reflection.MethodInvoker> StatusEffectInstance_getEffectType =
 			Reflection.getOptionalMethod(StatusEffectInstance.class, "method_5579", MethodType.methodType(StatusEffect.class));
 	public static StatusEffect getEffectType(StatusEffectInstance effect) {
@@ -542,34 +548,34 @@ public class MVMisc {
 				.range(null, "1.20.4", () -> StatusEffectInstance_getEffectType.get().invoke(effect))
 				.get();
 	}
-	
+
 	public static BookScreen.Contents getBookContents(List<Text> pages) {
 		if (NBTManagers.COMPONENTS_EXIST)
 			return new BookScreen.Contents(pages);
-		
+
 		return (BookScreen.Contents) Proxy.newProxyInstance(MVMisc.class.getClassLoader(),
 				new Class<?>[] {BookScreen.Contents.class}, (obj, method, args) -> {
-			if (method.getName().equals("method_17560")) // getPageCount
-				return pages.size();
-			if (method.getName().equals("method_17561")) // getPageUnchecked
-				return (StringVisitable) pages.get((int) args[0]);
-			
-			if (method.getName().equals("method_17563")) { // default getPage
-				int index = (int) args[0];
-				return (index >= 0 && index < pages.size() ? pages.get(index) : StringVisitable.EMPTY);
-			}
-			
-			throw new IllegalArgumentException("Unknown method: " + method);
-		});
+					if (method.getName().equals("method_17560")) // getPageCount
+						return pages.size();
+					if (method.getName().equals("method_17561")) // getPageUnchecked
+						return (StringVisitable) pages.get((int) args[0]);
+
+					if (method.getName().equals("method_17563")) { // default getPage
+						int index = (int) args[0];
+						return (index >= 0 && index < pages.size() ? pages.get(index) : StringVisitable.EMPTY);
+					}
+
+					throw new IllegalArgumentException("Unknown method: " + method);
+				});
 	}
-	
+
 	public static boolean isWrittenBookContents(BookScreen.Contents contents) {
 		return Version.<Boolean>newSwitch()
 				.range("1.20.5", null, () -> MixinLink.WRITTEN_BOOK_CONTENTS.getIfPresent(contents) != null)
 				.range(null, "1.20.4", () -> Reflection.getClass("net.minecraft.class_3872$class_3933").isInstance(contents))
 				.get();
 	}
-	
+
 	private static final Supplier<Class<?>> SystemToast$Type = Reflection.getOptionalClass("net.minecraft.class_370$class_371");
 	private static final Object SystemToast$Type_PACK_LOAD_FAILURE =
 			Version.<Object>newSwitch()
@@ -584,7 +590,7 @@ public class MVMisc {
 						SystemToast$Type_PACK_LOAD_FAILURE, title, description))
 				.get());
 	}
-	
+
 	private static final Supplier<Reflection.MethodInvoker> ParentElement_setInitialFocus =
 			Reflection.getOptionalMethod(ParentElement.class, "method_20085", MethodType.methodType(void.class, Element.class));
 	public static void setInitialFocus(Screen screen, Element element, Consumer<Element> superCall) {
@@ -596,7 +602,7 @@ public class MVMisc {
 				.range(null, "1.19.3", () -> ParentElement_setInitialFocus.get().invoke(screen, element))
 				.run();
 	}
-	
+
 	private static final Supplier<Reflection.MethodInvoker> VertexConsumer_next =
 			Reflection.getOptionalMethod(VertexConsumer.class, "method_1344", MethodType.methodType(void.class));
 	public static void nextVertex(VertexConsumer vertexConsumer) {
@@ -605,7 +611,7 @@ public class MVMisc {
 				.range(null, "1.20.6", () -> VertexConsumer_next.get().invoke(vertexConsumer))
 				.run();
 	}
-	
+
 	private static final Supplier<Reflection.MethodInvoker> VertexConsumer_vertex =
 			Reflection.getOptionalMethod(VertexConsumer.class, "method_22912", MethodType.methodType(VertexConsumer.class, double.class, double.class, double.class));
 	public static VertexConsumer startVertex(VertexConsumer vertexConsumer, double x, double y, double z) {
@@ -614,7 +620,7 @@ public class MVMisc {
 				.range(null, "1.20.6", () -> VertexConsumer_vertex.get().invoke(vertexConsumer, x, y, z))
 				.get();
 	}
-	
+
 	private static final Supplier<Reflection.MethodInvoker> MinecraftClient_getTickDelta =
 			Reflection.getOptionalMethod(MinecraftClient.class, "method_1488", MethodType.methodType(float.class));
 	public static float getTickDelta() {
@@ -623,7 +629,7 @@ public class MVMisc {
 				.range(null, "1.20.6", () -> MinecraftClient_getTickDelta.get().invoke(MainUtil.client))
 				.get();
 	}
-	
+
 	public static EquipmentSlot getEquipmentSlot(EquipmentSlot.Type type, int entityId) {
 		for (EquipmentSlot slot : EquipmentSlot.values()) {
 			if (slot.getType() == type && slot.getEntitySlotId() == entityId)
@@ -631,14 +637,14 @@ public class MVMisc {
 		}
 		throw new IllegalArgumentException("Unknown equipment slot: type=" + type + ", entityId=" + entityId);
 	}
-	
+
 	public static void onRegistriesLoad(Runnable callback) {
 		Version.newSwitch()
 				.range("1.20.5", null, () -> DynamicRegistryManagerHolder.onDefaultManagerLoad(callback))
 				.range(null, "1.20.4", callback)
 				.run();
 	}
-	
+
 	private static final Supplier<Reflection.MethodInvoker> VertexConsumer_light =
 			Reflection.getOptionalMethod(VertexConsumer.class, "method_22916", MethodType.methodType(VertexConsumer.class, int.class));
 	public static void setVertexLight(VertexConsumer vertexConsumer, int uv) {
@@ -647,7 +653,7 @@ public class MVMisc {
 				.range(null, "1.20.6", () -> VertexConsumer_light.get().invoke(vertexConsumer, uv))
 				.run();
 	}
-	
+
 	public static <T> T withDefaultRegistryManager(Supplier<T> callback) {
 		if (NBTManagers.COMPONENTS_EXIST)
 			return DynamicRegistryManagerHolder.withDefaultManager(callback);
@@ -659,7 +665,7 @@ public class MVMisc {
 		else
 			callback.run();
 	}
-	
+
 	private static final Supplier<Reflection.MethodInvoker> TooltipComponent_getHeight =
 			Reflection.getOptionalMethod(TooltipComponent.class, "method_32661", MethodType.methodType(int.class));
 	public static int getTooltipComponentHeight(TooltipComponent line) {
@@ -668,7 +674,7 @@ public class MVMisc {
 				.range(null, "1.21.1", () -> TooltipComponent_getHeight.get().invoke(line))
 				.get();
 	}
-	
+
 	private static final Supplier<Reflection.MethodInvoker> Entity_getCommandSource =
 			Reflection.getOptionalMethod(Entity.class, "method_5671", MethodType.methodType(ServerCommandSource.class));
 	public static ServerCommandSource getCommandSource(Entity entity) {
@@ -679,7 +685,7 @@ public class MVMisc {
 				.range(null, "1.21.1", () -> Entity_getCommandSource.get().invoke(entity))
 				.get();
 	}
-	
+
 	private static final Supplier<Reflection.MethodInvoker> MinecraftClient_getProfiler =
 			Reflection.getOptionalMethod(MinecraftClient.class, "method_16011", MethodType.methodType(Profiler.class));
 	public static Profiler getProfiler() {
@@ -688,14 +694,14 @@ public class MVMisc {
 				.range(null, "1.21.1", () -> MinecraftClient_getProfiler.get().invoke(MainUtil.client))
 				.get();
 	}
-	
+
 	public static PotionContentsComponent newPotionContentsComponent(Optional<RegistryEntry<Potion>> potion, Optional<Integer> customColor, List<StatusEffectInstance> customEffects) {
 		return Version.<PotionContentsComponent>newSwitch()
 				.range("1.21.2", null, () -> new PotionContentsComponent(potion, customColor, customEffects, Optional.empty()))
 				.range(null, "1.21.1", () -> Reflection.newInstance(PotionContentsComponent.class, new Class<?>[] {Optional.class, Optional.class, List.class}, potion, customColor, customEffects))
 				.get();
 	}
-	
+
 	private static final Supplier<Reflection.MethodInvoker> EntityRenderDispatcher_render =
 			Reflection.getOptionalMethod(EntityRenderManager.class, "method_3954", MethodType.methodType(void.class, Entity.class, double.class, double.class, double.class, float.class, float.class, MatrixStack.class, VertexConsumerProvider.class, int.class));
 	public static void renderEntity(EntityRenderManager dispatcher, Entity entity, double x, double y, double z, float yaw, float tickDelta, MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light) {
@@ -708,7 +714,7 @@ public class MVMisc {
 				.range(null, "1.21.1", () -> EntityRenderDispatcher_render.get().invoke(dispatcher, entity, x, y, z, yaw, tickDelta, matrices, vertexConsumers, light))
 				.run();
 	}
-	
+
 	// From MinecraftClient#addBlockEntityNbt (1.21.3)
 	// Edited to remove x, y, & z
 	@SuppressWarnings("deprecation")
@@ -722,7 +728,7 @@ public class MVMisc {
 		BlockItem.setBlockEntityData(item, entity.getType(), v);
 		item.applyComponentsFrom(entity.createComponentMap());
 	}
-	
+
 	private static final Supplier<Reflection.MethodInvoker> BlockEntityRenderer_render =
 			Reflection.getOptionalMethod(BlockEntityRenderer.class, "method_3569", MethodType.methodType(void.class, BlockEntity.class, float.class, MatrixStack.class, VertexConsumerProvider.class, int.class, int.class));
 	// From BlockEntityRenderDispatcher#renderEntity (1.21.3)
@@ -744,7 +750,7 @@ public class MVMisc {
 		}
 		return false;
 	}
-	
+
 	public static int scaleRgb(int argb, double scale) {
 		Color color = new Color(argb, true);
 		int r = (int) (color.getRed() * scale);
@@ -752,7 +758,7 @@ public class MVMisc {
 		int b = (int) (color.getBlue() * scale);
 		return new Color(r, g, b, color.getAlpha()).getRGB();
 	}
-	
+
 	public static CreativeInventoryScreen newCreativeInventoryScreen(ClientPlayerEntity player) {
 		return Version.<CreativeInventoryScreen>newSwitch()
 				.range("1.21.0", null, () -> new CreativeInventoryScreen(
@@ -765,7 +771,7 @@ public class MVMisc {
 						player))
 				.get();
 	}
-	
+
 	private static final Supplier<Reflection.MethodInvoker> Item_getName =
 			Reflection.getOptionalMethod(Item.class, "method_7848", MethodType.methodType(Text.class));
 	public static Text getName(Item item) {
@@ -774,7 +780,7 @@ public class MVMisc {
 				.range(null, "1.21.1", () -> Item_getName.get().invoke(item))
 				.get();
 	}
-	
+
 	public static boolean isSignItem(Item item) {
 		if (item instanceof SignItem)
 			return true;
@@ -784,7 +790,7 @@ public class MVMisc {
 				.range(null, "1.19.2", () -> false)
 				.get();
 	}
-	
+
 	private static final Supplier<Reflection.MethodInvoker> DataResult_result =
 			Reflection.getOptionalMethod(DataResult.class, "result", MethodType.methodType(Optional.class));
 	public static <T> Optional<T> result(DataResult<T> result) {
@@ -793,7 +799,7 @@ public class MVMisc {
 				.range(null, "1.20.4", () -> DataResult_result.get().invoke(result))
 				.get();
 	}
-	
+
 	private static final Supplier<Reflection.MethodInvoker> NbtElement_asString =
 			Reflection.getOptionalMethod(NbtElement.class, "method_10714", MethodType.methodType(String.class));
 	public static String value(NbtString str) {
@@ -802,17 +808,17 @@ public class MVMisc {
 				.range(null, "1.21.4", () -> NbtElement_asString.get().invoke(str))
 				.get();
 	}
-	
+
 	public static Object newTooltipDisplayComponent(boolean hideTooltip, LinkedHashSet<ComponentType<?>> hiddenComponents) {
 		return Reflection.newInstance(TooltipDisplayComponent.class, new Class<?>[] {boolean.class, SequencedSet.get()}, hideTooltip, hiddenComponents);
 	}
-	
+
 	private static final Supplier<Reflection.MethodInvoker> TooltipDisplayComponent_hiddenComponents =
 			Reflection.getOptionalMethod(() -> TooltipDisplayComponent.class, () -> "comp_3601", () -> MethodType.methodType(SequencedSet.get()));
 	public static Set<ComponentType<?>> hiddenComponents(Object tooltipDisplayComponent) {
 		return TooltipDisplayComponent_hiddenComponents.get().invoke(tooltipDisplayComponent);
 	}
-	
+
 	private static final Supplier<Reflection.FieldReference> PlayerInventory_armor =
 			Reflection.getOptionalField(PlayerInventory.class, "field_7548", "Lnet/minecraft/class_2371;");
 	@SuppressWarnings("unchecked")
@@ -823,7 +829,7 @@ public class MVMisc {
 						.get(MainUtil.client.player.getInventory())).set(slot.getEntitySlotId(), item))
 				.run();
 	}
-	
+
 	private static final Supplier<Reflection.MethodInvoker> StringNbtReader_parseElement =
 			Reflection.getOptionalMethod(StringNbtReader.class, "method_10723", MethodType.methodType(NbtElement.class));
 	public static NbtElement parseNbt(StringReader snbt) throws CommandSyntaxException {
@@ -833,14 +839,14 @@ public class MVMisc {
 				.get()) {
 			return StringNbtReader.fromOps(NbtOps.INSTANCE).read(snbt);
 		}
-		
+
 		return StringNbtReader_parseElement.get().invokeThrowable(CommandSyntaxException.class,
 				Reflection.newInstance(StringNbtReader.class, new Class<?>[] {StringReader.class}, snbt));
 	}
 	public static NbtElement parseNbt(String snbt) throws CommandSyntaxException {
 		return parseNbt(new StringReader(snbt));
 	}
-	
+
 	private static final Supplier<Reflection.FieldReference> StringNbtWriter_SIMPLE_NAME =
 			Reflection.getOptionalField(StringNbtWriter.class, "field_27829", "Ljava/util/regex/Pattern;");
 	public static boolean isSimpleName(String name) {
@@ -850,7 +856,7 @@ public class MVMisc {
 				.range(null, "1.21.4", () -> ((Pattern) StringNbtWriter_SIMPLE_NAME.get().get(null)).matcher(name).matches())
 				.get();
 	}
-	
+
 	private static final Supplier<Reflection.FieldReference> ItemEnchantmentsComponent_showInTooltip =
 			Reflection.getOptionalField(ItemEnchantmentsComponent.class, "field_49390", "Z");
 	public static Object withEnchantments(Object component, Object2IntOpenHashMap<RegistryEntry<Enchantment>> enchantments) {
@@ -861,7 +867,7 @@ public class MVMisc {
 						enchantments, component == null ? true : ItemEnchantmentsComponent_showInTooltip.get().get(component)))
 				.get();
 	}
-	
+
 	private static final Supplier<Reflection.MethodInvoker> AttributeModifiersComponent_showInTooltip =
 			Reflection.getOptionalMethod(AttributeModifiersComponent.class, "comp_2394", MethodType.methodType(boolean.class));
 	public static Object withAttributes(Object component, List<AttributeModifiersComponent.Entry> list) {
@@ -872,7 +878,7 @@ public class MVMisc {
 						list, component == null ? true : AttributeModifiersComponent_showInTooltip.get().invoke(component)))
 				.get();
 	}
-	
+
 	private static final Supplier<Reflection.MethodInvoker> ClientPlayerInteractionManager_hasCreativeInventory =
 			Reflection.getOptionalMethod(ClientPlayerInteractionManager.class, "method_2914", MethodType.methodType(boolean.class));
 	public static boolean hasCreativeInventory() {
@@ -881,7 +887,7 @@ public class MVMisc {
 				.range(null, "1.21.4", () -> ClientPlayerInteractionManager_hasCreativeInventory.get().invoke(MainUtil.client.interactionManager))
 				.get();
 	}
-	
+
 	private static final Supplier<Reflection.MethodInvoker> ScreenHandler_setPreviousCursorStack =
 			Reflection.getOptionalMethod(ScreenHandler.class, "method_34250", MethodType.methodType(void.class, ItemStack.class));
 	public static void setPreviousCursorStack(ScreenHandler handler, ItemStack item) {
@@ -890,7 +896,7 @@ public class MVMisc {
 				.range(null, "1.21.4", () -> ScreenHandler_setPreviousCursorStack.get().invoke(handler, item))
 				.run();
 	}
-	
+
 	private static final Supplier<Reflection.MethodInvoker> ClickSlotC2SPacket_getActionType =
 			Reflection.getOptionalMethod(ClickSlotC2SPacket.class, "method_12195", MethodType.methodType(SlotActionType.class));
 	public static SlotActionType getActionType(ClickSlotC2SPacket packet) {
@@ -899,7 +905,7 @@ public class MVMisc {
 				.range(null, "1.21.4", () -> ClickSlotC2SPacket_getActionType.get().invoke(packet))
 				.get();
 	}
-	
+
 	private static final Supplier<Reflection.MethodInvoker> ClickSlotC2SPacket_getButton =
 			Reflection.getOptionalMethod(ClickSlotC2SPacket.class, "method_12193", MethodType.methodType(int.class));
 	public static int getButton(ClickSlotC2SPacket packet) {
@@ -908,7 +914,7 @@ public class MVMisc {
 				.range(null, "1.21.4", () -> ClickSlotC2SPacket_getButton.get().invoke(packet))
 				.get();
 	}
-	
+
 	private static final Supplier<Reflection.MethodInvoker> ClickSlotC2SPacket_getSlot =
 			Reflection.getOptionalMethod(ClickSlotC2SPacket.class, "method_12192", MethodType.methodType(int.class));
 	public static int getSlot(ClickSlotC2SPacket packet) {
@@ -917,7 +923,7 @@ public class MVMisc {
 				.range(null, "1.21.4", () -> ClickSlotC2SPacket_getSlot.get().invoke(packet))
 				.get();
 	}
-	
+
 	private static final Supplier<Reflection.MethodInvoker> InventoryS2CPacket_getContents =
 			Reflection.getOptionalMethod(InventoryS2CPacket.class, "method_11441", MethodType.methodType(List.class));
 	public static List<ItemStack> getContents(InventoryS2CPacket packet) {
@@ -926,7 +932,7 @@ public class MVMisc {
 				.range(null, "1.21.4", () -> InventoryS2CPacket_getContents.get().invoke(packet))
 				.get();
 	}
-	
+
 	private static final Supplier<Reflection.MethodInvoker> InventoryS2CPacket_getSyncId =
 			Reflection.getOptionalMethod(InventoryS2CPacket.class, "method_11440", MethodType.methodType(int.class));
 	public static int getSyncId(InventoryS2CPacket packet) {
@@ -935,7 +941,7 @@ public class MVMisc {
 				.range(null, "1.21.4", () -> InventoryS2CPacket_getSyncId.get().invoke(packet))
 				.get();
 	}
-	
+
 	private static final Supplier<Class<?>> BoatEntity$Type = Reflection.getOptionalClass("net.minecraft.class_1690$class_1692");
 	private static final Supplier<Reflection.MethodInvoker> BoatEntity$Type_getType =
 			Reflection.getOptionalMethod(BoatEntity$Type, () -> "method_7561", () -> MethodType.methodType(BoatEntity$Type.get(), String.class));
@@ -960,5 +966,5 @@ public class MVMisc {
 				})
 				.get();
 	}
-	
+
 }
