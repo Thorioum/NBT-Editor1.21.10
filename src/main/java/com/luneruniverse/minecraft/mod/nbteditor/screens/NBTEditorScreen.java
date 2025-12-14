@@ -201,15 +201,17 @@ public class NBTEditorScreen<L extends LocalNBT> extends LocalEditorScreen<L> {
 		addDrawableChild(path);
 		
 		value = new SuggestingTextFieldWidget(this, 16, 16 + 8 + 32 + (16 + 8) * 2, 288, 16).name(TextInst.translatable("nbteditor.nbt.value"));
-		//value.setRenderTextProvider((str, index) -> {
-		//	return TextUtil.substring(NbtFormatter.FORMATTER.formatSafely(value.getText()).text(), index, index + str.length()).asOrderedText();
-		//});
+		value.formatters.clear();
+		value.addFormatter((str, index) -> {
+			return TextUtil.substring(NbtFormatter.FORMATTER.formatSafely(value.getText()).text(), index, index + str.length()).asOrderedText();
+		});
 		value.setMaxLength(Integer.MAX_VALUE);
 		value.setText("");
 		value.setEditable(false);
 		value.setChangedListener(str -> {
+			var formatted = NbtFormatter.FORMATTER.formatSafely(value.getText());
 			if (selectedValue != null) {
-				selectedValue.setUnsafe(!NbtFormatter.FORMATTER.formatSafely(value.getText()).isSuccess());
+				selectedValue.setUnsafe(!formatted.isSuccess());
 				if (selectedValue.isUnsafe())
 					return;
 				selectedValue.valueChanged(str, nbt -> {

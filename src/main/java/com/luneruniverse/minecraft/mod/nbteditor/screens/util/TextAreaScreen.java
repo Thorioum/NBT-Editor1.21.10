@@ -61,12 +61,14 @@ public class TextAreaScreen extends OverlaySupportingScreen {
 		if (width - (done.getWidth() * 2 + 50) < 100) // When the end of the second button is near the end of the text field, it looks bad
 			done.setWidth(done.getWidth() * 2 / 3);
 		this.addDrawableChild(MVMisc.newButton(done.x + done.getWidth() + 10, 20, done.getWidth(), 20, ScreenTexts.CANCEL, btn -> close()));
-		
+
 		textArea = addDrawableChild(MultiLineTextFieldWidget.create(textArea, 20, 50, width - 40, height - 70, text, formatter == null ? null : str -> {
 			NbtFormatter.FormatterResult formattedText = formatter.formatSafely(str);
 			done.active = formattedText.isSuccess();
 			return formattedText.text();
-		}, newLines, newText -> text = newText));
+		}, newLines, newText -> {
+			text = newText;
+		}));
 		if (suggestions != null)
 			textArea.suggest(this, suggestions);
 		setInitialFocus(textArea);

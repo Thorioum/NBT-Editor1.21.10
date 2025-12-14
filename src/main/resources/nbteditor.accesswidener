@@ -22,6 +22,8 @@ accessible field net/minecraft/text/Style strikethrough Ljava/lang/Boolean;
 accessible field net/minecraft/text/Style obfuscated Ljava/lang/Boolean;
 accessible method net/minecraft/storage/NbtWriteView <init> (Lnet/minecraft/util/ErrorReporter;Lcom/mojang/serialization/DynamicOps;Lnet/minecraft/nbt/NbtCompound;)V
 
+accessible field net/minecraft/client/gui/widget/TextFieldWidget formatters Ljava/util/List;
+
 accessible field net/minecraft/server/network/ServerPlayerEntity server Lnet/minecraft/server/MinecraftServer;
 
 extendable method net/minecraft/client/gui/widget/ClickableWidget render (Lnet/minecraft/client/gui/DrawContext;IIF)V

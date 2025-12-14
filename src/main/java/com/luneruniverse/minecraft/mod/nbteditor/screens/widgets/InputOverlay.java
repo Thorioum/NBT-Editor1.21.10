@@ -57,8 +57,7 @@ public class InputOverlay<T> extends GroupWidget implements InitializableOverlay
 		x = (width - input.getWidth()) / 2;
 		y = (height - input.getHeight() - 24) / 2;
 		input.init(x, y);
-		addWidget(input);
-		setFocused(input);
+
 		
 		ok = addWidget(MVMisc.newButton(x, y + input.getHeight() + 4,
 				(input.getWidth() - 4) / 2, 20, TextInst.translatable("nbteditor.ok"), btn -> {
@@ -69,6 +68,9 @@ public class InputOverlay<T> extends GroupWidget implements InitializableOverlay
 				(input.getWidth() - 4) / 2, 20, TextInst.translatable("nbteditor.cancel"), btn -> close.run()));
 		
 		ok.active = input.isValid();
+
+		addWidget(input);
+		setFocused(input);
 	}
 	
 	@Override

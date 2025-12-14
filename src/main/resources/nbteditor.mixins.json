@@ -26,6 +26,7 @@
     "BookScreenMixin",
     "HandledScreenMixin",
     "NativeImageMixin",
+    "NbtCompoundMixin",
     "ScreenshotRecorderMixin",
     "UtilMixin",
     "KeyboardMixin",

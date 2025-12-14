@@ -47,14 +47,16 @@ public abstract class DrawContextMixin {
 		
 		MixinLink.renderTooltipFromComponents(getMatrices(), pos.x(), pos.y(), size[0], size[1], screenWidth, screenHeight);
 	}
-	
+
 	@ModifyVariable(method = "scissorContains", at = @At("HEAD"), ordinal = 0, require = 0)
 	private int scissorContainsX(int x) {
-		return x;
+		float t = getMatrices().m20;
+		return (int) (x + t);
 	}
 	@ModifyVariable(method = "scissorContains", at = @At("HEAD"), ordinal = 1, require = 0)
 	private int scissorContainsY(int y) {
-		return y;
+		float t = getMatrices().m21;
+		return (int) (y + t);
 	}
 	
 }

@@ -35,15 +35,6 @@ import tsp.headdb.ported.HeadAPI;
 
 public class NBTEditorClient implements ClientModInitializer {
 	
-	static {
-		MC_1_17_Link.MixinLink.ENCHANT_GLINT_FIX = MixinLink.ENCHANT_GLINT_FIX;
-		MC_1_17_Link.MixinLink.USE_DIRECT_ITEM_GLINT_CONSUMER = Version.<Boolean>newSwitch()
-				.range("1.21.2", null, false)
-				.range(null, "1.21.1", true)
-				.get();
-		MC_1_17_Link.ConfigScreen.isEnchantGlintFix_impl = ConfigScreen::isEnchantGlintFix;
-	}
-	
 	public static final File SETTINGS_FOLDER = new File("nbteditor");
 	public static CursorManager CURSOR_MANAGER;
 	public static ClientChest CLIENT_CHEST;

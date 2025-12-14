@@ -3,6 +3,7 @@ package com.luneruniverse.minecraft.mod.nbteditor.multiversion;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
 import net.minecraft.client.gui.widget.ClickableWidget;
