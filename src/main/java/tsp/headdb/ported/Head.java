@@ -1,10 +1,10 @@
 package tsp.headdb.ported;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.Multimap;
+import com.mojang.authlib.properties.PropertyMap;
 import org.apache.commons.lang3.Validate;
 
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.TextInst;
@@ -40,7 +40,13 @@ public class Head {
         item.nbte$setCustomName(TextInst.of(Utils.colorize(category != null ? category.getColor() + name : "&8" + name)));
         // set skull owner
         GameProfile profile = new GameProfile(uuid, NBTManagers.COMPONENTS_EXIST ? "HDB_Head" : name);
-        profile.properties().put("textures", new Property("textures", value));
+
+        ImmutableMultimap.Builder<String,Property> p =  ImmutableMultimap.builder();
+        profile.properties().forEach(p::put);
+        p.put("textures", new Property("textures", value));
+        PropertyMap mutableMap = new PropertyMap(p.build());
+
+        profile = new GameProfile(uuid,profile.name(),mutableMap);
         ItemTagReferences.PROFILE.set(item, Optional.of(profile));
         
         ItemTagReferences.LORE.set(item, Arrays.asList(

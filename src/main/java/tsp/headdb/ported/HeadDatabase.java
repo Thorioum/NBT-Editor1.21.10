@@ -266,6 +266,9 @@ public class HeadDatabase {
 
         HEADS.clear();
         HEADS.putAll(heads);
+        HEADS.forEach((e,h)->{
+            h.removeIf(s->s.getItemStack() == null);
+        });
         HeadAPI.resolveFavorites();
         return true;
     }

@@ -1,5 +1,6 @@
 package com.luneruniverse.minecraft.mod.nbteditor.containers;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -379,7 +380,8 @@ public class ContainerIOs {
 		}
 		
 		ItemStack[] sections = new ItemStack[maxSlots];
-		
+		Arrays.fill(sections,ItemStack.EMPTY);
+
 		int sectionSize = maxSlots;
 		while (contents.size() / sectionSize > maxSlots)
 			sectionSize *= maxSlots;
