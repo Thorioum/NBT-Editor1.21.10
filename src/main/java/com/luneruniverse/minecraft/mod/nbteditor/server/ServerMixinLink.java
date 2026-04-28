@@ -11,28 +11,28 @@ import com.luneruniverse.minecraft.mod.nbteditor.NBTEditorClient;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.Reflection;
 import com.luneruniverse.minecraft.mod.nbteditor.screens.ConfigScreen;
 
-import net.minecraft.component.type.BundleContentsComponent;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.network.listener.PacketListener;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.world.item.component.BundleContents;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.network.PacketListener;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.server.level.ServerPlayer;
 
 public class ServerMixinLink {
 	
-	public static final WeakHashMap<Slot, PlayerEntity> SLOT_OWNER = new WeakHashMap<>();
-	public static final WeakHashMap<ServerPlayerEntity, Boolean> NO_SLOT_RESTRICTIONS_PLAYERS = new WeakHashMap<>();
-	public static final WeakHashMap<BundleContentsComponent.Builder, Boolean> NO_SLOT_RESTRICTIONS_BUNDLES = new WeakHashMap<>();
+	public static final WeakHashMap<Slot, Player> SLOT_OWNER = new WeakHashMap<>();
+	public static final WeakHashMap<ServerPlayer, Boolean> NO_SLOT_RESTRICTIONS_PLAYERS = new WeakHashMap<>();
+	public static final WeakHashMap<BundleContents.Mutable, Boolean> NO_SLOT_RESTRICTIONS_BUNDLES = new WeakHashMap<>();
 	public static void slotCanInsertOrTake(Slot source, CallbackInfoReturnable<Boolean> info, boolean playerSlot) {
-		if (!source.isEnabled())
+		if (!source.isActive())
 			return;
-		PlayerEntity owner = ServerMixinLink.SLOT_OWNER.get(source);
+		Player owner = ServerMixinLink.SLOT_OWNER.get(source);
 		if (owner == null)
 			return;
 		if (isNoSlotRestrictions(owner, playerSlot))
 			info.setReturnValue(true);
 	}
-	public static boolean isNoSlotRestrictions(PlayerEntity player, boolean playerSlot) {
-		if (player instanceof ServerPlayerEntity) {
+	public static boolean isNoSlotRestrictions(Player player, boolean playerSlot) {
+		if (player instanceof ServerPlayer) {
 			if (ServerMVMisc.hasPermissionLevel(player, 2) && NO_SLOT_RESTRICTIONS_PLAYERS.getOrDefault(player, false))
 				return true;
 		} else {

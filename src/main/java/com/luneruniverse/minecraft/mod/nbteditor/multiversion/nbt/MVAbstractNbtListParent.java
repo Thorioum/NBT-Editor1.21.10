@@ -7,49 +7,49 @@ import java.util.stream.Stream;
 
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.Reflection;
 
-import net.minecraft.nbt.AbstractNbtList;
-import net.minecraft.nbt.NbtElement;
+import net.minecraft.nbt.CollectionTag;
+import net.minecraft.nbt.Tag;
 
 public interface MVAbstractNbtListParent {
 	
 	static final Supplier<Reflection.MethodInvoker> AbstractNbtList_getHeldType =
-			Reflection.getOptionalMethod(AbstractNbtList.class, "method_10601", MethodType.methodType(byte.class));
+			Reflection.getOptionalMethod(CollectionTag.class, "method_10601", MethodType.methodType(byte.class));
 	public default Optional<Byte> nbte$getHeldType() {
 		throw new RuntimeException("Missing implementation for MVAbstractNbtListParent#nbte$getHeldType");
 	}
 	
-	public default int nbte$size() {
-		throw new RuntimeException("Missing implementation for MVAbstractNbtListParent#nbte$size");
+	public default int size() {
+		throw new RuntimeException("Missing implementation for MVAbstractNbtListParent#size");
 	}
 	
 	public default boolean nbte$isEmpty() {
 		throw new RuntimeException("Missing implementation for MVAbstractNbtListParent#nbte$isEmpty");
 	}
 	
-	public default Iterable<NbtElement> nbte$iterable() {
+	public default Iterable<Tag> nbte$iterable() {
 		throw new RuntimeException("Missing implementation for MVAbstractNbtListParent#nbte$iterable");
 	}
 	
-	public default Stream<NbtElement> nbte$stream() {
+	public default Stream<Tag> nbte$stream() {
 		throw new RuntimeException("Missing implementation for MVAbstractNbtListParent#nbte$stream");
 	}
 	
-	public default NbtElement nbte$get(int index) {
+	public default Tag nbte$get(int index) {
 		throw new RuntimeException("Missing implementation for MVAbstractNbtListParent#nbte$get");
 	}
 	
-	public default void nbte$add(int index, NbtElement element) {
+	public default void nbte$add(int index, Tag element) {
 		throw new RuntimeException("Missing implementation for MVAbstractNbtListParent#nbte$add");
 	}
-	public default void nbte$add(NbtElement element) {
+	public default void nbte$add(Tag element) {
 		throw new RuntimeException("Missing implementation for MVAbstractNbtListParent#nbte$add");
 	}
 	
-	public default void nbte$set(int index, NbtElement element) {
+	public default void nbte$set(int index, Tag element) {
 		throw new RuntimeException("Missing implementation for MVAbstractNbtListParent#nbte$set");
 	}
 	
-	public default NbtElement nbte$remove(int index) {
+	public default Tag nbte$remove(int index) {
 		throw new RuntimeException("Missing implementation for MVAbstractNbtListParent#nbte$remove");
 	}
 	

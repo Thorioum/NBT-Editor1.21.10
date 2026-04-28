@@ -8,8 +8,8 @@ import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVMisc;
 import com.luneruniverse.minecraft.mod.nbteditor.util.StyleUtil;
 import com.mojang.brigadier.StringReader;
 
-import net.minecraft.text.TextColor;
-import net.minecraft.util.Formatting;
+import net.minecraft.network.chat.TextColor;
+import net.minecraft.ChatFormatting;
 
 public record FancyTextToken(Type type, Optional<Object> content) {
 	
@@ -23,7 +23,7 @@ public record FancyTextToken(Type type, Optional<Object> content) {
 		 */
 		COLOR,
 		/**
-		 * content: {@link Formatting} <br>
+		 * content: {@link ChatFormatting} <br>
 		 * (May be formatting for color)
 		 */
 		FORMATTING,
@@ -116,14 +116,14 @@ public record FancyTextToken(Type type, Optional<Object> content) {
 							str.setCursor(startCursor);
 						}
 					} else {
-						Formatting formatting = Formatting.byCode(c2);
+						ChatFormatting formatting = ChatFormatting.getByCode(c2);
 						if (formatting == null || shadow && !formatting.isColor()) {
 							content.append(c);
 							str.setCursor(startCursor);
 						} else {
 							if (shadow) {
 									output.add(new FancyTextToken(Type.SHADOW_COLOR,
-											MVMisc.scaleRgb(formatting.getColorValue(), 0.25) | 0xFF000000));
+											MVMisc.scaleRgb(formatting.getColor(), 0.25) | 0xFF000000));
 							} else
 								output.add(new FancyTextToken(Type.FORMATTING, formatting));
 						}

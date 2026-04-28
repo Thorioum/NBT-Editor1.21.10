@@ -3,31 +3,31 @@ package com.luneruniverse.minecraft.mod.nbteditor.misc;
 import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
 
-import net.minecraft.resource.ResourceReload;
+import net.minecraft.server.packs.resources.ReloadInstance;
 
-public class ParallelResourceReload implements ResourceReload {
+public class ParallelResourceReload implements ReloadInstance {
 	
-	private final ResourceReload[] monitors;
+	private final ReloadInstance[] monitors;
 	private final CompletableFuture<?> future;
 	
-	public ParallelResourceReload(ResourceReload mainMonitor, ResourceReload... additionalMonitors) {
-		monitors = new ResourceReload[1 + additionalMonitors.length];
+	public ParallelResourceReload(ReloadInstance mainMonitor, ReloadInstance... additionalMonitors) {
+		monitors = new ReloadInstance[1 + additionalMonitors.length];
 		monitors[0] = mainMonitor;
 		System.arraycopy(additionalMonitors, 0, monitors, 1, additionalMonitors.length);
 		
 		future = CompletableFuture.allOf(
-				Arrays.stream(monitors).map(ResourceReload::whenComplete).toArray(CompletableFuture<?>[]::new))
-				.thenApply(voidResult -> mainMonitor.whenComplete().join());
+				Arrays.stream(monitors).map(ReloadInstance::done).toArray(CompletableFuture<?>[]::new))
+				.thenApply(voidResult -> mainMonitor.done().join());
 	}
 	
 	@Override
-	public CompletableFuture<?> whenComplete() {
+	public CompletableFuture<?> done() {
 		return future;
 	}
 	
 	@Override
-	public float getProgress() {
-		return (float) Arrays.stream(monitors).mapToDouble(ResourceReload::getProgress).average().getAsDouble();
+	public float getActualProgress() {
+		return (float) Arrays.stream(monitors).mapToDouble(ReloadInstance::getActualProgress).average().getAsDouble();
 	}
 	
 }

@@ -13,9 +13,11 @@ import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.util.Formatting;
+import net.minecraft.core.UUIDUtil;
+import net.minecraft.nbt.IntArrayTag;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.ChatFormatting;
 
 public class RandomUUIDCommand extends ClientCommand {
 	
@@ -34,20 +36,20 @@ public class RandomUUIDCommand extends ClientCommand {
 		Command<FabricClientCommandSource> add = context -> {
 			ItemReference ref = ItemReference.getHeldItem();
 			ItemStack item = ref.getItem();
-			NbtCompound nbt = ItemTagReferences.CUSTOM_DATA.get(item);
+			CompoundTag nbt = ItemTagReferences.CUSTOM_DATA.get(item);
 			UUID uuid = UUID.randomUUID();
-			nbt.nbte$putUuid("UUID", uuid);
+			nbt.putIntArray("UUID", UUIDUtil.uuidToIntArray(uuid));
 			ItemTagReferences.CUSTOM_DATA.set(item, nbt);
 			ref.saveItem(item, TextInst.translatable("nbteditor.random_uuid.added",
-					TextInst.literal(uuid.toString()).formatted(Formatting.GOLD)));
+					TextInst.literal(uuid.toString()).formatted(ChatFormatting.GOLD)));
 			return Command.SINGLE_SUCCESS;
 		};
 		Command<FabricClientCommandSource> remove = context -> {
 			ItemReference ref = ItemReference.getHeldItem();
 			ItemStack item = ref.getItem();
-			NbtCompound nbt = ItemTagReferences.CUSTOM_DATA.get(item);
-			if (!nbt.nbte$containsUuid("UUID")) {
-				MainUtil.client.player.sendMessage(TextInst.translatable("nbteditor.random_uuid.already_removed"), false);
+			CompoundTag nbt = ItemTagReferences.CUSTOM_DATA.get(item);
+			if (!(nbt.get("UUID") instanceof IntArrayTag)) {
+				MainUtil.client.player.sendSystemMessage(TextInst.translatable("nbteditor.random_uuid.already_removed"));
 				return Command.SINGLE_SUCCESS;
 			}
 			nbt.remove("UUID");

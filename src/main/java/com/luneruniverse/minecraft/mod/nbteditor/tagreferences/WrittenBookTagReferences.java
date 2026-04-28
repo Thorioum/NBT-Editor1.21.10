@@ -11,22 +11,22 @@ import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.general.Component
 import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.general.NBTTagReference;
 import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.general.TagReference;
 
-import net.minecraft.component.type.WrittenBookContentComponent;
-import net.minecraft.item.ItemStack;
-import net.minecraft.text.RawFilteredPair;
-import net.minecraft.text.Text;
+import net.minecraft.world.item.component.WrittenBookContent;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.server.network.Filterable;
+import net.minecraft.network.chat.Component;
 
 public class WrittenBookTagReferences {
 	
-	private static WrittenBookContentComponent getComponent(WrittenBookContentComponent content,
-			Supplier<String> title, Supplier<String> author, Supplier<Integer> generation, Supplier<List<Text>> pages) {
+	private static WrittenBookContent getComponent(WrittenBookContent content,
+                                                   Supplier<String> title, Supplier<String> author, Supplier<Integer> generation, Supplier<List<Component>> pages) {
 		if (content == null)
-			content = new WrittenBookContentComponent(RawFilteredPair.of(""), "", 0, List.of(), false);
-		return new WrittenBookContentComponent(
-				title == null ? content.title() : RawFilteredPair.of(title.get()),
+			content = new WrittenBookContent(Filterable.passThrough(""), "", 0, List.of(), false);
+		return new WrittenBookContent(
+				title == null ? content.title() : Filterable.passThrough(title.get()),
 				author == null ? content.author() : author.get(),
 				generation == null ? content.generation() : generation.get(),
-				pages == null ? content.pages() : pages.get().stream().map(RawFilteredPair::of).toList(),
+				pages == null ? content.pages() : pages.get().stream().map(Filterable::passThrough).toList(),
 				content.resolved());
 	}
 	
@@ -55,13 +55,13 @@ public class WrittenBookTagReferences {
 			.range(null, "1.20.4", () -> TagReference.forItems(() -> 0, new NBTTagReference<>(Integer.class, "generation")))
 			.get();
 	
-	public static final TagReference<List<Text>, ItemStack> PAGES = Version.<TagReference<List<Text>, ItemStack>>newSwitch()
+	public static final TagReference<List<Component>, ItemStack> PAGES = Version.<TagReference<List<Component>, ItemStack>>newSwitch()
 			.range("1.20.5", null, () -> new ComponentTagReference<>(MVComponentType.WRITTEN_BOOK_CONTENT,
 					null,
-					content -> content == null ? new ArrayList<>() : content.pages().stream().map(RawFilteredPair::raw).collect(Collectors.toList()),
+					content -> content == null ? new ArrayList<>() : content.pages().stream().map(Filterable::raw).collect(Collectors.toList()),
 					(content, value) -> getComponent(content, null, null, null, () -> value)))
 			.range(null, "1.20.4", () -> TagReference.forItems(ArrayList::new, TagReference.alsoRemove("filtered_pages",
-					TagReference.forLists(Text.class, new NBTTagReference<>(Text[].class, "pages")))))
+					TagReference.forLists(Component.class, new NBTTagReference<>(Component[].class, "pages")))))
 			.get();
 	
 }

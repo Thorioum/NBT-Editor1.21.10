@@ -8,21 +8,21 @@ import com.luneruniverse.minecraft.mod.nbteditor.multiversion.Attempt;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVMisc;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.nbt.manager.NBTManagers;
 
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.nbt.CompoundTag;
 
 public class DynamicItems {
 	
-	private final Map<Integer, Map.Entry<NbtCompound, Boolean>> items;
+	private final Map<Integer, Map.Entry<CompoundTag, Boolean>> items;
 	
 	public DynamicItems() {
 		this.items = new HashMap<>();
 	}
-	private DynamicItems(Map<Integer, Map.Entry<NbtCompound, Boolean>> items) {
+	private DynamicItems(Map<Integer, Map.Entry<CompoundTag, Boolean>> items) {
 		this.items = items;
 	}
 	
-	public void add(int slot, NbtCompound nbt, boolean successfullyLoaded) {
+	public void add(int slot, CompoundTag nbt, boolean successfullyLoaded) {
 		items.put(slot, Map.entry(nbt, successfullyLoaded));
 	}
 	public ItemStack tryAdd(int slot, ItemStack item) {
@@ -31,7 +31,7 @@ public class DynamicItems {
 		if (item.isEmpty())
 			return ItemStack.EMPTY;
 		
-		NbtCompound nbt = NBTManagers.ITEM.serialize(item, true);
+		CompoundTag nbt = NBTManagers.ITEM.serialize(item, true);
 		Attempt<ItemStack> defaultRegistryItem = MVMisc.withDefaultRegistryManager(() -> NBTManagers.ITEM.tryDeserialize(nbt));
 		
 		if (defaultRegistryItem.isSuccessful())
@@ -45,10 +45,10 @@ public class DynamicItems {
 	}
 	
 	public ItemStack tryLoad(int slot) {
-		Map.Entry<NbtCompound, Boolean> item = items.get(slot);
+		Map.Entry<CompoundTag, Boolean> item = items.get(slot);
 		if (item == null)
 			throw new IllegalArgumentException("Not a dynamic slot: " + slot);
-		NbtCompound nbt = item.getKey();
+		CompoundTag nbt = item.getKey();
 		
 		Attempt<ItemStack> attempt = NBTManagers.ITEM.tryDeserialize(nbt);
 		items.put(slot, Map.entry(nbt, attempt.isSuccessful()));
@@ -70,12 +70,12 @@ public class DynamicItems {
 		return items.entrySet().stream().filter(entry -> !entry.getValue().getValue()).map(Map.Entry::getKey).toList();
 	}
 	public boolean isSlotLocked(int slot) {
-		Map.Entry<NbtCompound, Boolean> item = items.get(slot);
+		Map.Entry<CompoundTag, Boolean> item = items.get(slot);
 		return item != null && !item.getValue();
 	}
 	
-	public NbtCompound getOriginalNbt(int slot) {
-		Map.Entry<NbtCompound, Boolean> item = items.get(slot);
+	public CompoundTag getOriginalNbt(int slot) {
+		Map.Entry<CompoundTag, Boolean> item = items.get(slot);
 		return item == null ? null : item.getKey();
 	}
 	

@@ -14,7 +14,7 @@ import java.util.function.Consumer;
 
 import javax.imageio.ImageIO;
 
-import net.minecraft.client.input.KeyInput;
+import net.minecraft.client.input.KeyEvent;
 import org.joml.Matrix3x2fStack;
 import org.lwjgl.glfw.GLFW;
 
@@ -27,16 +27,15 @@ import com.luneruniverse.minecraft.mod.nbteditor.screens.OverlayScreen;
 import com.luneruniverse.minecraft.mod.nbteditor.screens.OverlaySupportingScreen;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.text.Text;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 
 public class ImageToLoreWidget extends GroupWidget implements InitializableOverlay<Screen> {
 	
-	public static List<Text> imageToLore(BufferedImage img, int width, int height) {
+	public static List<Component> imageToLore(BufferedImage img, int width, int height) {
 		img = MainUtil.scaleImage(img, width, height);
-		List<Text> output = new ArrayList<>();
+		List<Component> output = new ArrayList<>();
 		for (int line = 0; line < height; line++) {
 			EditableText lineText = TextInst.literal("").styled(style -> style.withItalic(false));
 			for (int i = 0; i < width; i++) {
@@ -48,7 +47,7 @@ public class ImageToLoreWidget extends GroupWidget implements InitializableOverl
 		return output;
 	}
 	
-	public static boolean openImportFiles(List<Path> paths, BiConsumer<File, List<Text>> loreConsumers, Runnable onDone) {
+	public static boolean openImportFiles(List<Path> paths, BiConsumer<File, List<Component>> loreConsumers, Runnable onDone) {
 		Map<File, BufferedImage> imgs = new LinkedHashMap<>();
 		for (Path path : paths) {
 			File file = path.toFile();
@@ -94,7 +93,7 @@ public class ImageToLoreWidget extends GroupWidget implements InitializableOverl
 	public static record ImageToLoreOptions(Integer width, Integer height) {}
 	
 	private final Consumer<Optional<ImageToLoreOptions>> optionsConsumer;
-	private final TextRenderer textRenderer;
+	private final Font textRenderer;
 	private int width;
 	private int height;
 	private NamedTextFieldWidget imgWidth;
@@ -102,7 +101,7 @@ public class ImageToLoreWidget extends GroupWidget implements InitializableOverl
 	
 	public ImageToLoreWidget(Consumer<Optional<ImageToLoreOptions>> optionsConsumer) {
 		this.optionsConsumer = optionsConsumer;
-		this.textRenderer = MainUtil.client.textRenderer;
+		this.textRenderer = MainUtil.client.font;
 	}
 	
 	@Override
@@ -112,25 +111,25 @@ public class ImageToLoreWidget extends GroupWidget implements InitializableOverl
 		this.width = width;
 		this.height = height;
 		
-		String prevImgWidth = (imgWidth == null ? null : imgWidth.getText());
-		String prevImgHeight = (imgHeight == null ? null : imgHeight.getText());
+		String prevImgWidth = (imgWidth == null ? null : imgWidth.getValue());
+		String prevImgHeight = (imgHeight == null ? null : imgHeight.getValue());
 		
 		imgWidth = addWidget(new NamedTextFieldWidget(width / 2 - 102, height / 2 - 18, 100, 16)
 				.name(TextInst.translatable("nbteditor.img_to_lore.width")));
 		imgHeight = addWidget(new NamedTextFieldWidget(width / 2 + 2, height / 2 - 18, 100, 16)
 				.name(TextInst.translatable("nbteditor.img_to_lore.height")));
 		
-		imgWidth.setTextPredicate(MainUtil.intPredicate(1, Integer.MAX_VALUE, true));
-		imgHeight.setTextPredicate(MainUtil.intPredicate(1, Integer.MAX_VALUE, true));
+		//imgWidth.setFilter(MainUtil.intPredicate(1, Integer.MAX_VALUE, true));
+		//imgHeight.setFilter(MainUtil.intPredicate(1, Integer.MAX_VALUE, true));
 		
 		if (prevImgWidth != null)
-			imgWidth.setText(prevImgWidth);
+			imgWidth.setValue(prevImgWidth);
 		if (prevImgHeight != null)
-			imgHeight.setText(prevImgHeight);
+			imgHeight.setValue(prevImgHeight);
 		
 		addWidget(MVMisc.newButton(width / 2 - 102, height / 2 + 2, 100, 20, ScreenTexts.DONE, btn -> {
 			optionsConsumer.accept(Optional.of(new ImageToLoreOptions(
-					MainUtil.parseOptionalInt(imgWidth.getText()), MainUtil.parseOptionalInt(imgHeight.getText()))));
+					MainUtil.parseOptionalInt(imgWidth.getValue()), MainUtil.parseOptionalInt(imgHeight.getValue()))));
 		}));
 		addWidget(MVMisc.newButton(width / 2 + 2, height / 2 + 2, 100, 20, ScreenTexts.CANCEL, btn -> {
 			optionsConsumer.accept(Optional.empty());
@@ -138,16 +137,16 @@ public class ImageToLoreWidget extends GroupWidget implements InitializableOverl
 	}
 	
 	@Override
-	public void render(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
-		MainUtil.client.currentScreen.renderBackground(matrices);
-		super.render(matrices, mouseX, mouseY, delta);
+	public void extractRenderState(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
+		MainUtil.client.screen.extractBackground(MVDrawableHelper.getDrawContext(matrices), mouseX, mouseY, delta);
+		super.extractRenderState(matrices, mouseX, mouseY, delta);
 		MVDrawableHelper.drawCenteredTextWithShadow(matrices, textRenderer, TextInst.translatable("nbteditor.img_to_lore"),
-				width / 2, height / 2 - textRenderer.fontHeight - 22, -1);
+				width / 2, height / 2 - textRenderer.lineHeight - 22, -1);
 		MainUtil.renderLogo(matrices);
 	}
 	
 	@Override
-	public boolean keyPressed(KeyInput keyInput) {
+	public boolean keyPressed(KeyEvent keyInput) {
 		int keyCode = keyInput.key();
 		if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
 			OverlaySupportingScreen.setOverlayStatic(null);
@@ -155,7 +154,7 @@ public class ImageToLoreWidget extends GroupWidget implements InitializableOverl
 		}
 		if (keyCode == GLFW.GLFW_KEY_ENTER) {
 			optionsConsumer.accept(Optional.of(new ImageToLoreOptions(
-					MainUtil.parseOptionalInt(imgWidth.getText()), MainUtil.parseOptionalInt(imgHeight.getText()))));
+					MainUtil.parseOptionalInt(imgWidth.getValue()), MainUtil.parseOptionalInt(imgHeight.getValue()))));
 			return true;
 		}
 		

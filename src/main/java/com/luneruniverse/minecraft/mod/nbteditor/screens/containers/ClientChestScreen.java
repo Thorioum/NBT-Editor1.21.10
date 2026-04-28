@@ -1,7 +1,7 @@
 package com.luneruniverse.minecraft.mod.nbteditor.screens.containers;
 
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.input.KeyInput;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.KeyEvent;
 import org.lwjgl.glfw.GLFW;
 
 import com.luneruniverse.minecraft.mod.nbteditor.NBTEditorClient;
@@ -21,12 +21,12 @@ import com.luneruniverse.minecraft.mod.nbteditor.screens.util.FancyConfirmScreen
 import com.luneruniverse.minecraft.mod.nbteditor.screens.widgets.NamedTextFieldWidget;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.item.ItemStack;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.screen.slot.SlotActionType;
-import net.minecraft.text.Text;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.inventory.ContainerInput;
+import net.minecraft.network.chat.Component;
 
 import static com.luneruniverse.minecraft.mod.nbteditor.NBTEditor.hasShiftDown;
 
@@ -54,7 +54,7 @@ public class ClientChestScreen extends ClientHandledScreen {
 						return;
 					}
 					
-					if (MainUtil.client.currentScreen instanceof ClientChestScreen screen) {
+					if (MainUtil.client.screen instanceof ClientChestScreen screen) {
 						screen.setPageData(pageData);
 						MainUtil.setTextFieldValueSilently(screen.pageField, (PAGE + 1) + "", true);
 						screen.updatePageNavigation();
@@ -70,11 +70,11 @@ public class ClientChestScreen extends ClientHandledScreen {
 	private DynamicItems dynamicItems;
 	private boolean navigationClicked;
 	private NamedTextFieldWidget nameField;
-	private ButtonWidget prevPage;
-	private TextFieldWidget pageField;
-	private ButtonWidget nextPage;
-	private ButtonWidget prevPageJump;
-	private ButtonWidget nextPageJump;
+	private Button prevPage;
+	private EditBox pageField;
+	private Button nextPage;
+	private Button prevPageJump;
+	private Button nextPageJump;
 	
 	private ClientChestScreen() {
 		super(6, TextInst.translatable("nbteditor.client_chest"));
@@ -82,37 +82,37 @@ public class ClientChestScreen extends ClientHandledScreen {
 	private void setPageData(ClientChestPage pageData) {
 		ItemStack[] items = pageData.getItemsOrThrow();
 		for (int i = 0; i < items.length; i++)
-			handler.getSlot(i).setStackNoCallbacks(items[i] == null ? ItemStack.EMPTY : items[i].copy());
+			menu.getSlot(i).set(items[i] == null ? ItemStack.EMPTY : items[i].copy());
 		dynamicItems = pageData.dynamicItems();
 	}
 	
 	@Override
 	protected void init() {
-		this.clearChildren();
+		this.clearWidgets();
 		super.init();
-		x += 87 / 2;
+		leftPos += 87 / 2;
 		
-		nameField = new NamedTextFieldWidget(this.x - 87, this.y, 83, 16) {
+		nameField = new NamedTextFieldWidget(this.leftPos - 87, this.topPos, 83, 16) {
 			@Override
-			public boolean mouseClicked(Click click, boolean doubled) {
+			public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
 				boolean output = super.mouseClicked(click, doubled);
 				if (output)
 					navigationClicked = true;
 				return output;
 			}
 			@Override
-			public boolean keyPressed(KeyInput keyInput) {
+			public boolean keyPressed(KeyEvent keyInput) {
 				int keyCode = keyInput.key();
 				if (keyCode == GLFW.GLFW_KEY_ENTER && !nameField.isValid()) {
 					nameField.setValid(true);
-					ClientChestHelper.setNameOfPage(PAGE, nameField.getText());
+					ClientChestHelper.setNameOfPage(PAGE, nameField.getValue());
 					return true;
 				}
 				return super.keyPressed(keyInput);
 			}
 		}.name(TextInst.translatable("nbteditor.client_chest.page_name"));
 		nameField.setMaxLength(Integer.MAX_VALUE);
-		nameField.setChangedListener(name -> {
+		nameField.setResponder(name -> {
 			if (NBTEditorClient.CLIENT_CHEST.isNameUsedByOther(name, PAGE)) {
 				nameField.setValid(false);
 				return;
@@ -120,11 +120,11 @@ public class ClientChestScreen extends ClientHandledScreen {
 			nameField.setValid(true);
 			ClientChestHelper.setNameOfPage(PAGE, name);
 		});
-		this.addDrawableChild(nameField);
+		this.addRenderableWidget(nameField);
 		
-		pageField = new TextFieldWidget(textRenderer, this.x - 63, this.y + 22, 35, 16, TextInst.of("")) {
+		pageField = new EditBox(font, this.leftPos - 63, this.topPos + 22, 35, 16, TextInst.of("")) {
 			@Override
-			public boolean mouseClicked(Click click, boolean doubled) {
+			public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
 				boolean output = super.mouseClicked(click, doubled);
 				if (output)
 					navigationClicked = true;
@@ -132,8 +132,8 @@ public class ClientChestScreen extends ClientHandledScreen {
 			}
 		};
 		pageField.setMaxLength((NBTEditorClient.CLIENT_CHEST.getPageCount() + "").length());
-		pageField.setText((PAGE + 1) + "");
-		pageField.setChangedListener(str -> {
+		pageField.setValue((PAGE + 1) + "");
+		pageField.setResponder(str -> {
 			if (str.isEmpty() || str.equals("+") || str.equals("-"))
 				return;
 			
@@ -143,8 +143,8 @@ public class ClientChestScreen extends ClientHandledScreen {
 				show();
 			}
 		});
-		pageField.setTextPredicate(MainUtil.intPredicate(() -> 0, NBTEditorClient.CLIENT_CHEST::getPageCount, true));
-		this.addDrawableChild(pageField);
+		//pageField.setFilter(MainUtil.intPredicate(() -> 0, NBTEditorClient.CLIENT_CHEST::getPageCount, true));
+		this.addRenderableWidget(pageField);
 		
 		EditableText prevKeybind = TextInst.translatable("nbteditor.keybind.page.down");
 		EditableText nextKeybind = TextInst.translatable("nbteditor.keybind.page.up");
@@ -154,31 +154,31 @@ public class ClientChestScreen extends ClientHandledScreen {
 			nextKeybind = temp;
 		}
 		
-		this.addDrawableChild(prevPage = MVMisc.newButton(this.x - 87, this.y + 20, 20, 20, TextInst.of("<"), btn -> {
+		this.addRenderableWidget(prevPage = MVMisc.newButton(this.leftPos - 87, this.topPos + 20, 20, 20, TextInst.of("<"), btn -> {
 			navigationClicked = true;
 			prevPage();
 		}, ConfigScreen.isKeybindsHidden() ? null : new MVTooltip(TextInst.literal("")
 				.append(prevKeybind).append(TextInst.translatable("nbteditor.keybind.page.prev")))));
 		
-		this.addDrawableChild(nextPage = MVMisc.newButton(this.x - 24, this.y + 20, 20, 20, TextInst.of(">"), btn -> {
+		this.addRenderableWidget(nextPage = MVMisc.newButton(this.leftPos - 24, this.topPos + 20, 20, 20, TextInst.of(">"), btn -> {
 			navigationClicked = true;
 			nextPage();
 		}, ConfigScreen.isKeybindsHidden() ? null : new MVTooltip(TextInst.literal("")
 				.append(nextKeybind).append(TextInst.translatable("nbteditor.keybind.page.next")))));
 		
-		this.addDrawableChild(prevPageJump = MVMisc.newButton(this.x - 87, this.y + 44, 39, 20, TextInst.of("<<"), btn -> {
+		this.addRenderableWidget(prevPageJump = MVMisc.newButton(this.leftPos - 87, this.topPos + 44, 39, 20, TextInst.of("<<"), btn -> {
 			navigationClicked = true;
 			prevPageJump();
 		}, ConfigScreen.isKeybindsHidden() ? null : new MVTooltip(TextInst.translatable("nbteditor.keybind.page.shift")
 				.append(prevKeybind).append(TextInst.translatable("nbteditor.keybind.page.prev_jump")))));
 		
-		this.addDrawableChild(nextPageJump = MVMisc.newButton(this.x - 43, this.y + 44, 39, 20, TextInst.of(">>"), btn -> {
+		this.addRenderableWidget(nextPageJump = MVMisc.newButton(this.leftPos - 43, this.topPos + 44, 39, 20, TextInst.of(">>"), btn -> {
 			navigationClicked = true;
 			nextPageJump();
 		}, ConfigScreen.isKeybindsHidden() ? null : new MVTooltip(TextInst.translatable("nbteditor.keybind.page.shift")
 				.append(nextKeybind).append(TextInst.translatable("nbteditor.keybind.page.next_jump")))));
 		
-		this.addDrawableChild(MVMisc.newButton(this.x - 87, this.y + 68, 83, 20, ConfigScreen.isLockSlots() ? TextInst.translatable("nbteditor.client_chest.slots.unlock") : TextInst.translatable("nbteditor.client_chest.slots.lock"), btn -> {
+		this.addRenderableWidget(MVMisc.newButton(this.leftPos - 87, this.topPos + 68, 83, 20, ConfigScreen.isLockSlots() ? TextInst.translatable("nbteditor.client_chest.slots.unlock") : TextInst.translatable("nbteditor.client_chest.slots.lock"), btn -> {
 			navigationClicked = true;
 			if (ConfigScreen.isLockSlotsRequired()) {
 				btn.active = false;
@@ -188,21 +188,21 @@ public class ClientChestScreen extends ClientHandledScreen {
 			btn.setMessage(ConfigScreen.isLockSlots() ? TextInst.translatable("nbteditor.client_chest.slots.unlock") : TextInst.translatable("nbteditor.client_chest.slots.lock"));
 		})).active = !ConfigScreen.isLockSlotsRequired();
 		
-		this.addDrawableChild(MVMisc.newButton(this.x - 87, this.y + 92, 83, 20, TextInst.translatable("nbteditor.client_chest.reload_page"), btn -> {
+		this.addRenderableWidget(MVMisc.newButton(this.leftPos - 87, this.topPos + 92, 83, 20, TextInst.translatable("nbteditor.client_chest.reload_page"), btn -> {
 			navigationClicked = true;
-			LoadingScreen.show(ClientChestHelper.reloadPage(PAGE), this::close, (loaded, pageData) -> show());
+			LoadingScreen.show(ClientChestHelper.reloadPage(PAGE), this::onClose, (loaded, pageData) -> show());
 		}));
 		
-		this.addDrawableChild(MVMisc.newButton(this.x - 87, this.y + 116, 83, 20, TextInst.translatable("nbteditor.client_chest.clear_page"), btn -> {
+		this.addRenderableWidget(MVMisc.newButton(this.leftPos - 87, this.topPos + 116, 83, 20, TextInst.translatable("nbteditor.client_chest.clear_page"), btn -> {
 			navigationClicked = true;
-			client.setScreen(new FancyConfirmScreen(value -> {
+			minecraft.setScreen(new FancyConfirmScreen(value -> {
 				if (value) {
-					handler.getInventory().clear();
+					menu.getContainer().clearContent();
 					dynamicItems = new DynamicItems();
 					save();
 				}
 				
-				client.setScreen(ClientChestScreen.this);
+				minecraft.setScreen(ClientChestScreen.this);
 			}, TextInst.translatable("nbteditor.client_chest.clear_page.title"), TextInst.translatable("nbteditor.client_chest.clear_page.desc"),
 					TextInst.translatable("nbteditor.client_chest.clear_page.yes"), TextInst.translatable("nbteditor.client_chest.clear_page.no")));
 		}));
@@ -211,7 +211,7 @@ public class ClientChestScreen extends ClientHandledScreen {
 		updatePageNavigation();
 	}
 	public void updatePageNavigation() {
-		nameField.setText(NBTEditorClient.CLIENT_CHEST.getNameFromPage(PAGE));
+		nameField.setValue(NBTEditorClient.CLIENT_CHEST.getNameFromPage(PAGE));
 		
 		int[] jumps = NBTEditorClient.CLIENT_CHEST.getNearestPOIs(PAGE);
 		int maxPage = NBTEditorClient.CLIENT_CHEST.getPageCount() - 1;
@@ -225,17 +225,17 @@ public class ClientChestScreen extends ClientHandledScreen {
 	}
 	
 	@Override
-	protected void handledScreenTick() {
+	protected void containerTick() {
 		nameField.tick();
-		pageField.tick();
+		//pageField.tick();
 	}
 	
-	public boolean keyPressed(KeyInput keyInput) {
+	public boolean keyPressed(KeyEvent keyInput) {
 		int keyCode = keyInput.key();
 		navigationClicked = false;
 		
 		if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
-			close();
+			onClose();
 			return true;
 		}
 		if (keyCode == GLFW.GLFW_KEY_PAGE_UP || keyCode == GLFW.GLFW_KEY_PAGE_DOWN) {
@@ -257,25 +257,25 @@ public class ClientChestScreen extends ClientHandledScreen {
 			return true;
 		}
 		
-		if (focusedSlot != null) {
-			boolean lockedSlot = (focusedSlot.inventory == handler.getInventory() &&
-					dynamicItems.isSlotLocked(focusedSlot.getIndex()));
+		if (hoveredSlot != null) {
+			boolean lockedSlot = (hoveredSlot.container == menu.getContainer() &&
+					dynamicItems.isSlotLocked(hoveredSlot.getContainerSlot()));
 			if (!lockedSlot || keyCode == GLFW.GLFW_KEY_DELETE) {
-				if (handleKeybind(keyCode, focusedSlot, ClientChestScreen::show, slot -> new ClientChestItemReference(PAGE, slot.getIndex()))) {
+				if (handleKeybind(keyCode, hoveredSlot, ClientChestScreen::show, slot -> new ClientChestItemReference(PAGE, slot.getContainerSlot()))) {
 					if (keyCode == GLFW.GLFW_KEY_DELETE && lockedSlot)
-						dynamicItems.remove(focusedSlot.getIndex());
+						dynamicItems.remove(hoveredSlot.getContainerSlot());
 					return true;
 				}
 			}
 		}
 		
-		return !this.nameField.keyPressed(keyInput) && !this.nameField.isActive() &&
-				!this.pageField.keyPressed(keyInput) && !this.pageField.isActive()
+		return !this.nameField.keyPressed(keyInput) && !this.nameField.canConsumeInput() &&
+				!this.pageField.keyPressed(keyInput) && !this.pageField.canConsumeInput()
 				? super.keyPressed(keyInput) : true;
 	}
 	
 	@Override
-	public boolean mouseClicked(Click click, boolean doubled) {
+	public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
 		navigationClicked = false;
 		MVMisc.setKeyboardRepeatEvents(this.nameField.mouseClicked(click, doubled) ||
 				this.pageField.mouseClicked(click, doubled));
@@ -284,11 +284,11 @@ public class ClientChestScreen extends ClientHandledScreen {
 	}
 	
 	@Override
-	protected void onMouseClick(Slot slot, int slotId, int button, SlotActionType actionType) {
+	protected void slotClicked(Slot slot, int slotId, int button, ContainerInput actionType) {
 		if (navigationClicked)
 			return;
 		
-		super.onMouseClick(slot, slotId, button, actionType);
+		super.slotClicked(slot, slotId, button, actionType);
 	}
 	@Override
 	public boolean allowEnchantmentCombine() {
@@ -310,20 +310,20 @@ public class ClientChestScreen extends ClientHandledScreen {
 	
 	private void save() {
 		ItemStack[] items = new ItemStack[54];
-		for (int i = 0; i < handler.getInventory().size(); i++)
-			items[i] = handler.getInventory().getStack(i).copy();
+		for (int i = 0; i < menu.getContainer().getContainerSize(); i++)
+			items[i] = menu.getContainer().getItem(i).copy();
 		
 		ClientChestHelper.setPage(PAGE, items, dynamicItems);
 	}
 	
 	@Override
-	protected Text getRenderedTitle() {
+	protected Component getRenderedTitle() {
 		EditableText title = TextInst.copy(this.title).append(" (" + (PAGE + 1) + ")");
 		return NBTEditorClient.CLIENT_CHEST.isProcessingPage(PAGE) ? title.append("*") : title;
 	}
 	
 	@Override
-	public boolean shouldPause() {
+	public boolean isPauseScreen() {
 		return true;
 	}
 	

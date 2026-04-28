@@ -1,14 +1,13 @@
 package com.luneruniverse.minecraft.mod.nbteditor.screens.widgets;
 
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.gui.Drawable;
-import net.minecraft.client.gui.Element;
-import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.gui.components.Renderable;
+import net.minecraft.client.gui.components.events.GuiEventListener;
 import org.joml.Matrix3x2fStack;
 
 public class TranslatedGroupWidget extends GroupWidget {
 	
-	public static <T extends Drawable & Element> TranslatedGroupWidget forWidget(T widget, double x, double y, double z) {
+	public static <T extends Renderable & GuiEventListener> TranslatedGroupWidget forWidget(T widget, double x, double y, double z) {
 		TranslatedGroupWidget output = new TranslatedGroupWidget(x, y, z) {
 			@Override
 			protected void renderPre(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
@@ -47,13 +46,13 @@ public class TranslatedGroupWidget extends GroupWidget {
 	}
 	
 	@Override
-	public final void render(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
+	public final void extractRenderState(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
 		matrices.pushMatrix();
 		matrices.translate((float) x, (float) y);
 		mouseX -= (int) x;
 		mouseY -= (int) y;
 		renderPre(matrices, mouseX, mouseY, delta);
-		super.render(matrices, mouseX, mouseY, delta);
+		super.extractRenderState(matrices, mouseX, mouseY, delta);
 		renderPost(matrices, mouseX, mouseY, delta);
 		matrices.popMatrix();
 	}
@@ -61,8 +60,8 @@ public class TranslatedGroupWidget extends GroupWidget {
 	protected void renderPost(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {}
 	
 	@Override
-	public boolean mouseClicked(Click click, boolean doubled) {
-		click = new Click(click.x() - x, click.y() - y,click.buttonInfo());
+	public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
+		click = new MouseButtonEvent(click.x() - x, click.y() - y,click.buttonInfo());
 
 		return mouseClickedPre(click.x(),click.y(),click.button()) ||
 				super.mouseClicked(click, doubled) ||
@@ -76,8 +75,8 @@ public class TranslatedGroupWidget extends GroupWidget {
 	}
 	
 	@Override
-	public boolean mouseReleased(Click click) {
-		click = new Click(click.x() - x, click.y() - y,click.buttonInfo());
+	public boolean mouseReleased(MouseButtonEvent click) {
+		click = new MouseButtonEvent(click.x() - x, click.y() - y,click.buttonInfo());
 
 		return mouseReleasedPre(click.x(),click.y(),click.button()) ||
 				super.mouseReleased(click) ||
@@ -102,8 +101,8 @@ public class TranslatedGroupWidget extends GroupWidget {
 	protected void mouseMovedPost(double mouseX, double mouseY) {}
 	
 	@Override
-	public boolean mouseDragged(Click click, double deltaX, double deltaY) {
-		click = new Click(click.x() - x, click.y() - y,click.buttonInfo());
+	public boolean mouseDragged(MouseButtonEvent click, double deltaX, double deltaY) {
+		click = new MouseButtonEvent(click.x() - x, click.y() - y,click.buttonInfo());
 
 		return mouseDraggedPre(click.x(),click.y(),click.button(), deltaX, deltaY) ||
 				super.mouseDragged(click, deltaX, deltaY) ||

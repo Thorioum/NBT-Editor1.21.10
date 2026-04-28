@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVDrawableHelper;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVMisc;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.ScreenTexts;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.TextInst;
@@ -14,8 +15,8 @@ import com.luneruniverse.minecraft.mod.nbteditor.screens.configurable.ConfigPane
 import com.luneruniverse.minecraft.mod.nbteditor.screens.configurable.ConfigPath;
 import com.luneruniverse.minecraft.mod.nbteditor.screens.configurable.ConfigValueText;
 
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.client.gui.screens.Screen;
+import com.mojang.blaze3d.vertex.PoseStack;
 import org.joml.Matrix3x2fStack;
 
 public class ShortcutsScreen extends TickableSupportingScreen {
@@ -41,25 +42,25 @@ public class ShortcutsScreen extends TickableSupportingScreen {
 	
 	@Override
 	protected void init() {
-		ConfigPanel newPanel = addDrawableChild(new ConfigPanel(16, 16, width - 32, height - 32, config));
+		ConfigPanel newPanel = addRenderableWidget(new ConfigPanel(16, 16, width - 32, height - 32, config));
 		if (panel != null)
 			newPanel.setScroll(panel.getScroll());
 		panel = newPanel;
 		
-		this.addDrawableChild(MVMisc.newButton(this.width - 134, this.height - 36, 100, 20, ScreenTexts.DONE, btn -> close()));
-		this.addDrawableChild(MVMisc.newButton(this.width - 134, this.height - 36 - 24, 100, 20, ScreenTexts.CANCEL, btn -> {
+		this.addRenderableWidget(MVMisc.newButton(this.width - 134, this.height - 36, 100, 20, ScreenTexts.DONE, btn -> onClose()));
+		this.addRenderableWidget(MVMisc.newButton(this.width - 134, this.height - 36 - 24, 100, 20, ScreenTexts.CANCEL, btn -> {
 			cancel = true;
-			close();
+			onClose();
 		}));
 	}
 	
 	public void render(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
-		this.renderBackground(matrices);
+		this.extractBackground(MVDrawableHelper.getDrawContext(matrices), mouseX, mouseY, delta);
 		super.render(matrices, mouseX, mouseY, delta);
 	}
 	
-	public void close() {
-		client.setScreen(this.parent);
+	public void onClose() {
+		minecraft.setScreen(this.parent);
 	}
 	
 	@SuppressWarnings("unchecked")

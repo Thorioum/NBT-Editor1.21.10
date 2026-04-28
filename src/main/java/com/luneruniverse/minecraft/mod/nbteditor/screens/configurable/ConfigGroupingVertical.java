@@ -7,30 +7,28 @@ import java.util.List;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVDrawableHelper;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.input.MouseInput;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.text.Text;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.network.chat.Component;
 import org.joml.Matrix3x2fStack;
 
 public abstract class ConfigGroupingVertical<K, T extends ConfigGroupingVertical<K, T>> extends ConfigGrouping<K, T> {
 	
-	protected ConfigGroupingVertical(Text name, Constructor<K, T> cloneImpl) {
+	protected ConfigGroupingVertical(Component name, Constructor<K, T> cloneImpl) {
 		super(name, cloneImpl);
 	}
 	
 	protected int getNameHeight() {
-		return name == null ? 0 : MainUtil.client.textRenderer.fontHeight + PADDING;
+		return name == null ? 0 : MainUtil.client.font.lineHeight + PADDING;
 	}
 	
 	@Override
-	public void render(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
+	public void extractRenderState(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
 		MVDrawableHelper.fill(matrices, 0, 0, PADDING, getSpacingHeight(), isValueValid() ? 0xFFAAAAAA : 0xFFDF4949);
 		
 		int yOffset = 0;
-		Text fullName = getFullName();
+		Component fullName = getFullName();
 		if (fullName != null) {
-			MVDrawableHelper.drawTextWithShadow(matrices, MainUtil.client.textRenderer, fullName, PADDING * 2, 0, 0xFFFFFFFF);
+			MVDrawableHelper.drawTextWithShadow(matrices, MainUtil.client.font, fullName, PADDING * 2, 0, 0xFFFFFFFF);
 			yOffset += getNameHeight();
 		}
 		
@@ -45,7 +43,7 @@ public abstract class ConfigGroupingVertical<K, T extends ConfigGroupingVertical
 			
 			matrices.pushMatrix();
 			matrices.translate(PADDING * 2, yOffset);
-			path.render(matrices, mouseX - PADDING * 2, mouseY - yOffset, delta);
+			path.extractRenderState(matrices, mouseX - PADDING * 2, mouseY - yOffset, delta);
 			matrices.popMatrix();
 		}
 	}
@@ -91,22 +89,22 @@ public abstract class ConfigGroupingVertical<K, T extends ConfigGroupingVertical
 	}
 	
 	@Override
-	public boolean mouseClicked(Click click, boolean doubled) {
+	public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
 		int yOffset = getNameHeight();
 		
 		for (ConfigPath path : new ArrayList<>(paths.values())) {
-			if (path.mouseClicked(new Click(click.x() - PADDING * 2, click.y() - yOffset, click.buttonInfo()),doubled))
+			if (path.mouseClicked(new MouseButtonEvent(click.x() - PADDING * 2, click.y() - yOffset, click.buttonInfo()),doubled))
 				return true;
 			yOffset += path.getSpacingHeight() + PADDING;
 		}
 		return false;
 	}
 	@Override
-	public boolean mouseReleased(Click click) {
+	public boolean mouseReleased(MouseButtonEvent click) {
 		int yOffset = getNameHeight();
 		
 		for (ConfigPath path : new ArrayList<>(paths.values())) {
-			if (path.mouseReleased(new Click(click.x() - PADDING * 2, click.y() - yOffset, click.buttonInfo())))
+			if (path.mouseReleased(new MouseButtonEvent(click.x() - PADDING * 2, click.y() - yOffset, click.buttonInfo())))
 				return true;
 			yOffset += path.getSpacingHeight() + PADDING;
 		}
@@ -122,12 +120,12 @@ public abstract class ConfigGroupingVertical<K, T extends ConfigGroupingVertical
 		}
 	}
 	@Override
-	public boolean mouseDragged(Click click, double deltaX, double deltaY) {
+	public boolean mouseDragged(MouseButtonEvent click, double deltaX, double deltaY) {
 		int yOffset = getNameHeight();
 		
 		for (ConfigPath path : new ArrayList<>(paths.values())) {
 			// Buttons return true by default, causing problems with returning early
-			path.mouseDragged(new Click(click.x() - PADDING * 2, click.y() - yOffset, click.buttonInfo()), deltaX, deltaY);
+			path.mouseDragged(new MouseButtonEvent(click.x() - PADDING * 2, click.y() - yOffset, click.buttonInfo()), deltaX, deltaY);
 			yOffset += path.getSpacingHeight() + PADDING;
 		}
 		return false;

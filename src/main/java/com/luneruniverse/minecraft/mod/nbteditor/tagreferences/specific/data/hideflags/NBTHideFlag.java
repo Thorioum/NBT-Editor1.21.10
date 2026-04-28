@@ -5,7 +5,7 @@ import java.util.Map;
 
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.TextInst;
 
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
 
 public class NBTHideFlag extends HideFlag {
 	
@@ -25,16 +25,16 @@ public class NBTHideFlag extends HideFlag {
 	public static final HideFlag MISC = register("misc", 32);
 	public static final HideFlag DYED_COLOR = register("dyed_color", 64);
 	
-	private final Text name;
+	private final Component name;
 	private final int bit;
 	
-	private NBTHideFlag(Text name, int bit) {
+	private NBTHideFlag(Component name, int bit) {
 		this.name = name;
 		this.bit = bit;
 	}
 	
 	@Override
-	public Text getName() {
+	public Component getName() {
 		return name;
 	}
 	

@@ -5,10 +5,10 @@
   "compatibilityLevel": "JAVA_16",
   "plugin": "com.luneruniverse.minecraft.mod.nbteditor.multiversion.networking.mixin.toggled.NetworkingMixinPlugin",
   "mixins": [
-    "ClientConnectionMixin"
+    "ConnectionMixin"
   ],
   "client": [
-    "ClientPlayNetworkHandlerMixin"
+    "ClientPacketListenerMixin"
   ],
   "injectors": {
     "defaultRequire": 1

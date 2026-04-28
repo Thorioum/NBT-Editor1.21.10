@@ -12,11 +12,11 @@ import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 
-import net.minecraft.command.CommandSource;
-import net.minecraft.entity.effect.StatusEffect;
-import net.minecraft.util.Identifier;
+import net.minecraft.commands.SharedSuggestionProvider;
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.resources.Identifier;
 
-public class StatusEffectArgumentType implements ArgumentType<StatusEffect> {
+public class StatusEffectArgumentType implements ArgumentType<MobEffect> {
 	
 	private static final Collection<String> EXAMPLES = Arrays.asList("spooky", "effect");
 	private static final DynamicCommandExceptionType INVALID_EFFECT_EXCEPTION = new DynamicCommandExceptionType(
@@ -26,13 +26,13 @@ public class StatusEffectArgumentType implements ArgumentType<StatusEffect> {
 		return new StatusEffectArgumentType();
 	}
 	
-	public StatusEffect parse(StringReader stringReader) throws CommandSyntaxException {
-		Identifier id = Identifier.fromCommandInput(stringReader);
+	public MobEffect parse(StringReader stringReader) throws CommandSyntaxException {
+		Identifier id = Identifier.read(stringReader);
 		return MVRegistry.STATUS_EFFECT.getOrEmpty(id).orElseThrow(() -> INVALID_EFFECT_EXCEPTION.create(id));
 	}
 	
 	public <S> CompletableFuture<Suggestions> listSuggestions(CommandContext<S> context, SuggestionsBuilder builder) {
-		return CommandSource.suggestIdentifiers(MVRegistry.STATUS_EFFECT.getIds(), builder);
+		return SharedSuggestionProvider.suggestResource(MVRegistry.STATUS_EFFECT.getIds(), builder);
 	}
 	
 	public Collection<String> getExamples() {

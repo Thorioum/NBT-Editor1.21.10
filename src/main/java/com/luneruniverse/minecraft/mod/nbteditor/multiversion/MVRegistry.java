@@ -13,20 +13,20 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 
-import net.minecraft.block.Block;
-import net.minecraft.component.ComponentType;
-import net.minecraft.enchantment.Enchantment;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.attribute.EntityAttribute;
-import net.minecraft.entity.effect.StatusEffect;
-import net.minecraft.item.Item;
-import net.minecraft.potion.Potion;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.Registry;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.screen.ScreenHandlerType;
-import net.minecraft.util.Identifier;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.core.component.DataComponentType;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.ai.attributes.Attribute;
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.alchemy.Potion;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.Registry;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.world.inventory.MenuType;
+import net.minecraft.resources.Identifier;
 
 public class MVRegistry<T> implements Iterable<T> {
 	
@@ -40,9 +40,9 @@ public class MVRegistry<T> implements Iterable<T> {
 		}
 	}
 	
-	private static final Class<?> REGISTRY_CLASS = Reflection.getClass("net.minecraft.class_2378");
+	private static final Class<?> REGISTRY_CLASS = Reflection.getClass("net.minecraft.core.Registry");
 	private static final Class<?> REGISTRIES_CLASS = Version.<Class<?>>newSwitch()
-			.range("1.19.3", null, () -> Reflection.getClass("net.minecraft.class_7923"))
+			.range("1.19.3", null, () -> Reflection.getClass("net.minecraft.core.registries.Registries"))
 			.range(null, "1.19.2", () -> REGISTRY_CLASS)
 			.get();
 	private static <T> MVRegistry<T> getRegistry(String oldName, String newName, boolean defaulted) {
@@ -57,22 +57,17 @@ public class MVRegistry<T> implements Iterable<T> {
 				.get(null));
 	}
 	
-	public static final MVRegistry<? extends Registry<?>> REGISTRIES = getRegistry("field_11144", "field_41167", false);
-	public static final MVRegistry<ScreenHandlerType<?>> SCREEN_HANDLER = getRegistry("field_17429", "field_41187", false);
-	public static final MVRegistry<Item> ITEM = getRegistry("field_11142", "field_41178", true);
-	public static final MVRegistry<Block> BLOCK = getRegistry("field_11146", "field_41175", true);
-	public static final MVRegistry<EntityType<?>> ENTITY_TYPE = getRegistry("field_11145", "field_41177", true);
-	public static final MVRegistry<EntityAttribute> ATTRIBUTE = getRegistry("field_23781", "field_41190", false);
-	public static final MVRegistry<Potion> POTION = getRegistry("field_11143", "field_41179", Version.<Boolean>newSwitch()
-			.range("1.20.5", null, false)
-			.range(null, "1.20.4", true)
-			.get());
-	public static final MVRegistry<StatusEffect> STATUS_EFFECT = getRegistry("field_11159", "field_41174", false);
+	public static final MVRegistry<Item> ITEM = new MVRegistry<>(BuiltInRegistries.ITEM);
+	public static final MVRegistry<Block> BLOCK =  new MVRegistry<>(BuiltInRegistries.BLOCK);
+	public static final MVRegistry<EntityType<?>> ENTITY_TYPE =  new MVRegistry<>(BuiltInRegistries.ENTITY_TYPE);
+	public static final MVRegistry<Attribute> ATTRIBUTE =  new MVRegistry<>(BuiltInRegistries.ATTRIBUTE);
+	public static final MVRegistry<Potion> POTION =  new MVRegistry<>(BuiltInRegistries.POTION);
+	public static final MVRegistry<MobEffect> STATUS_EFFECT =  new MVRegistry<>(BuiltInRegistries.MOB_EFFECT);
 	
 	private static MVRegistry<Enchantment> ENCHANTMENT;
 	public static MVRegistry<Enchantment> getEnchantmentRegistry() {
 		if (MVEnchantments.DATA_PACK_ENCHANTMENTS) {
-			Registry<Enchantment> registry = DynamicRegistryManagerHolder.getManager().getOrThrow(RegistryKeys.ENCHANTMENT);
+			Registry<Enchantment> registry = DynamicRegistryManagerHolder.getManager().lookupOrThrow(Registries.ENCHANTMENT);
 			if (ENCHANTMENT == null || ENCHANTMENT.getInternalValue() != registry)
 				ENCHANTMENT = new MVRegistry<>(registry);
 		} else {
@@ -82,15 +77,15 @@ public class MVRegistry<T> implements Iterable<T> {
 		return ENCHANTMENT;
 	}
 	
-	private static MVRegistry<ComponentType<?>> COMPONENTS;
-	public static MVRegistry<ComponentType<?>> getComponentsRegistry() {
+	private static MVRegistry<DataComponentType<?>> COMPONENTS;
+	public static MVRegistry<DataComponentType<?>> getComponentsRegistry() {
 		if (COMPONENTS == null)
-			COMPONENTS = new MVRegistry<>(Registries.DATA_COMPONENT_TYPE);
+			COMPONENTS = new MVRegistry<>(BuiltInRegistries.DATA_COMPONENT_TYPE);
 		return COMPONENTS;
 	}
 	
 	public static <V, T extends V> T register(MVRegistry<V> registry, Identifier id, T entry) {
-		return call(null, "method_10230", () -> MethodType.methodType(Object.class, REGISTRY_CLASS, Identifier.class, Object.class), registry.value, id, entry);
+		return call(null, "register", () -> MethodType.methodType(Object.class, REGISTRY_CLASS, Identifier.class, Object.class), registry.value, id, entry);
 	}
 	
 	
@@ -112,36 +107,35 @@ public class MVRegistry<T> implements Iterable<T> {
 	}
 	
 	public Optional<T> getOrEmpty(Identifier id) {
-		return call(value, "method_17966", () -> MethodType.methodType(Optional.class, Identifier.class), id);
+		return call(value, "getOptional", () -> MethodType.methodType(Optional.class, Identifier.class), id);
 	}
 	
 	public Identifier getId(T entry) {
-		return call(value, "method_10221", () -> MethodType.methodType(Identifier.class, Object.class), entry);
+		return call(value, "getKey", () -> MethodType.methodType(Identifier.class, Object.class), entry);
 	}
 	
 	private static final String get = Version.<String>newSwitch()
-			.range("1.21.2", null, "method_63535")
-			.range(null, "1.21.1", "method_10223")
+			.range("1.21.2", null, "getValue")
 			.get();
 	public T get(Identifier id) {
 		return call(value, get, () -> MethodType.methodType(Object.class, Identifier.class), id);
 	}
 	
 	public Set<Identifier> getIds() {
-		return call(value, "method_10235", () -> MethodType.methodType(Set.class));
+		return call(value, "keySet", () -> MethodType.methodType(Set.class));
 	}
 	
 	public Set<Map.Entry<Identifier, T>> getEntrySet() {
-		Set<Map.Entry<Object, T>> output = call(value, "method_29722", () -> MethodType.methodType(Set.class));
+		Set<Map.Entry<Object, T>> output = call(value, "entrySet", () -> MethodType.methodType(Set.class));
 		return output.stream().map(entry -> Map.entry(getRegistryKeyValue(entry.getKey()), entry.getValue()))
 				.collect(Collectors.toUnmodifiableSet());
 	}
 	private static Identifier getRegistryKeyValue(Object key) {
-		return ((RegistryKey<?>) key).getValue();
+		return ((ResourceKey<?>) key).identifier();
 	}
 	
 	public boolean containsId(Identifier id) {
-		return call(value, "method_10250", () -> MethodType.methodType(boolean.class, Identifier.class), id);
+		return call(value, "containsKey", () -> MethodType.methodType(boolean.class, Identifier.class), id);
 	}
 	
 }

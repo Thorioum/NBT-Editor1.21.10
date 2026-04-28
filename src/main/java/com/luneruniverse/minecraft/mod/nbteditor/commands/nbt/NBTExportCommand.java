@@ -29,12 +29,14 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.path.PathUtil;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.item.component.TypedEntityData;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.ChatFormatting;
+import net.minecraft.util.FileUtil;
 
 public class NBTExportCommand extends ClientCommand {
 	
@@ -59,11 +61,11 @@ public class NBTExportCommand extends ClientCommand {
 		stripEntityTags(output.getNBT(), tags);
 		return output;
 	}
-	private static void stripEntityTags(NbtCompound nbt, String... tags) {
+	private static void stripEntityTags(CompoundTag nbt, String... tags) {
 		for (String tag : tags)
 			nbt.remove(tag);
-		for (NbtElement passenger : nbt.nbte$getPartialListOrDefault("Passengers", NbtElement.COMPOUND_TYPE).nbte$iterable())
-			stripEntityTags((NbtCompound) passenger, tags);
+		for (Tag passenger : nbt.getListOrEmpty("Passengers"))
+			stripEntityTags((CompoundTag) passenger, tags);
 	}
 	
 	private static String getItemArgs(ItemStack item) {
@@ -94,23 +96,23 @@ public class NBTExportCommand extends ClientCommand {
 	}
 	
 	private static void exportToClipboard(String str) {
-		MainUtil.client.keyboard.setClipboard(str);
-		MainUtil.client.player.sendMessage(TextInst.translatable("nbteditor.nbt.export.copied"), false);
+		MainUtil.client.keyboardHandler.setClipboard(str);
+		MainUtil.client.player.sendSystemMessage(TextInst.translatable("nbteditor.nbt.export.copied"));
 	}
 	
-	private static void exportToFile(NbtCompound nbt, String name) {
+	private static void exportToFile(CompoundTag nbt, String name) {
 		try {
 			if (!exportDir.exists())
 				Files.createDirectory(exportDir.toPath());
-			File output = new File(exportDir, PathUtil.getNextUniqueName(exportDir.toPath(), name, ".nbt"));
+			File output = new File(exportDir, FileUtil.findAvailableName(exportDir.toPath(), name, ".nbt"));
 			nbt.putInt("DataVersion", Version.getDataVersion());
 			MVMisc.writeCompressedNbt(nbt, output);
-			MainUtil.client.player.sendMessage(TextUtil.attachFileTextOptions(TextInst.translatable("nbteditor.nbt.export.file.success",
-					TextInst.literal(output.getName()).formatted(Formatting.UNDERLINE).styled(style ->
-					style.withClickEvent(MVTextEvents.ClickAction.OPEN_FILE.newEvent(output.getAbsolutePath())))), output), false);
+			MainUtil.client.player.sendSystemMessage(TextUtil.attachFileTextOptions(TextInst.translatable("nbteditor.nbt.export.file.success",
+					TextInst.literal(output.getName()).formatted(ChatFormatting.UNDERLINE).styled(style ->
+					style.withClickEvent(MVTextEvents.ClickAction.OPEN_FILE.newEvent(output.getAbsolutePath())))), output));
 		} catch (Exception e) {
 			NBTEditor.LOGGER.error("Error while exporting item", e);
-			MainUtil.client.player.sendMessage(TextInst.translatable("nbteditor.nbt.export.file.error", e.getMessage()), false);
+			MainUtil.client.player.sendSystemMessage(TextInst.translatable("nbteditor.nbt.export.file.error", e.getMessage()));
 		}
 	}
 	
@@ -133,10 +135,10 @@ public class NBTExportCommand extends ClientCommand {
 			})).then(literal("cmdblock").executes(context -> {
 				NBTReference.getReference(EXPORT_FILTER, false, ref -> {
 					ItemStack cmdBlock = new ItemStack(Items.COMMAND_BLOCK);
-					NbtCompound blockEntityTag = new NbtCompound();
+					CompoundTag blockEntityTag = new CompoundTag();
 					MainUtil.fillId(blockEntityTag, "minecraft:command_block");
 					blockEntityTag.putString("Command", getVanillaCommand(ref));
-					ItemTagReferences.BLOCK_ENTITY_DATA.set(cmdBlock, blockEntityTag);
+					ItemTagReferences.BLOCK_ENTITY_DATA.set(cmdBlock, TypedEntityData.of(BlockEntityType.COMMAND_BLOCK, blockEntityTag));
 					MainUtil.getWithMessage(cmdBlock);
 				});
 				return Command.SINGLE_SUCCESS;
@@ -146,7 +148,7 @@ public class NBTExportCommand extends ClientCommand {
 			})).then(literal("item").executes(context -> {
 				NBTReference.getReference(EXPORT_ITEM_FILTER, false, ref -> {
 					ref.getLocalNBT().toItem(true).ifPresentOrElse(MainUtil::getWithMessage,
-							() -> MainUtil.client.player.sendMessage(TextInst.translatable("nbteditor.nbt.export.item.error"), false));
+							() -> MainUtil.client.player.sendSystemMessage(TextInst.translatable("nbteditor.nbt.export.item.error")));
 				});
 				return Command.SINGLE_SUCCESS;
 			})).then(literal("file").then(argument("name", StringArgumentType.greedyString()).executes(context -> {

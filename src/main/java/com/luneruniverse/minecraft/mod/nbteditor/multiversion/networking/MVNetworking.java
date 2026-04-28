@@ -4,14 +4,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
-import net.minecraft.network.PacketByteBuf;
-import net.minecraft.util.Identifier;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.resources.Identifier;
 
 public class MVNetworking {
 	
-	private static final Map<Identifier, Function<PacketByteBuf, MVPacket>> constructors = new HashMap<>();
+	private static final Map<Identifier, Function<FriendlyByteBuf, MVPacket>> constructors = new HashMap<>();
 	
-	public static void registerPacket(Identifier id, Function<PacketByteBuf, MVPacket> constructor) {
+	public static void registerPacket(Identifier id, Function<FriendlyByteBuf, MVPacket> constructor) {
 		constructors.put(id, constructor);
 	}
 	
@@ -19,8 +19,8 @@ public class MVNetworking {
 		return constructors.containsKey(id);
 	}
 	
-	public static MVPacket readPacket(Identifier id, PacketByteBuf payload) {
-		Function<PacketByteBuf, MVPacket> constructor = constructors.get(id);
+	public static MVPacket readPacket(Identifier id, FriendlyByteBuf payload) {
+		Function<FriendlyByteBuf, MVPacket> constructor = constructors.get(id);
 		if (constructor == null)
 			return null;
 		return constructor.apply(payload);

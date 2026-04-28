@@ -4,7 +4,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-import net.minecraft.client.input.KeyInput;
+import net.minecraft.client.input.KeyEvent;
 import org.joml.Matrix3x2fStack;
 import org.lwjgl.glfw.GLFW;
 
@@ -28,11 +28,11 @@ import com.luneruniverse.minecraft.mod.nbteditor.screens.widgets.NamedTextFieldW
 import com.luneruniverse.minecraft.mod.nbteditor.screens.widgets.TranslatedGroupWidget;
 import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.WrittenBookTagReferences;
 
-import net.minecraft.client.gui.screen.ingame.BookScreen.Contents;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.text.Style;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.client.gui.screens.inventory.BookViewScreen.BookAccess;
+import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting;
 
 public class BookScreen extends LocalEditorScreen<LocalItem> {
 	
@@ -93,12 +93,12 @@ public class BookScreen extends LocalEditorScreen<LocalItem> {
 	private int getPageCount() {
 		return WrittenBookTagReferences.PAGES.get(localNBT.getEditableItem()).size();
 	}
-	private Text getPage() {
-		List<Text> pages = WrittenBookTagReferences.PAGES.get(localNBT.getEditableItem());
+	private Component getPage() {
+		List<Component> pages = WrittenBookTagReferences.PAGES.get(localNBT.getEditableItem());
 		return page < pages.size() ? pages.get(page) : TextInst.of("");
 	}
-	private void setPage(Text contents) {
-		List<Text> pages = WrittenBookTagReferences.PAGES.get(localNBT.getEditableItem());
+	private void setPage(Component contents) {
+		List<Component> pages = WrittenBookTagReferences.PAGES.get(localNBT.getEditableItem());
 		if (page < pages.size())
 			pages.set(page, contents);
 		else {
@@ -112,7 +112,7 @@ public class BookScreen extends LocalEditorScreen<LocalItem> {
 	}
 	
 	private void addPage() {
-		List<Text> pages = WrittenBookTagReferences.PAGES.get(localNBT.getEditableItem());
+		List<Component> pages = WrittenBookTagReferences.PAGES.get(localNBT.getEditableItem());
 		if (page < pages.size()) {
 			pages.add(page, TextInst.of(""));
 			WrittenBookTagReferences.PAGES.set(localNBT.getEditableItem(), pages);
@@ -121,7 +121,7 @@ public class BookScreen extends LocalEditorScreen<LocalItem> {
 		}
 	}
 	private void removePage() {
-		List<Text> pages = WrittenBookTagReferences.PAGES.get(localNBT.getEditableItem());
+		List<Component> pages = WrittenBookTagReferences.PAGES.get(localNBT.getEditableItem());
 		if (page < pages.size()) {
 			pages.remove(page);
 			WrittenBookTagReferences.PAGES.set(localNBT.getEditableItem(), pages);
@@ -143,16 +143,16 @@ public class BookScreen extends LocalEditorScreen<LocalItem> {
 	
 	private void refresh() {
 		contents = null;
-		clearChildren();
+		clearWidgets();
 		init();
 	}
 	
-	private Contents getPreviewItem() {
-		List<Text> pages = WrittenBookTagReferences.PAGES.get(localNBT.getEditableItem());
+	private BookAccess getPreviewItem() {
+		List<Component> pages = WrittenBookTagReferences.PAGES.get(localNBT.getEditableItem());
 		pages.replaceAll(this::makePreviewText);
 		return MVMisc.getBookContents(pages);
 	}
-	private Text makePreviewText(Text text) {
+	private Component makePreviewText(Component text) {
 		EditableText output = TextInst.copy(text);
 		output.setStyle(makePreviewStyle(output.getStyle()));
 		output.getSiblings().replaceAll(this::makePreviewText);
@@ -163,7 +163,7 @@ public class BookScreen extends LocalEditorScreen<LocalItem> {
 			return style;
 		return MixinLink.withRunClickEvent(style, () -> {
 			MVTextEvents.ClickAction<?> clickAction = MVTextEvents.ClickAction.getAction(style.getClickEvent());
-			net.minecraft.client.gui.screen.ingame.BookScreen preview = getOverlay();
+			net.minecraft.client.gui.screens.inventory.BookViewScreen preview = getOverlay();
 			setOverlay(new AlertWidget(
 					() -> setOverlayScreen(preview, 500),
 					TextInst.translatable("nbteditor.book.preview.click.title"),
@@ -180,19 +180,19 @@ public class BookScreen extends LocalEditorScreen<LocalItem> {
 		MVMisc.setKeyboardRepeatEvents(true);
 		
 		group = new GroupWidget();
-		addDrawableChild(group);
+		addRenderableWidget(group);
 		
 		title = group.addWidget(new NamedTextFieldWidget(16, 64 + 2, 100, 16)
 				.name(TextInst.translatable("nbteditor.book.title")));
 		title.setMaxLength(32);
-		title.setText(getBookTitle());
-		title.setChangedListener(this::setBookTitle);
+		title.setValue(getBookTitle());
+		title.setResponder(this::setBookTitle);
 		
 		author = group.addWidget(new NamedTextFieldWidget(16 + 108, 64 + 2, 100, 16)
 				.name(TextInst.translatable("nbteditor.book.author")));
 		author.setMaxLength(Integer.MAX_VALUE);
-		author.setText(getAuthor());
-		author.setChangedListener(this::setAuthor);
+		author.setValue(getAuthor());
+		author.setResponder(this::setAuthor);
 		
 		gen = group.addElement(TranslatedGroupWidget.forWidget(
 				ConfigValueDropdown.forEnum(getGeneration(), Generation.ORIGINAL, Generation.class)
@@ -205,10 +205,10 @@ public class BookScreen extends LocalEditorScreen<LocalItem> {
 		group.addWidget(MVMisc.newButton(16 + 108 * 3 + 44, 64, 20, 20,
 				TextInst.translatable("nbteditor.book.preview.icon"),
 				btn -> {
-					net.minecraft.client.gui.screen.ingame.BookScreen preview =
-							new net.minecraft.client.gui.screen.ingame.BookScreen(getPreviewItem()) {
+					net.minecraft.client.gui.screens.inventory.BookViewScreen preview =
+							new net.minecraft.client.gui.screens.inventory.BookViewScreen(getPreviewItem()) {
 						@Override
-						public boolean keyPressed(KeyInput keyInput) {
+						public boolean keyPressed(KeyEvent keyInput) {
 							if (keyInput.key() == GLFW.GLFW_KEY_ESCAPE) {
 								setOverlay(null);
 								return true;
@@ -222,7 +222,7 @@ public class BookScreen extends LocalEditorScreen<LocalItem> {
 				new MVTooltip("nbteditor.book.preview")));
 		
 		contents = group.addWidget(FormattedTextFieldWidget.create(contents, 16 + 24, 64 + 24, width - 32 - 24 * 2,
-				height - 80 - 24, getPage(), true, Style.EMPTY.withColor(Formatting.BLACK), this::setPage));
+				height - 80 - 24, getPage(), true, Style.EMPTY.withColor(ChatFormatting.BLACK), this::setPage));
 		contents.setBackgroundColor(0xFFFDF8EB);
 		contents.setCursorColor(0xFF000000);
 		contents.setSelectionColor(0x55000000);
@@ -251,12 +251,12 @@ public class BookScreen extends LocalEditorScreen<LocalItem> {
 	
 	@Override
 	protected void renderEditor(Matrix3x2fStack matrices, int fdf8eb, int mouseY, float delta) {
-		MVDrawableHelper.drawTextWithShadow(matrices, textRenderer, TextInst.translatable("nbteditor.book.page", page + 1, getPageCount()),
-				16 + 108 * 3 - 4 + 24 * 3, 64 + 10 - textRenderer.fontHeight / 2, -1);
+		MVDrawableHelper.drawTextWithShadow(matrices, font, TextInst.translatable("nbteditor.book.page", page + 1, getPageCount()),
+				16 + 108 * 3 - 4 + 24 * 3, 64 + 10 - font.lineHeight / 2, -1);
 	}
 	
 	@Override
-	public boolean keyPressed(KeyInput keyInput) {
+	public boolean keyPressed(KeyEvent keyInput) {
 		int keyCode = keyInput.key();
 		if (getOverlay() != null)
 			return super.keyPressed(keyInput);
@@ -278,8 +278,8 @@ public class BookScreen extends LocalEditorScreen<LocalItem> {
 	}
 	
 	@Override
-	public void onFilesDropped(List<Path> paths) {
-		List<Text> lines = new ArrayList<>();
+	public void onFilesDrop(List<Path> paths) {
+		List<Component> lines = new ArrayList<>();
 		lines.add(getPage());
 		ImageToLoreWidget.openImportFiles(paths, (file, imgLines) -> lines.addAll(imgLines), () -> {
 			if (lines.size() > 1)

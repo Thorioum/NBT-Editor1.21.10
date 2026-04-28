@@ -11,58 +11,58 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.DynamicRegistryManagerHolder;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.RegistryCache;
 
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.registry.entry.RegistryEntryOwner;
-import net.minecraft.registry.tag.TagKey;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.core.Holder;
+import net.minecraft.core.HolderOwner;
+import net.minecraft.tags.TagKey;
 
-@Mixin(RegistryEntry.Reference.class)
+@Mixin(Holder.Reference.class)
 public abstract class RegistryEntryReferenceMixin<T> {
 	
 	@Shadow
-	public abstract RegistryKey<T> registryKey();
+	public abstract ResourceKey<T> key();
 	
 	@Inject(method = "value", at = @At("HEAD"), cancellable = true)
 	private void value(CallbackInfoReturnable<T> info) {
 		@SuppressWarnings("unchecked")
-		RegistryEntry.Reference<T> source = (RegistryEntry.Reference<T>) (Object) this;
+		Holder.Reference<T> source = (Holder.Reference<T>) (Object) this;
 		
 		if (DynamicRegistryManagerHolder.hasClientManager() && DynamicRegistryManagerHolder.isOwnedByDefaultManager(source)) {
-			RegistryEntry.Reference<T> convertedRef = RegistryCache.convertManagerWithCache(source);
+			Holder.Reference<T> convertedRef = RegistryCache.convertManagerWithCache(source);
 			if (convertedRef != null)
 				info.setReturnValue(convertedRef.value());
 		}
 	}
 	
-	@Inject(method = "isIn", at = @At("HEAD"), cancellable = true)
+	@Inject(method = "is(Lnet/minecraft/tags/TagKey;)Z", at = @At("HEAD"), cancellable = true)
 	private void isIn(TagKey<T> tag, CallbackInfoReturnable<Boolean> info) {
 		@SuppressWarnings("unchecked")
-		RegistryEntry.Reference<T> source = (RegistryEntry.Reference<T>) (Object) this;
+		Holder.Reference<T> source = (Holder.Reference<T>) (Object) this;
 		
 		if (DynamicRegistryManagerHolder.hasClientManager() && DynamicRegistryManagerHolder.isOwnedByDefaultManager(source)) {
-			RegistryEntry.Reference<T> convertedRef = RegistryCache.convertManagerWithCache(source);
+			Holder.Reference<T> convertedRef = RegistryCache.convertManagerWithCache(source);
 			if (convertedRef != null)
-				info.setReturnValue(convertedRef.isIn(tag));
+				info.setReturnValue(convertedRef.is(tag));
 		}
 	}
 	
-	@Inject(method = "ownerEquals", at = @At("RETURN"), cancellable = true)
-	private void ownerEquals(RegistryEntryOwner<?> owner, CallbackInfoReturnable<Boolean> info) {
+	@Inject(method = "canSerializeIn", at = @At("RETURN"), cancellable = true)
+	private void ownerEquals(HolderOwner<?> owner, CallbackInfoReturnable<Boolean> info) {
 		if (!info.getReturnValueZ()) {
-			if (DynamicRegistryManagerHolder.isOwnedByDefaultManager((RegistryEntry.Reference<?>) (Object) this))
+			if (DynamicRegistryManagerHolder.isOwnedByDefaultManager((Holder.Reference<?>) (Object) this))
 				info.setReturnValue(true);
 		}
 	}
 	
-	@Inject(method = "streamTags", at = @At("HEAD"), cancellable = true)
+	@Inject(method = "tags", at = @At("HEAD"), cancellable = true)
 	private void streamTags(CallbackInfoReturnable<Stream<TagKey<T>>> info) {
 		@SuppressWarnings("unchecked")
-		RegistryEntry.Reference<T> source = (RegistryEntry.Reference<T>) (Object) this;
+		Holder.Reference<T> source = (Holder.Reference<T>) (Object) this;
 		
 		if (DynamicRegistryManagerHolder.hasClientManager() && DynamicRegistryManagerHolder.isOwnedByDefaultManager(source)) {
-			RegistryEntry.Reference<T> convertedRef = RegistryCache.convertManagerWithCache(source);
+			Holder.Reference<T> convertedRef = RegistryCache.convertManagerWithCache(source);
 			if (convertedRef != null)
-				info.setReturnValue(convertedRef.streamTags());
+				info.setReturnValue(convertedRef.tags());
 		}
 	}
 	
@@ -71,11 +71,11 @@ public abstract class RegistryEntryReferenceMixin<T> {
 		if (super.equals(obj))
 			return true;
 		
-		if (obj instanceof RegistryEntry.Reference<?> ref &&
-				(DynamicRegistryManagerHolder.isOwnedByDefaultManager((RegistryEntry.Reference<?>) (Object) this) ||
+		if (obj instanceof Holder.Reference<?> ref &&
+				(DynamicRegistryManagerHolder.isOwnedByDefaultManager((Holder.Reference<?>) (Object) this) ||
 						DynamicRegistryManagerHolder.isOwnedByDefaultManager(ref))) {
-			return registryKey().getRegistry().equals(ref.registryKey().getRegistry()) &&
-					registryKey().getValue().equals(ref.registryKey().getValue());
+			return key().registry().equals(ref.key().registry()) &&
+					key().identifier().equals(ref.key().identifier());
 		}
 		
 		return false;
@@ -83,7 +83,7 @@ public abstract class RegistryEntryReferenceMixin<T> {
 	
 	@Override
 	public int hashCode() {
-		return 31 * registryKey().getRegistry().hashCode() + registryKey().getValue().hashCode();
+		return 31 * key().registry().hashCode() + key().identifier().hashCode();
 	}
 	
 }

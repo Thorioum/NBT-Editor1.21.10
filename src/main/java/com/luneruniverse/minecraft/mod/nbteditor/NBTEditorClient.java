@@ -24,13 +24,15 @@ import com.luneruniverse.minecraft.mod.nbteditor.screens.containers.ClientChestS
 import com.luneruniverse.minecraft.mod.nbteditor.screens.containers.CursorManager;
 import com.luneruniverse.minecraft.mod.nbteditor.server.NBTEditorServer;
 
+import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.entrypoint.EntrypointContainer;
-import net.minecraft.client.gui.screen.ingame.CreativeInventoryScreen;
-import net.minecraft.client.gui.screen.ingame.InventoryScreen;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
+import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import tsp.headdb.ported.HeadAPI;
 
 public class NBTEditorClient implements ClientModInitializer {
@@ -54,12 +56,46 @@ public class NBTEditorClient implements ClientModInitializer {
 		
 		if (!SETTINGS_FOLDER.exists())
 			SETTINGS_FOLDER.mkdir();
-		
+
 		MVMisc.onRegistriesLoad(this::onRegistriesLoad);
 		ExtraDataFixes.init();
 	}
 	
 	private void onRegistriesLoad() {
+		new Thread(() -> {
+
+
+			while (MainUtil.client.level == null) {
+				try {
+					Thread.sleep(50);
+				} catch (InterruptedException e) {
+				}
+			}
+
+			ItemStack clientChestIcon = new ItemStack(Items.ENDER_CHEST);
+			clientChestIcon.set(DataComponents.CUSTOM_NAME, TextInst.translatable("itemGroup.nbteditor.client_chest"));
+
+			ItemStack inventoryIcon = new ItemStack(Items.CHEST);
+			inventoryIcon.set(DataComponents.CUSTOM_NAME, TextInst.translatable("itemGroup.nbteditor.inventory"));
+
+			MVEnchantments.addEnchantment(clientChestIcon, MVEnchantments.LOYALTY, 1);
+			MixinLink.ENCHANT_GLINT_FIX.add(clientChestIcon);
+			NBTEditorAPI.registerInventoryTab(clientChestIcon,
+					ClientChestScreen::show,
+					screen -> screen instanceof CreativeModeInventoryScreen || (screen instanceof InventoryScreen && SERVER_CONN.isEditingExpanded()));
+			NBTEditorAPI.registerInventoryTab(inventoryIcon,
+					CURSOR_MANAGER::showRoot,
+					screen -> screen instanceof ClientChestScreen);
+			NBTEditorAPI.registerInventoryTab(new ItemStack(Items.ENDER_CHEST),
+					() -> {
+						CURSOR_MANAGER.closeRoot();
+						MVClientNetworking.send(new OpenEnderChestC2SPacket());
+					},
+					screen -> (screen instanceof CreativeModeInventoryScreen || screen instanceof InventoryScreen || screen instanceof ClientChestScreen)
+							&& SERVER_CONN.isEditingExpanded());
+
+		});
+
 		CommandHandler.registerCommands();
 		try {
 			HeadAPI.loadFavorites();
@@ -70,40 +106,23 @@ public class NBTEditorClient implements ClientModInitializer {
 		new HeadRefreshThread().start();
 		ConfigScreen.loadSettings();
 		CURSOR_MANAGER = new CursorManager();
-		
+
 		CLIENT_CHEST = new ClientChest(ConfigScreen.isLargeClientChest() ? new LargeClientChestPageCache(5) : new SmallClientChestPageCache(100));
 		MVClientNetworking.PlayNetworkStateEvents.Start.EVENT.register(networkHandler -> {
 			ClientChestHelper.loadDefaultPages(PageLoadLevel.DYNAMIC_ITEMS);
 			ClientChestHelper.loadDefaultPages(PageLoadLevel.NORMAL_ITEMS);
 		});
 		//MVClientNetworking.PlayNetworkStateEvents.Stop.EVENT.register(() -> ClientChestHelper.unloadAllPages(PageLoadLevel.NORMAL_ITEMS));
-		
-		ItemStack clientChestIcon = new ItemStack(Items.ENDER_CHEST)
-				.nbte$setCustomName(TextInst.translatable("itemGroup.nbteditor.client_chest"));
-		MVEnchantments.addEnchantment(clientChestIcon, MVEnchantments.LOYALTY, 1);
-		MixinLink.ENCHANT_GLINT_FIX.add(clientChestIcon);
-		NBTEditorAPI.registerInventoryTab(clientChestIcon,
-				ClientChestScreen::show,
-				screen -> screen instanceof CreativeInventoryScreen || (screen instanceof InventoryScreen && SERVER_CONN.isEditingExpanded()));
-		NBTEditorAPI.registerInventoryTab(new ItemStack(Items.CHEST)
-				.nbte$setCustomName(TextInst.translatable("itemGroup.nbteditor.inventory")),
-				CURSOR_MANAGER::showRoot,
-				screen -> screen instanceof ClientChestScreen);
-		NBTEditorAPI.registerInventoryTab(new ItemStack(Items.ENDER_CHEST),
-				() -> {
-					CURSOR_MANAGER.closeRoot();
-					MVClientNetworking.send(new OpenEnderChestC2SPacket());
-				},
-				screen -> (screen instanceof CreativeInventoryScreen || screen instanceof InventoryScreen || screen instanceof ClientChestScreen)
-						&& SERVER_CONN.isEditingExpanded());
-		
+
+
 		SERVER_CONN = new NBTEditorServerConn();
-		
+
 		for (EntrypointContainer<NBTEditorAddon> container : FabricLoader.getInstance()
 				.getEntrypointContainers("nbteditor", NBTEditorAddon.class)) {
 			addons.put(container.getProvider().getMetadata().getId(), container.getEntrypoint());
 		}
 		addons.forEach((id, addon) -> addon.onInit());
+
 	}
 	
 }

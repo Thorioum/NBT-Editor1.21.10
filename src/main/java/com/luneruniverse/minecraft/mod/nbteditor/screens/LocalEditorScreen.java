@@ -4,8 +4,9 @@ import java.lang.invoke.MethodType;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.input.KeyInput;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.KeyEvent;
 import org.joml.Matrix3x2fStack;
 import org.lwjgl.glfw.GLFW;
 
@@ -26,10 +27,10 @@ import com.luneruniverse.minecraft.mod.nbteditor.screens.widgets.NamedTextFieldW
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 import com.mojang.blaze3d.systems.RenderSystem;
 
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.text.Text;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.components.Button;
+import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.network.chat.Component;
 
 import static com.luneruniverse.minecraft.mod.nbteditor.NBTEditor.*;
 
@@ -48,9 +49,9 @@ public abstract class LocalEditorScreen<L extends LocalNBT> extends OverlaySuppo
 	private boolean saved;
 	
 	protected NamedTextFieldWidget name;
-	private ButtonWidget saveBtn;
+	private Button saveBtn;
 	
-	protected LocalEditorScreen(Text title, NBTReference<L> ref) {
+	protected LocalEditorScreen(Component title, NBTReference<L> ref) {
 		super(title);
 		this.ref = ref;
 		this.savedLocalNBT = LocalNBT.copy(ref.getLocalNBT());
@@ -77,7 +78,7 @@ public abstract class LocalEditorScreen<L extends LocalNBT> extends OverlaySuppo
 		
 		name = new NamedTextFieldWidget(16 + (32 + 8) * 2, 16 + 8, 100, 16) {
 			@Override
-			public boolean mouseClicked(Click click, boolean doubled) {
+			public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
 				if (isNameEditable())
 					return super.mouseClicked(click, doubled);
 				else
@@ -85,12 +86,12 @@ public abstract class LocalEditorScreen<L extends LocalNBT> extends OverlaySuppo
 			}
 		}.name(TextInst.translatable("nbteditor.editor.name"));
 		name.setMaxLength(Integer.MAX_VALUE);
-		name.setText(localNBT.getName().getString());
+		name.setValue(localNBT.getName().getString());
 		name.setEditable(isNameEditable());
-		addDrawableChild(name);
+		addRenderableWidget(name);
 		
 		if (isSaveRequried()) {
-			saveBtn = addDrawableChild(MVMisc.newButton(16 + (32 + 8) * 2 + 100 + 8, 16 + 6, 100, 20, TextInst.translatable("nbteditor.editor.save"), btn -> {
+			saveBtn = addRenderableWidget(MVMisc.newButton(16 + (32 + 8) * 2 + 100 + 8, 16 + 6, 100, 20, TextInst.translatable("nbteditor.editor.save"), btn -> {
 				save();
 			}));
 			saveBtn.active = !saved;
@@ -98,19 +99,19 @@ public abstract class LocalEditorScreen<L extends LocalNBT> extends OverlaySuppo
 		
 		FactoryLink<L> link = getFactoryLink();
 		if (link != null) {
-			addDrawableChild(MVMisc.newTexturedButton(width - 36, 22, 20, 20, 20,
+			addRenderableWidget(MVMisc.newTexturedButton(width - 36, 22, 20, 20, 20,
 					LocalFactoryScreen.FACTORY_ICON,
-					btn -> closeSafely(() -> client.setScreen(link.factory().apply(ItemReference.toItemStackRef(ref)))),
+					btn -> closeSafely(() -> minecraft.setScreen(link.factory().apply(ItemReference.toItemStackRef(ref)))),
 					new MVTooltip(link.langName())));
 		}
 		
 		initEditor();
 	}
 	protected void initEditor() {}
-	
+
 	@Override
 	public final void renderMain(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
-		super.renderBackground(matrices);
+		super.extractBackground(MVDrawableHelper.getDrawContext(matrices),mouseX,mouseY,delta);
 		preRenderEditor(matrices, mouseX, mouseY, delta);
 		super.renderMain(matrices, mouseX, mouseY, delta);
 		renderEditor(matrices, mouseX, mouseY, delta);
@@ -118,7 +119,7 @@ public abstract class LocalEditorScreen<L extends LocalNBT> extends OverlaySuppo
 		renderPreview(matrices, delta);
 	}
 	private static final Supplier<Reflection.MethodInvoker> RenderSystem_getModelViewStack =
-			Reflection.getOptionalMethod(RenderSystem.class, "getModelViewStack", MethodType.methodType(MatrixStack.class));
+			Reflection.getOptionalMethod(RenderSystem.class, "getModelViewStack", MethodType.methodType(PoseStack.class));
 	private void renderPreview(Matrix3x2fStack matrices, float tickDelta) {
 		int x = 16 + 32 + 8;
 		int y = 16;
@@ -153,13 +154,13 @@ public abstract class LocalEditorScreen<L extends LocalNBT> extends OverlaySuppo
 	protected void renderTip(Matrix3x2fStack matrices, String langHint) {
 		if (!ConfigScreen.isKeybindsHidden()) {
 			int x = 16 + (32 + 8) * 2 + (100 + 8) * 2;
-			MainUtil.drawWrappingString(matrices, textRenderer, TextInst.translatable(langHint).getString(),
+			MainUtil.drawWrappingString(matrices, font, TextInst.translatable(langHint).getString(),
 					16 + (32 + 8) * 2 + (100 + 8) * 2, 16 + 6 + 10, width - x - 8 - 20 - 8, -1, false, true);
 		}
 	}
 	
 	@Override
-	public boolean keyPressed(KeyInput keyInput) {
+	public boolean keyPressed(KeyEvent keyInput) {
 		if (getOverlay() != null)
 			return super.keyPressed(keyInput);
 		if (super.keyPressed(keyInput))
@@ -206,7 +207,7 @@ public abstract class LocalEditorScreen<L extends LocalNBT> extends OverlaySuppo
 	}
 	
 	@Override
-	public void close() {
+	public void onClose() {
 		closeSafely(ref::showParent);
 	}
 	
@@ -214,7 +215,7 @@ public abstract class LocalEditorScreen<L extends LocalNBT> extends OverlaySuppo
 		if (saved)
 			onClose.run();
 		else {
-			client.setScreen(new FancyConfirmScreen(value -> {
+			minecraft.setScreen(new FancyConfirmScreen(value -> {
 				if (!value || save())
 					onClose.run();
 			}, TextInst.translatable("nbteditor.editor.unsaved.title"), TextInst.translatable("nbteditor.editor.unsaved.desc"),

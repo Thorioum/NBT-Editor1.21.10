@@ -6,23 +6,25 @@ import java.util.Set;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVDrawableHelper;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVRegistry;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.nbt.manager.NBTManagers;
+import com.luneruniverse.minecraft.mod.nbteditor.multiversion.nbt.manager.components.ComponentItemNBTManager;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.datafixer.TypeReferences;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
+import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.util.datafix.fixes.References;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import org.joml.Matrix3x2fStack;
 
 public class LocalItemStack extends LocalItem {
 	
-	public static LocalItemStack deserialize(NbtCompound nbt, int defaultDataVersion) {
+	public static LocalItemStack deserialize(CompoundTag nbt, int defaultDataVersion) {
 		return new LocalItemStack(NBTManagers.ITEM.deserialize(
-				MainUtil.updateDynamic(TypeReferences.ITEM_STACK, nbt, defaultDataVersion), true));
+				MainUtil.updateDynamic(References.ITEM_STACK, nbt, defaultDataVersion), true));
 	}
 	
 	private ItemStack item;
@@ -59,12 +61,12 @@ public class LocalItemStack extends LocalItem {
 	}
 	
 	@Override
-	public Text getName() {
+	public Component getName() {
 		return MainUtil.getCustomItemNameSafely(item);
 	}
 	@Override
-	public void setName(Text name) {
-		item.nbte$setCustomName(name);
+	public void setName(Component name) {
+		item.set(DataComponents.CUSTOM_NAME,name);
 	}
 	@Override
 	public String getDefaultName() {
@@ -98,16 +100,16 @@ public class LocalItemStack extends LocalItem {
 	}
 	
 	@Override
-	public NbtCompound getNBT() {
-		return item.nbte$getNbt();
+	public CompoundTag getNBT() {
+		return NBTManagers.ITEM.serialize(item,true);
 	}
 	@Override
-	public void setNBT(NbtCompound nbt) {
-		item.nbte$setNbt(nbt);
+	public void setNBT(CompoundTag nbt) {
+		NBTManagers.ITEM.setNbt(item,nbt);
 	}
 	@Override
-	public NbtCompound getOrCreateNBT() {
-		return item.nbte$getOrCreateNbt();
+	public CompoundTag getOrCreateNBT() {
+		return NBTManagers.ITEM.getOrCreateNbt(item);
 	}
 	
 	@Override
@@ -120,14 +122,14 @@ public class LocalItemStack extends LocalItem {
 		return Optional.of(item.copy());
 	}
 	@Override
-	public NbtCompound serialize() {
-		NbtCompound output = item.nbte$serialize(true);
+	public CompoundTag serialize() {
+		CompoundTag output = NBTManagers.ITEM.serialize(item,true);
 		output.putString("type", "item");
 		return output;
 	}
 	@Override
-	public Text toHoverableText() {
-		return item.toHoverableText();
+	public Component toHoverableText() {
+		return item.getDisplayName();
 	}
 	
 	@Override

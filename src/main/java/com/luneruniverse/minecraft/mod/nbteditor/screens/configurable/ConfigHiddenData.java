@@ -2,10 +2,9 @@ package com.luneruniverse.minecraft.mod.nbteditor.screens.configurable;
 
 import java.util.function.BiFunction;
 
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.input.CharInput;
-import net.minecraft.client.input.KeyInput;
-import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
 import org.joml.Matrix3x2fStack;
 
 public class ConfigHiddenData<S extends ConfigPath, D> implements ConfigPath {
@@ -32,8 +31,8 @@ public class ConfigHiddenData<S extends ConfigPath, D> implements ConfigPath {
 	}
 	
 	@Override
-	public void render(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
-		visible.render(matrices, mouseX, mouseY, delta);
+	public void extractRenderState(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
+		visible.extractRenderState(matrices, mouseX, mouseY, delta);
 	}
 	
 	@Override
@@ -75,11 +74,11 @@ public class ConfigHiddenData<S extends ConfigPath, D> implements ConfigPath {
 	
 	
 	@Override
-	public boolean mouseClicked(Click click, boolean doubled) {
+	public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
 		return visible.mouseClicked(click, doubled);
 	}
 	@Override
-	public boolean mouseReleased(Click click) {
+	public boolean mouseReleased(MouseButtonEvent click) {
 		return visible.mouseReleased(click);
 	}
 	@Override
@@ -87,7 +86,7 @@ public class ConfigHiddenData<S extends ConfigPath, D> implements ConfigPath {
 		visible.mouseMoved(mouseX, mouseY);
 	}
 	@Override
-	public boolean mouseDragged(Click click, double deltaX, double deltaY) {
+	public boolean mouseDragged(MouseButtonEvent click, double deltaX, double deltaY) {
 		return visible.mouseDragged(click, deltaX, deltaY);
 	}
 	@Override
@@ -100,15 +99,15 @@ public class ConfigHiddenData<S extends ConfigPath, D> implements ConfigPath {
 	}
 	
 	@Override
-	public boolean keyPressed(KeyInput keyInput) {
+	public boolean keyPressed(KeyEvent keyInput) {
 		return visible.keyPressed(keyInput);
 	}
 	@Override
-	public boolean keyReleased(KeyInput keyInput) {
+	public boolean keyReleased(KeyEvent keyInput) {
 		return visible.keyReleased(keyInput);
 	}
 	@Override
-	public boolean charTyped(CharInput charInput) {
+	public boolean charTyped(CharacterEvent charInput) {
 		return visible.charTyped(charInput);
 	}
 	

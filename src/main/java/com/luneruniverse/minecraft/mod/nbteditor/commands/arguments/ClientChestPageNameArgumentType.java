@@ -12,7 +12,7 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 
-import net.minecraft.command.CommandSource;
+import net.minecraft.commands.SharedSuggestionProvider;
 
 public class ClientChestPageNameArgumentType implements ArgumentType<String> {
 	
@@ -31,7 +31,7 @@ public class ClientChestPageNameArgumentType implements ArgumentType<String> {
 	}
 	
 	public <S> CompletableFuture<Suggestions> listSuggestions(CommandContext<S> context, SuggestionsBuilder builder) {
-		return CommandSource.suggestMatching(NBTEditorClient.CLIENT_CHEST.getAllPageNames(true), builder);
+		return SharedSuggestionProvider.suggest(NBTEditorClient.CLIENT_CHEST.getAllPageNames(true), builder);
 	}
 	
 	public Collection<String> getExamples() {

@@ -23,13 +23,16 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
-import net.minecraft.client.render.block.entity.BlockEntityRenderManager;
-import net.minecraft.client.render.block.entity.state.BlockEntityRenderState;
-import net.minecraft.client.render.entity.EntityRenderManager;
-import net.minecraft.client.render.entity.state.EntityRenderState;
-import net.minecraft.client.render.state.CameraRenderState;
-import net.minecraft.storage.NbtWriteView;
-import net.minecraft.util.ErrorReporter;
+import net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher;
+import net.minecraft.client.renderer.blockentity.state.BlockEntityRenderState;
+import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
+import net.minecraft.client.renderer.entity.state.EntityRenderState;
+import net.minecraft.client.renderer.state.level.CameraRenderState;
+import net.minecraft.core.component.DataComponentType;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.server.permissions.PermissionSet;
+import net.minecraft.world.level.storage.TagValueOutput;
+import net.minecraft.util.ProblemReporter;
 import org.joml.Matrix3x2fStack;
 import org.joml.Vector2ic;
 
@@ -38,7 +41,6 @@ import com.luneruniverse.minecraft.mod.nbteditor.multiversion.commands.ClientCom
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.commands.FabricClientCommandSource;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.nbt.manager.NBTManagers;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.shaders.MVShader;
-import com.luneruniverse.minecraft.mod.nbteditor.multiversion.shaders.MVShader1;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.brigadier.CommandDispatcher;
@@ -47,94 +49,86 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.serialization.DataResult;
 
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.client.Keyboard;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gl.ShaderProgram;
-import net.minecraft.client.gui.Element;
-import net.minecraft.client.gui.ParentElement;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.ingame.BookScreen;
-import net.minecraft.client.gui.screen.ingame.CreativeInventoryScreen;
-import net.minecraft.client.gui.tooltip.Tooltip;
-import net.minecraft.client.gui.tooltip.TooltipComponent;
-import net.minecraft.client.gui.tooltip.TooltipPositioner;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.client.gui.widget.TexturedButtonWidget;
-import net.minecraft.client.network.ClientPlayNetworkHandler;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.client.network.ClientPlayerInteractionManager;
-import net.minecraft.client.render.BufferBuilder;
-import net.minecraft.client.render.OverlayTexture;
-import net.minecraft.client.render.Tessellator;
-import net.minecraft.client.render.VertexConsumer;
-import net.minecraft.client.render.VertexConsumerProvider;
-import net.minecraft.client.render.block.BlockRenderManager;
-import net.minecraft.client.render.block.entity.BlockEntityRenderer;
-import net.minecraft.client.toast.SystemToast;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.command.CommandRegistryAccess;
-import net.minecraft.command.argument.BlockStateArgumentType;
-import net.minecraft.command.argument.ItemStackArgumentType;
-import net.minecraft.command.argument.TextArgumentType;
-import net.minecraft.component.ComponentType;
-import net.minecraft.component.type.AttributeModifiersComponent;
-import net.minecraft.component.type.ItemEnchantmentsComponent;
-import net.minecraft.component.type.PotionContentsComponent;
-import net.minecraft.component.type.SuspiciousStewEffectsComponent;
-import net.minecraft.component.type.SuspiciousStewEffectsComponent.StewEffect;
-import net.minecraft.component.type.TooltipDisplayComponent;
-import net.minecraft.enchantment.Enchantment;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.EquipmentSlot;
-import net.minecraft.entity.effect.StatusEffect;
-import net.minecraft.entity.effect.StatusEffectInstance;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.BoatItem;
-import net.minecraft.item.HangingSignItem;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemGroup;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.SignItem;
-import net.minecraft.item.SpawnEggItem;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.client.KeyboardHandler;
+import net.minecraft.client.Minecraft;
+import com.mojang.blaze3d.opengl.GlProgram;
+import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.client.gui.components.events.ContainerEventHandler;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.BookViewScreen;
+import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
+import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipPositioner;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.ImageButton;
+import net.minecraft.client.multiplayer.ClientPacketListener;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.client.multiplayer.MultiPlayerGameMode;
+import com.mojang.blaze3d.vertex.BufferBuilder;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import com.mojang.blaze3d.vertex.Tesselator;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
+import net.minecraft.client.gui.components.toasts.SystemToast;
+import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.commands.CommandBuildContext;
+import net.minecraft.commands.arguments.blocks.BlockStateArgument;
+import net.minecraft.commands.arguments.item.ItemArgument;
+import net.minecraft.commands.arguments.ComponentArgument;
+import net.minecraft.world.item.component.ItemAttributeModifiers;
+import net.minecraft.world.item.enchantment.ItemEnchantments;
+import net.minecraft.world.item.alchemy.PotionContents;
+import net.minecraft.world.item.component.SuspiciousStewEffects;
+import net.minecraft.world.item.component.SuspiciousStewEffects.Entry;
+import net.minecraft.world.item.component.TooltipDisplay;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.BoatItem;
+import net.minecraft.world.item.HangingSignItem;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.SignItem;
+import net.minecraft.world.item.SpawnEggItem;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.NbtOps;
-import net.minecraft.nbt.NbtSizeTracker;
-import net.minecraft.nbt.NbtString;
-import net.minecraft.nbt.StringNbtReader;
-import net.minecraft.nbt.visitor.StringNbtWriter;
-import net.minecraft.network.packet.Packet;
-import net.minecraft.network.packet.c2s.play.ClickSlotC2SPacket;
-import net.minecraft.network.packet.s2c.play.InventoryS2CPacket;
-import net.minecraft.potion.Potion;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.resource.Resource;
-import net.minecraft.resource.ResourceFactory;
-import net.minecraft.resource.featuretoggle.FeatureSet;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.screen.slot.SlotActionType;
-import net.minecraft.server.command.CommandOutput;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.text.StringVisitable;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.collection.DefaultedList;
-import net.minecraft.util.crash.CrashException;
-import net.minecraft.util.crash.CrashReport;
-import net.minecraft.util.crash.CrashReportSection;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.random.Random;
-import net.minecraft.util.profiler.Profiler;
-import net.minecraft.util.profiler.Profilers;
-import net.minecraft.world.BlockRenderView;
+import net.minecraft.nbt.NbtAccounter;
+import net.minecraft.nbt.StringTag;
+import net.minecraft.nbt.TagParser;
+import net.minecraft.nbt.StringTagVisitor;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ServerboundContainerClickPacket;
+import net.minecraft.network.protocol.game.ClientboundContainerSetContentPacket;
+import net.minecraft.world.item.alchemy.Potion;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.Holder;
+import net.minecraft.server.packs.resources.Resource;
+import net.minecraft.server.packs.resources.ResourceProvider;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.ContainerInput;
+import net.minecraft.commands.CommandSource;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.network.chat.FormattedText;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.core.NonNullList;
+import net.minecraft.ReportedException;
+import net.minecraft.CrashReport;
+import net.minecraft.CrashReportCategory;
+import net.minecraft.util.profiling.ProfilerFiller;
+import net.minecraft.util.profiling.Profiler;
 
 public class MVMisc {
 
@@ -142,7 +136,7 @@ public class MVMisc {
 
 
 	private static final Supplier<Reflection.MethodInvoker> ResourceFactory_getResource =
-			Reflection.getOptionalMethod(ResourceFactory.class, "method_14486", MethodType.methodType(Resource.class, Identifier.class));
+			Reflection.getOptionalMethod(ResourceProvider.class, "method_14486", MethodType.methodType(Resource.class, Identifier.class));
 	private static final Supplier<Reflection.MethodInvoker> Resource_getInputStream =
 			Reflection.getOptionalMethod(Resource.class, "method_14482", MethodType.methodType(InputStream.class));
 	public static Optional<InputStream> getResource(Identifier id) throws IOException {
@@ -150,7 +144,7 @@ public class MVMisc {
 			return Version.<Optional<InputStream>>newSwitch()
 					.range("1.19.0", null, () -> MainUtil.client.getResourceManager().getResource(id).map(resource -> {
 						try {
-							return resource.getInputStream();
+							return resource.open();
 						} catch (IOException e) {
 							throw new UncheckedIOException(e);
 						}
@@ -174,26 +168,26 @@ public class MVMisc {
 
 	public static Object registryAccess;
 	private static final Supplier<Reflection.MethodInvoker> ItemStackArgumentType_itemStack =
-			Reflection.getOptionalMethod(ItemStackArgumentType.class, "method_9776", MethodType.methodType(ItemStackArgumentType.class));
-	public static ItemStackArgumentType getItemStackArg() {
-		return Version.<ItemStackArgumentType>newSwitch()
-				.range("1.19.0", null, () -> ItemStackArgumentType.itemStack((CommandRegistryAccess) registryAccess))
+			Reflection.getOptionalMethod(ItemArgument.class, "method_9776", MethodType.methodType(ItemArgument.class));
+	public static ItemArgument getItemStackArg() {
+		return Version.<ItemArgument>newSwitch()
+				.range("1.19.0", null, () -> ItemArgument.item((CommandBuildContext) registryAccess))
 				.range(null, "1.18.2", () -> ItemStackArgumentType_itemStack.get().invoke(null)) // ItemStackArgumentType.itemStack()
 				.get();
 	}
 	private static final Supplier<Reflection.MethodInvoker> BlockStateArgumentType_blockState =
-			Reflection.getOptionalMethod(BlockStateArgumentType.class, "method_9653", MethodType.methodType(BlockStateArgumentType.class));
-	public static BlockStateArgumentType getBlockStateArg() {
-		return Version.<BlockStateArgumentType>newSwitch()
-				.range("1.19.0", null, () -> BlockStateArgumentType.blockState((CommandRegistryAccess) registryAccess))
+			Reflection.getOptionalMethod(BlockStateArgument.class, "method_9653", MethodType.methodType(BlockStateArgument.class));
+	public static BlockStateArgument getBlockStateArg() {
+		return Version.<BlockStateArgument>newSwitch()
+				.range("1.19.0", null, () -> BlockStateArgument.block((CommandBuildContext) registryAccess))
 				.range(null, "1.18.2", () -> BlockStateArgumentType_blockState.get().invoke(null)) // BlockStateArgumentType.blockState()
 				.get();
 	}
 	private static final Supplier<Reflection.MethodInvoker> TextArgumentType_text =
-			Reflection.getOptionalMethod(TextArgumentType.class, "method_9281", MethodType.methodType(TextArgumentType.class));
-	public static TextArgumentType getTextArg() {
-		return Version.<TextArgumentType>newSwitch()
-				.range("1.20.5", null, () -> TextArgumentType.text((CommandRegistryAccess) registryAccess))
+			Reflection.getOptionalMethod(ComponentArgument.class, "method_9281", MethodType.methodType(ComponentArgument.class));
+	public static ComponentArgument getTextArg() {
+		return Version.<ComponentArgument>newSwitch()
+				.range("1.20.5", null, () -> ComponentArgument.textComponent((CommandBuildContext) registryAccess))
 				.range(null, "1.20.4", () -> TextArgumentType_text.get().invoke(null))
 				.get();
 	}
@@ -210,7 +204,7 @@ public class MVMisc {
 				.run();
 	}
 
-	public static ButtonWidget newButton(int x, int y, int width, int height, Text message, ButtonWidget.PressAction onPress, MVTooltip tooltip) {
+	public static Button newButton(int x, int y, int width, int height, Component message, Button.OnPress onPress, MVTooltip tooltip) {
 		if (Version.<Boolean>newSwitch()
 				.range("1.19.4", null, false)
 				.range(null, "1.19.3", true)
@@ -222,16 +216,16 @@ public class MVMisc {
 		}
 		final int finalY = y;
 		final int finalHeight = height;
-		return Version.<ButtonWidget>newSwitch()
+		return Version.<Button>newSwitch()
 				.range("1.19.3", null, () -> {
 					Tooltip newTooltip = (tooltip == null ? null : tooltip.toNewTooltip());
-					return ButtonWidget.builder(message, onPress).dimensions(x, finalY, width, finalHeight).tooltip(newTooltip).build();
+					return Button.builder(message, onPress).bounds(x, finalY, width, finalHeight).tooltip(newTooltip).build();
 				})
 				.range(null, "1.19.2", () -> {
 					try {
 						Object oldTooltip = (tooltip == null ? MVTooltip.EMPTY : tooltip).toOldTooltip();
-						return ButtonWidget.class.getConstructor(int.class, int.class, int.class, int.class, Text.class,
-										ButtonWidget.PressAction.class, Reflection.getClass("net.minecraft.class_4185$class_5316"))
+						return Button.class.getConstructor(int.class, int.class, int.class, int.class, Component.class,
+										Button.OnPress.class, Reflection.getClass("net.minecraft.class_4185$class_5316"))
 								.newInstance(x, finalY, width, finalHeight, message, onPress, oldTooltip);
 					} catch (Exception e) {
 						throw new RuntimeException("Error creating old button", e);
@@ -239,16 +233,16 @@ public class MVMisc {
 				})
 				.get();
 	}
-	public static ButtonWidget newButton(int x, int y, int width, int height, Text message, ButtonWidget.PressAction onPress) {
+	public static Button newButton(int x, int y, int width, int height, Component message, Button.OnPress onPress) {
 		return newButton(x, y, width, height, message, onPress, null);
 	}
 
-	public static ButtonWidget newTexturedButton(int x, int y, int width, int height, int hoveredVOffset, Identifier img, ButtonWidget.PressAction onPress, MVTooltip tooltip) {
-		ButtonWidget output = Version.<ButtonWidget>newSwitch()
+	public static Button newTexturedButton(int x, int y, int width, int height, int hoveredVOffset, Identifier img, Button.OnPress onPress, MVTooltip tooltip) {
+		Button output = Version.<Button>newSwitch()
 				.range("1.20.2", null, () -> new MVTexturedButtonWidget_1_20_2(
 						x, y, width, height, 0, 0, hoveredVOffset, img, width, height + hoveredVOffset, onPress))
-				.range(null, "1.20.1", () -> Reflection.newInstance(TexturedButtonWidget.class,
-						new Class<?>[] {int.class, int.class, int.class, int.class, int.class, int.class, int.class, Identifier.class, int.class, int.class, ButtonWidget.PressAction.class},
+				.range(null, "1.20.1", () -> Reflection.newInstance(ImageButton.class,
+						new Class<?>[] {int.class, int.class, int.class, int.class, int.class, int.class, int.class, Identifier.class, int.class, int.class, Button.OnPress.class},
 						x, y, width, height, 0, 0, hoveredVOffset, img, width, height + hoveredVOffset, onPress))
 				.get();
 		if (tooltip != null) {
@@ -256,28 +250,28 @@ public class MVMisc {
 					.range("1.19.3", null, () -> output.setTooltip(tooltip.toNewTooltip()))
 					.range(null, "1.19.2", () -> {
 						Object oldTooltip = tooltip.toOldTooltip();
-						Reflection.getField(ButtonWidget.class, "field_25036", "Lnet/minecraft/class_4185$class_5316;").set(output, oldTooltip);
+						Reflection.getField(Button.class, "field_25036", "Lnet/minecraft/class_4185$class_5316;").set(output, oldTooltip);
 					})
 					.run();
 		}
 		return output;
 	}
-	public static ButtonWidget newTexturedButton(int x, int y, int width, int height, int hoveredVOffset, Identifier img, ButtonWidget.PressAction onPress) {
+	public static Button newTexturedButton(int x, int y, int width, int height, int hoveredVOffset, Identifier img, Button.OnPress onPress) {
 		return newTexturedButton(x, y, width, height, hoveredVOffset, img, onPress, null);
 	}
 
-	private static final Supplier<Reflection.MethodInvoker> CreativeInventoryScreen_getSelectedTab =
-			Reflection.getOptionalMethod(CreativeInventoryScreen.class, "method_2469", MethodType.methodType(int.class));
+	private static final Supplier<Reflection.MethodInvoker> CreativeModeInventoryScreen_getSelectedTab =
+			Reflection.getOptionalMethod(CreativeModeInventoryScreen.class, "method_2469", MethodType.methodType(int.class));
 	private static final Supplier<Reflection.FieldReference> ItemGroup_INVENTORY =
-			Reflection.getOptionalField(ItemGroup.class, "field_7918", "Lnet/minecraft/class_1761;");
+			Reflection.getOptionalField(CreativeModeTab.class, "field_7918", "Lnet/minecraft/class_1761;");
 	private static final Supplier<Reflection.MethodInvoker> ItemGroup_getIndex =
-			Reflection.getOptionalMethod(ItemGroup.class, "method_7741", MethodType.methodType(int.class));
+			Reflection.getOptionalMethod(CreativeModeTab.class, "method_7741", MethodType.methodType(int.class));
 	public static boolean isCreativeInventoryTabSelected() {
-		if (MainUtil.client.currentScreen instanceof CreativeInventoryScreen screen) {
+		if (MainUtil.client.screen instanceof CreativeModeInventoryScreen screen) {
 			return Version.<Boolean>newSwitch()
-					.range("1.19.3", null, () -> screen.isInventoryTabSelected())
+					.range("1.19.3", null, () -> screen.isInventoryOpen())
 					.range(null, "1.19.2", () -> // screen.getSelectedTab() == ItemGroup.INVENTORY.getIndex()
-							(int) CreativeInventoryScreen_getSelectedTab.get().invoke(screen) ==
+							(int) CreativeModeInventoryScreen_getSelectedTab.get().invoke(screen) ==
 									(int) ItemGroup_getIndex.get().invoke(ItemGroup_INVENTORY.get().get(null)))
 					.get();
 		}
@@ -285,11 +279,11 @@ public class MVMisc {
 	}
 
 	private static final Supplier<Reflection.MethodInvoker> Keyboard_setRepeatEvents =
-			Reflection.getOptionalMethod(Keyboard.class, "method_1462", MethodType.methodType(void.class, boolean.class));
+			Reflection.getOptionalMethod(KeyboardHandler.class, "method_1462", MethodType.methodType(void.class, boolean.class));
 	public static void setKeyboardRepeatEvents(boolean repeatEvents) {
 		Version.newSwitch()
 				.range("1.19.3", null, () -> {}) // Repeat events are now always on
-				.range(null, "1.19.2", () -> Keyboard_setRepeatEvents.get().invoke(MainUtil.client.keyboard, repeatEvents))
+				.range(null, "1.19.2", () -> Keyboard_setRepeatEvents.get().invoke(MainUtil.client.keyboardHandler, repeatEvents))
 				.run();
 	}
 
@@ -298,7 +292,12 @@ public class MVMisc {
 	}
 	public static String stripInvalidChars(String str, boolean allowLinebreaks) {
 		StringBuilder output = new StringBuilder();
-		for (char c : str.toCharArray()) {
+		for(int i = 0; i <  str.length(); i++) {
+			char c = str.charAt(i);
+			if(c == '§') {
+				i++;
+				continue;
+			}
 			if (isValidChar(c)) {
 				output.append(c);
 			} else if (allowLinebreaks && c == '\n') {
@@ -309,12 +308,12 @@ public class MVMisc {
 	}
 
 	private static final Supplier<Reflection.MethodInvoker> Text_asString =
-			Reflection.getOptionalMethod(Text.class, "method_10851", MethodType.methodType(String.class));
-	public static String getContent(Text text) {
+			Reflection.getOptionalMethod(Component.class, "method_10851", MethodType.methodType(String.class));
+	public static String getContent(Component text) {
 		return Version.<String>newSwitch()
 				.range("1.19.0", null, () -> {
 					StringBuilder output = new StringBuilder();
-					text.getContent().visit(str -> {
+					text.getContents().visit(str -> {
 						output.append(str);
 						return Optional.empty();
 					});
@@ -325,49 +324,41 @@ public class MVMisc {
 	}
 
 	private static final Supplier<Reflection.MethodInvoker> TooltipPositioner_getPosition =
-			Reflection.getOptionalMethod(() -> TooltipPositioner.class, () -> "method_47944", () ->
+			Reflection.getOptionalMethod(() -> ClientTooltipPositioner.class, () -> "method_47944", () ->
 					MethodType.methodType(Vector2ic.class, Screen.class, int.class, int.class, int.class, int.class));
 	public static Vector2ic getPosition(Object positioner, Screen screen, int x, int y, int width, int height) {
 		return Version.<Vector2ic>newSwitch()
-				.range("1.20.0", null, () -> ((TooltipPositioner) positioner).getPosition(
-						MainUtil.client.getWindow().getScaledWidth(), MainUtil.client.getWindow().getScaledHeight(), x, y, width, height))
+				.range("1.20.0", null, () -> ((ClientTooltipPositioner) positioner).positionTooltip(
+						MainUtil.client.getWindow().getGuiScaledWidth(), MainUtil.client.getWindow().getGuiScaledHeight(), x, y, width, height))
 				.range("1.19.3", "1.19.4", () -> TooltipPositioner_getPosition.get().invoke(positioner, screen, x, y, width, height))
 				.get();
 	}
 
-	private static final Supplier<Class<?>> SuspiciousStewItem = Reflection.getOptionalClass("net.minecraft.class_1830");
-	private static final Supplier<Reflection.MethodInvoker> SuspiciousStewItem_addEffectsToStew =
-			Reflection.getOptionalMethod(SuspiciousStewItem, () -> "method_53209", () -> MethodType.methodType(void.class, ItemStack.class, List.class));
-	private static final Supplier<Reflection.MethodInvoker> SuspiciousStewItem_addEffectToStew =
-			Reflection.getOptionalMethod(SuspiciousStewItem, () -> "method_8021", () -> MethodType.methodType(void.class, ItemStack.class, StatusEffect.class, int.class));
-	public static void addEffectToStew(ItemStack item, StatusEffect effect, int duration) {
-		Version.newSwitch()
-				.range("1.20.5", null, () -> item.apply(MVComponentType.SUSPICIOUS_STEW_EFFECTS, new SuspiciousStewEffectsComponent(List.of()), effects -> effects.with(new StewEffect(Registries.STATUS_EFFECT.getEntry(effect), duration))))
-				.range("1.20.2", "1.20.4", () -> SuspiciousStewItem_addEffectsToStew.get().invoke(null, item, List.of(Reflection.newInstance(StewEffect.class, new Class<?>[] {StatusEffect.class, int.class}, effect, duration))))
-				.range(null, "1.20.1", () -> SuspiciousStewItem_addEffectToStew.get().invoke(null, item, effect, duration))
-				.run();
+
+	public static void addEffectToStew(ItemStack item, MobEffect effect, int duration) {
+		item.set(DataComponents.SUSPICIOUS_STEW_EFFECTS, new SuspiciousStewEffects(List.of()).withEffectAdded(new Entry(BuiltInRegistries.MOB_EFFECT.wrapAsHolder(effect), duration)));
 	}
 
 	private static final Supplier<Reflection.MethodInvoker> ClientPlayNetworkHandler_sendPacket =
-			Reflection.getOptionalMethod(ClientPlayNetworkHandler.class, "method_2883", MethodType.methodType(void.class, Packet.class));
+			Reflection.getOptionalMethod(ClientPacketListener.class, "method_2883", MethodType.methodType(void.class, Packet.class));
 	public static void sendC2SPacket(Packet<?> packet) {
 		Version.newSwitch()
-				.range("1.20.2", null, () -> MainUtil.client.getNetworkHandler().sendPacket(packet))
-				.range(null, "1.20.1", () -> ClientPlayNetworkHandler_sendPacket.get().invoke(MainUtil.client.getNetworkHandler(), packet))
+				.range("1.20.2", null, () -> MainUtil.client.getConnection().send(packet))
+				.range(null, "1.20.1", () -> ClientPlayNetworkHandler_sendPacket.get().invoke(MainUtil.client.getConnection(), packet))
 				.run();
 	}
 
 	private static final Supplier<Reflection.MethodInvoker> NbtIo_read =
-			Reflection.getOptionalMethod(NbtIo.class, "method_10627", MethodType.methodType(NbtCompound.class, DataInput.class));
+			Reflection.getOptionalMethod(NbtIo.class, "method_10627", MethodType.methodType(CompoundTag.class, DataInput.class));
 	private static final Supplier<Reflection.MethodInvoker> NbtIo_readCompressed =
-			Reflection.getOptionalMethod(NbtIo.class, "method_10629", MethodType.methodType(NbtCompound.class, InputStream.class));
+			Reflection.getOptionalMethod(NbtIo.class, "method_10629", MethodType.methodType(CompoundTag.class, InputStream.class));
 	private static final Supplier<Reflection.MethodInvoker> NbtIo_write =
-			Reflection.getOptionalMethod(NbtIo.class, "method_10628", MethodType.methodType(void.class, NbtCompound.class, DataOutput.class));
+			Reflection.getOptionalMethod(NbtIo.class, "method_10628", MethodType.methodType(void.class, CompoundTag.class, DataOutput.class));
 	private static final Supplier<Reflection.MethodInvoker> NbtIo_writeCompressed =
-			Reflection.getOptionalMethod(NbtIo.class, "method_10634", MethodType.methodType(void.class, NbtCompound.class, OutputStream.class));
-	public static NbtCompound nbtInternal(Supplier<NbtCompound> newWrite, Supplier<NbtCompound> oldWrite) throws IOException {
+			Reflection.getOptionalMethod(NbtIo.class, "method_10634", MethodType.methodType(void.class, CompoundTag.class, OutputStream.class));
+	public static CompoundTag nbtInternal(Supplier<CompoundTag> newWrite, Supplier<CompoundTag> oldWrite) throws IOException {
 		try {
-			return Version.<NbtCompound>newSwitch()
+			return Version.<CompoundTag>newSwitch()
 					.range("1.20.3", null, newWrite)
 					.range(null, "1.20.2", () -> {
 						try {
@@ -394,34 +385,34 @@ public class MVMisc {
 			return null;
 		});
 	}
-	public static NbtCompound readNbt(InputStream stream) throws IOException {
+	public static CompoundTag readNbt(InputStream stream) throws IOException {
 		return nbtInternal(() -> {
 			try {
-				return NbtIo.readCompound(new DataInputStream(stream), NbtSizeTracker.ofUnlimitedBytes());
+				return NbtIo.read(new DataInputStream(stream), NbtAccounter.unlimitedHeap());
 			} catch (IOException e) {
 				throw new UncheckedIOException(e);
 			}
 		}, () -> NbtIo_read.get().invoke(null, new DataInputStream(stream)));
 	}
-	public static NbtCompound readCompressedNbt(InputStream stream) throws IOException {
+	public static CompoundTag readCompressedNbt(InputStream stream) throws IOException {
 		return nbtInternal(() -> {
 			try {
-				return NbtIo.readCompressed(stream, NbtSizeTracker.ofUnlimitedBytes());
+				return NbtIo.readCompressed(stream, NbtAccounter.unlimitedHeap());
 			} catch (IOException e) {
 				throw new UncheckedIOException(e);
 			}
 		}, () -> NbtIo_readCompressed.get().invoke(null, stream));
 	}
-	public static void writeNbt(NbtCompound nbt, OutputStream stream) throws IOException {
+	public static void writeNbt(CompoundTag nbt, OutputStream stream) throws IOException {
 		nbtInternal(() -> {
 			try {
-				NbtIo.write(nbt, new DataOutputStream(stream));
+				NbtIo.writeUnnamedTagWithFallback(nbt, new DataOutputStream(stream));
 			} catch (IOException e) {
 				throw new UncheckedIOException(e);
 			}
 		}, () -> NbtIo_write.get().invoke(null, nbt, new DataOutputStream(stream)));
 	}
-	public static void writeCompressedNbt(NbtCompound nbt, OutputStream stream) throws IOException {
+	public static void writeCompressedNbt(CompoundTag nbt, OutputStream stream) throws IOException {
 		nbtInternal(() -> {
 			try {
 				NbtIo.writeCompressed(nbt, stream);
@@ -430,22 +421,22 @@ public class MVMisc {
 			}
 		}, () -> NbtIo_writeCompressed.get().invoke(null, nbt, stream));
 	}
-	public static NbtCompound readNbt(File file) throws IOException {
+	public static CompoundTag readNbt(File file) throws IOException {
 		try (FileInputStream stream = new FileInputStream(file)) {
 			return readNbt(stream);
 		}
 	}
-	public static NbtCompound readCompressedNbt(File file) throws IOException {
+	public static CompoundTag readCompressedNbt(File file) throws IOException {
 		try (FileInputStream stream = new FileInputStream(file)) {
 			return readCompressedNbt(stream);
 		}
 	}
-	public static void writeNbt(NbtCompound nbt, File file) throws IOException {
+	public static void writeNbt(CompoundTag nbt, File file) throws IOException {
 		try (FileOutputStream stream = new FileOutputStream(file)) {
 			writeNbt(nbt, stream);
 		}
 	}
-	public static void writeCompressedNbt(NbtCompound nbt, File file) throws IOException {
+	public static void writeCompressedNbt(CompoundTag nbt, File file) throws IOException {
 		try (FileOutputStream stream = new FileOutputStream(file)) {
 			writeCompressedNbt(nbt, stream);
 		}
@@ -454,7 +445,7 @@ public class MVMisc {
 	private static final Supplier<Class<?>> VertexFormat = Reflection.getOptionalClass("net.minecraft.class_293");
 	private static final Supplier<Class<?>> VertexFormat$DrawMode = Reflection.getOptionalClass("net.minecraft.class_293$class_5596");
 	private static final Supplier<Reflection.MethodInvoker> Tessellator_getBuffer =
-			Reflection.getOptionalMethod(Tessellator.class, "method_1349", MethodType.methodType(BufferBuilder.class));
+			Reflection.getOptionalMethod(Tesselator.class, "method_1349", MethodType.methodType(BufferBuilder.class));
 	private static final Supplier<Reflection.MethodInvoker> BufferBuilder_begin =
 			Reflection.getOptionalMethod(() -> BufferBuilder.class, () -> "method_1328", () -> MethodType.methodType(void.class, VertexFormat$DrawMode.get(), VertexFormat.get()));
 	private static final Supplier<Reflection.MethodInvoker> RenderSystem_setShader =
@@ -464,13 +455,6 @@ public class MVMisc {
 				.range("1.20.0", null, () -> {
 					var a = MVDrawableHelper.getVertexConsumerProvider();
 					return a.getBuffer(shader.getLayer());
-				})
-				.range(null, "1.19.4", () -> {
-					MVShader1 shader1 = (MVShader1) shader;
-					RenderSystem_setShader.get().invoke(null, (Supplier<ShaderProgram>) shader1::getShaderProgram);
-					BufferBuilder builder = Tessellator_getBuffer.get().invoke(Tessellator.getInstance());
-					BufferBuilder_begin.get().invoke(builder, shader1.getDrawMode().getInternalValue(), shader1.getVertexFormat().getInternalValue());
-					return builder;
 				})
 				.get();
 	}
@@ -488,88 +472,70 @@ public class MVMisc {
 		Version.newSwitch()
 				.range("1.20.0", null, () -> {
 					var a = MVDrawableHelper.getVertexConsumerProvider();
-					a.draw();
+					a.endBatch();
 				})
 				.run();
 	}
 
 	private static final Supplier<Reflection.MethodInvoker> TextFieldWidget_setCursor =
-			Reflection.getOptionalMethod(TextFieldWidget.class, "method_1883", MethodType.methodType(void.class, int.class));
-	public static void setCursor(TextFieldWidget textField, int cursor) {
+			Reflection.getOptionalMethod(EditBox.class, "method_1883", MethodType.methodType(void.class, int.class));
+	public static void setCursor(EditBox textField, int cursor) {
 		Version.newSwitch()
-				.range("1.20.2", null, () -> textField.setCursor(cursor, false))
+				.range("1.20.2", null, () -> textField.moveCursorTo(cursor, false))
 				.range(null, "1.20.1", () -> TextFieldWidget_setCursor.get().invoke(textField, cursor))
 				.run();
 	}
 
-	private static final Supplier<Reflection.MethodInvoker> BlockRenderManager_renderBlock_java_util_Random =
-			Reflection.getOptionalMethod(BlockRenderManager.class, "method_3355", MethodType.methodType(boolean.class, BlockState.class, BlockPos.class, BlockRenderView.class, MatrixStack.class, VertexConsumer.class, boolean.class, java.util.Random.class));
-	private static final Supplier<Reflection.MethodInvoker> BlockRenderManager_renderBlock_net_minecraft_Random =
-			Reflection.getOptionalMethod(BlockRenderManager.class, "method_3355", MethodType.methodType(void.class, BlockState.class, BlockPos.class, BlockRenderView.class, MatrixStack.class, VertexConsumer.class, boolean.class, Random.class));
-	public static void renderBlock(BlockRenderManager renderer, BlockState state, BlockPos pos, BlockRenderView world, MatrixStack matrices, VertexConsumer vertexConsumer, boolean cull) {
-		Version.newSwitch()
-				.range("1.21.5", null, () -> renderer.renderBlock(state, pos, world, matrices, vertexConsumer, cull, renderer.getModel(state).getParts(Random.create())))
-				.range("1.19.0", "1.21.4", () -> BlockRenderManager_renderBlock_net_minecraft_Random.get().invoke(renderer, state, pos, world, matrices, vertexConsumer, cull, Random.create()))
-				.range(null, "1.18.2", () -> BlockRenderManager_renderBlock_java_util_Random.get().invoke(renderer, state, pos, world, matrices, vertexConsumer, cull, new java.util.Random()))
-				.run();
-	}
-
-	private static final Supplier<Reflection.MethodInvoker> SpawnEggItem_getEntityType_NbtCompound =
-			Reflection.getOptionalMethod(SpawnEggItem.class, "method_8015", MethodType.methodType(EntityType.class, NbtCompound.class));
-	private static final Supplier<Reflection.MethodInvoker> SpawnEggItem_getEntityType_ItemStack =
-			Reflection.getOptionalMethod(SpawnEggItem.class, "method_8015", MethodType.methodType(EntityType.class, ItemStack.class));
 	public static EntityType<?> getEntityType(ItemStack item) {
 		SpawnEggItem spawnEggItem = (SpawnEggItem) item.getItem();
 		return Version.<EntityType<?>>newSwitch()
-				.range("1.21.4", null, () -> spawnEggItem.getEntityType(item))
-				.range("1.20.5", "1.21.3", () -> SpawnEggItem_getEntityType_ItemStack.get().invoke(spawnEggItem, item))
-				.range(null, "1.20.4", () -> SpawnEggItem_getEntityType_NbtCompound.get().invoke(spawnEggItem, item.nbte$getNbt()))
+				.range("1.21.4", null, () -> spawnEggItem.getType(item))
 				.get();
 	}
 
-	public static StatusEffectInstance newStatusEffectInstance(StatusEffect effect, int duration) {
-		return Version.<StatusEffectInstance>newSwitch()
-				.range("1.20.5", null, () -> new StatusEffectInstance(Registries.STATUS_EFFECT.getEntry(effect), duration))
-				.range(null, "1.20.4", () -> Reflection.newInstance(StatusEffectInstance.class, new Class<?>[] {StatusEffect.class, int.class}, effect, duration))
+	public static MobEffectInstance newMobEffectInstance(MobEffect effect, int duration) {
+		return Version.<MobEffectInstance>newSwitch()
+				.range("1.20.5", null, () -> new MobEffectInstance(BuiltInRegistries.MOB_EFFECT.wrapAsHolder(effect), duration))
+				.range(null, "1.20.4", () -> Reflection.newInstance(MobEffectInstance.class, new Class<?>[] {MobEffect.class, int.class}, effect, duration))
 				.get();
 	}
-	public static StatusEffectInstance newStatusEffectInstance(StatusEffect effect, int duration, int amplifier, boolean ambient, boolean showParticles, boolean showIcon) {
-		return Version.<StatusEffectInstance>newSwitch()
-				.range("1.20.5", null, () -> new StatusEffectInstance(Registries.STATUS_EFFECT.getEntry(effect), duration, amplifier, ambient, showParticles, showIcon))
-				.range(null, "1.20.4", () -> Reflection.newInstance(StatusEffectInstance.class, new Class<?>[] {StatusEffect.class, int.class, int.class, boolean.class, boolean.class, boolean.class}, effect, duration, amplifier, ambient, showParticles, showIcon))
-				.get();
-	}
-
-	private static final Supplier<Reflection.MethodInvoker> StatusEffectInstance_getEffectType =
-			Reflection.getOptionalMethod(StatusEffectInstance.class, "method_5579", MethodType.methodType(StatusEffect.class));
-	public static StatusEffect getEffectType(StatusEffectInstance effect) {
-		return Version.<StatusEffect>newSwitch()
-				.range("1.20.5", null, () -> effect.getEffectType().value())
-				.range(null, "1.20.4", () -> StatusEffectInstance_getEffectType.get().invoke(effect))
+	public static MobEffectInstance newMobEffectInstance(MobEffect effect, int duration, int amplifier, boolean ambient, boolean showParticles, boolean showIcon) {
+		return Version.<MobEffectInstance>newSwitch()
+				.range("1.20.5", null, () -> new MobEffectInstance(BuiltInRegistries.MOB_EFFECT.wrapAsHolder(effect), duration, amplifier, ambient, showParticles, showIcon))
+				.range(null, "1.20.4", () -> Reflection.newInstance(MobEffectInstance.class, new Class<?>[] {MobEffect.class, int.class, int.class, boolean.class, boolean.class, boolean.class}, effect, duration, amplifier, ambient, showParticles, showIcon))
 				.get();
 	}
 
-	public static BookScreen.Contents getBookContents(List<Text> pages) {
+	private static final Supplier<Reflection.MethodInvoker> MobEffectInstance_getEffectType =
+			Reflection.getOptionalMethod(MobEffectInstance.class, "method_5579", MethodType.methodType(MobEffect.class));
+	public static MobEffect getEffectType(MobEffectInstance effect) {
+		return Version.<MobEffect>newSwitch()
+				.range("1.20.5", null, () -> effect.getEffect().value())
+				.range(null, "1.20.4", () -> MobEffectInstance_getEffectType.get().invoke(effect))
+				.get();
+	}
+
+	public static BookViewScreen.BookAccess getBookContents(List<Component> pages) {
 		if (NBTManagers.COMPONENTS_EXIST)
-			return new BookScreen.Contents(pages);
+			return new BookViewScreen.BookAccess(pages);
 
-		return (BookScreen.Contents) Proxy.newProxyInstance(MVMisc.class.getClassLoader(),
-				new Class<?>[] {BookScreen.Contents.class}, (obj, method, args) -> {
+		return (BookViewScreen.BookAccess) Proxy.newProxyInstance(MVMisc.class.getClassLoader(),
+				new Class<?>[] {BookViewScreen.BookAccess.class}, (obj, method, args) -> {
 					if (method.getName().equals("method_17560")) // getPageCount
 						return pages.size();
 					if (method.getName().equals("method_17561")) // getPageUnchecked
-						return (StringVisitable) pages.get((int) args[0]);
+						return (FormattedText) pages.get((int) args[0]);
 
 					if (method.getName().equals("method_17563")) { // default getPage
 						int index = (int) args[0];
-						return (index >= 0 && index < pages.size() ? pages.get(index) : StringVisitable.EMPTY);
+						return (index >= 0 && index < pages.size() ? pages.get(index) : FormattedText.EMPTY);
 					}
 
 					throw new IllegalArgumentException("Unknown method: " + method);
 				});
 	}
 
-	public static boolean isWrittenBookContents(BookScreen.Contents contents) {
+	public static boolean isWrittenBookContents(BookViewScreen.BookAccess contents) {
 		return Version.<Boolean>newSwitch()
 				.range("1.20.5", null, () -> MixinLink.WRITTEN_BOOK_CONTENTS.getIfPresent(contents) != null)
 				.range(null, "1.20.4", () -> Reflection.getClass("net.minecraft.class_3872$class_3933").isInstance(contents))
@@ -582,18 +548,18 @@ public class MVMisc {
 					.range("1.20.3", null, () -> null)
 					.range(null, "1.20.2", () -> Reflection.getField(SystemToast$Type.get(), "field_21809", "Lnet/minecraft/class_370$class_371;").get(null))
 					.get();
-	public static void showToast(Text title, Text description) {
-		MainUtil.client.getToastManager().add(Version.<SystemToast>newSwitch()
-				.range("1.20.3", null, () -> new SystemToast(SystemToast.Type.PACK_LOAD_FAILURE, title, description))
+	public static void showToast(Component title, Component description) {
+		MainUtil.client.getToastManager().addToast(Version.<SystemToast>newSwitch()
+				.range("1.20.3", null, () -> new SystemToast(SystemToast.SystemToastId.PACK_LOAD_FAILURE, title, description))
 				.range(null, "1.20.2", () -> Reflection.newInstance(SystemToast.class,
-						new Class<?>[] {SystemToast$Type.get(), Text.class, Text.class},
+						new Class<?>[] {SystemToast$Type.get(), Component.class, Component.class},
 						SystemToast$Type_PACK_LOAD_FAILURE, title, description))
 				.get());
 	}
 
 	private static final Supplier<Reflection.MethodInvoker> ParentElement_setInitialFocus =
-			Reflection.getOptionalMethod(ParentElement.class, "method_20085", MethodType.methodType(void.class, Element.class));
-	public static void setInitialFocus(Screen screen, Element element, Consumer<Element> superCall) {
+			Reflection.getOptionalMethod(ContainerEventHandler.class, "method_20085", MethodType.methodType(void.class, GuiEventListener.class));
+	public static void setInitialFocus(Screen screen, GuiEventListener element, Consumer<GuiEventListener> superCall) {
 		Version.newSwitch()
 				.range("1.19.4", null, () -> {
 					superCall.accept(element);
@@ -616,23 +582,23 @@ public class MVMisc {
 			Reflection.getOptionalMethod(VertexConsumer.class, "method_22912", MethodType.methodType(VertexConsumer.class, double.class, double.class, double.class));
 	public static VertexConsumer startVertex(VertexConsumer vertexConsumer, double x, double y, double z) {
 		return Version.<VertexConsumer>newSwitch()
-				.range("1.21.0", null, () -> vertexConsumer.vertex((float) x, (float) y, (float) z))
+				.range("1.21.0", null, () -> vertexConsumer.addVertex((float) x, (float) y, (float) z))
 				.range(null, "1.20.6", () -> VertexConsumer_vertex.get().invoke(vertexConsumer, x, y, z))
 				.get();
 	}
 
-	private static final Supplier<Reflection.MethodInvoker> MinecraftClient_getTickDelta =
-			Reflection.getOptionalMethod(MinecraftClient.class, "method_1488", MethodType.methodType(float.class));
+	private static final Supplier<Reflection.MethodInvoker> Minecraft_getTickDelta =
+			Reflection.getOptionalMethod(Minecraft.class, "method_1488", MethodType.methodType(float.class));
 	public static float getTickDelta() {
 		return Version.<Float>newSwitch()
-				.range("1.21.0", null, () -> MainUtil.client.getRenderTickCounter().getTickProgress(true))
-				.range(null, "1.20.6", () -> MinecraftClient_getTickDelta.get().invoke(MainUtil.client))
+				.range("1.21.0", null, () -> MainUtil.client.getDeltaTracker().getGameTimeDeltaPartialTick(true))
+				.range(null, "1.20.6", () -> Minecraft_getTickDelta.get().invoke(MainUtil.client))
 				.get();
 	}
 
 	public static EquipmentSlot getEquipmentSlot(EquipmentSlot.Type type, int entityId) {
 		for (EquipmentSlot slot : EquipmentSlot.values()) {
-			if (slot.getType() == type && slot.getEntitySlotId() == entityId)
+			if (slot.getType() == type && slot.getIndex() == entityId)
 				return slot;
 		}
 		throw new IllegalArgumentException("Unknown equipment slot: type=" + type + ", entityId=" + entityId);
@@ -649,7 +615,7 @@ public class MVMisc {
 			Reflection.getOptionalMethod(VertexConsumer.class, "method_22916", MethodType.methodType(VertexConsumer.class, int.class));
 	public static void setVertexLight(VertexConsumer vertexConsumer, int uv) {
 		Version.newSwitch()
-				.range("1.21.0", null, () -> vertexConsumer.light(uv))
+				.range("1.21.0", null, () -> vertexConsumer.setLight(uv))
 				.range(null, "1.20.6", () -> VertexConsumer_light.get().invoke(vertexConsumer, uv))
 				.run();
 	}
@@ -667,86 +633,80 @@ public class MVMisc {
 	}
 
 	private static final Supplier<Reflection.MethodInvoker> TooltipComponent_getHeight =
-			Reflection.getOptionalMethod(TooltipComponent.class, "method_32661", MethodType.methodType(int.class));
-	public static int getTooltipComponentHeight(TooltipComponent line) {
+			Reflection.getOptionalMethod(ClientTooltipComponent.class, "method_32661", MethodType.methodType(int.class));
+	public static int getTooltipComponentHeight(ClientTooltipComponent line) {
 		return Version.<Integer>newSwitch()
-				.range("1.21.2", null, () -> line.getHeight(MainUtil.client.textRenderer))
+				.range("1.21.2", null, () -> line.getHeight(MainUtil.client.font))
 				.range(null, "1.21.1", () -> TooltipComponent_getHeight.get().invoke(line))
 				.get();
 	}
 
 	private static final Supplier<Reflection.MethodInvoker> Entity_getCommandSource =
-			Reflection.getOptionalMethod(Entity.class, "method_5671", MethodType.methodType(ServerCommandSource.class));
-	public static ServerCommandSource getCommandSource(Entity entity) {
-		return Version.<ServerCommandSource>newSwitch()
-				.range("1.21.2", null, () -> new ServerCommandSource(
-						CommandOutput.DUMMY, entity.getEntityPos(), entity.getRotationClient(), null, 0,
+			Reflection.getOptionalMethod(Entity.class, "method_5671", MethodType.methodType(CommandSourceStack.class));
+	public static CommandSourceStack getCommandSource(Entity entity) {
+		return Version.<CommandSourceStack>newSwitch()
+				.range("1.21.2", null, () -> new CommandSourceStack(
+						CommandSource.NULL, entity.position(), entity.getRotationVector(), null, PermissionSet.ALL_PERMISSIONS,
 						entity.getName().getString(), entity.getDisplayName(), null, entity))
-				.range(null, "1.21.1", () -> Entity_getCommandSource.get().invoke(entity))
 				.get();
 	}
 
-	private static final Supplier<Reflection.MethodInvoker> MinecraftClient_getProfiler =
-			Reflection.getOptionalMethod(MinecraftClient.class, "method_16011", MethodType.methodType(Profiler.class));
-	public static Profiler getProfiler() {
-		return Version.<Profiler>newSwitch()
-				.range("1.21.2", null, () -> Profilers.get())
-				.range(null, "1.21.1", () -> MinecraftClient_getProfiler.get().invoke(MainUtil.client))
-				.get();
+	public static ProfilerFiller getProfiler() {
+		return Profiler.get();
 	}
 
-	public static PotionContentsComponent newPotionContentsComponent(Optional<RegistryEntry<Potion>> potion, Optional<Integer> customColor, List<StatusEffectInstance> customEffects) {
-		return Version.<PotionContentsComponent>newSwitch()
-				.range("1.21.2", null, () -> new PotionContentsComponent(potion, customColor, customEffects, Optional.empty()))
-				.range(null, "1.21.1", () -> Reflection.newInstance(PotionContentsComponent.class, new Class<?>[] {Optional.class, Optional.class, List.class}, potion, customColor, customEffects))
+	public static PotionContents newPotionContents(Optional<Holder<Potion>> potion, Optional<Integer> customColor, List<MobEffectInstance> customEffects) {
+		return Version.<PotionContents>newSwitch()
+				.range("1.21.2", null, () -> new PotionContents(potion, customColor, customEffects, Optional.empty()))
+				.range(null, "1.21.1", () -> Reflection.newInstance(PotionContents.class, new Class<?>[] {Optional.class, Optional.class, List.class}, potion, customColor, customEffects))
 				.get();
 	}
 
 	private static final Supplier<Reflection.MethodInvoker> EntityRenderDispatcher_render =
-			Reflection.getOptionalMethod(EntityRenderManager.class, "method_3954", MethodType.methodType(void.class, Entity.class, double.class, double.class, double.class, float.class, float.class, MatrixStack.class, VertexConsumerProvider.class, int.class));
-	public static void renderEntity(EntityRenderManager dispatcher, Entity entity, double x, double y, double z, float yaw, float tickDelta, MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light) {
+			Reflection.getOptionalMethod(EntityRenderDispatcher.class, "method_3954", MethodType.methodType(void.class, Entity.class, double.class, double.class, double.class, float.class, float.class, PoseStack.class, MultiBufferSource.class, int.class));
+	public static void renderEntity(EntityRenderDispatcher dispatcher, Entity entity, double x, double y, double z, float yaw, float tickDelta, PoseStack matrices, MultiBufferSource vertexConsumers, int light) {
 		Version.newSwitch()
 				.range("1.21.2", null, () -> {
-					EntityRenderState s = dispatcher.getAndUpdateRenderState(entity,tickDelta);
-					CameraRenderState c = MinecraftClient.getInstance().worldRenderer.worldRenderState.cameraRenderState;
-					dispatcher.render(s,c, x, y, z, matrices, MinecraftClient.getInstance().worldRenderer.entityRenderCommandQueue);
+					EntityRenderState s = dispatcher.extractEntity(entity,tickDelta);
+					CameraRenderState c = Minecraft.getInstance().levelRenderer.levelRenderState.cameraRenderState;
+					dispatcher.submit(s,c, x, y, z, matrices, Minecraft.getInstance().levelRenderer.submitNodeStorage);
 				})
 				.range(null, "1.21.1", () -> EntityRenderDispatcher_render.get().invoke(dispatcher, entity, x, y, z, yaw, tickDelta, matrices, vertexConsumers, light))
 				.run();
 	}
 
-	// From MinecraftClient#addBlockEntityNbt (1.21.3)
+	// From Minecraft#addBlockEntityNbt (1.21.3)
 	// Edited to remove x, y, & z
 	@SuppressWarnings("deprecation")
 	public static void addBlockEntityNbtWithoutXYZ(ItemStack item, BlockEntity entity) {
-		NbtCompound blockEntityTag = entity.createComponentlessNbt(DynamicRegistryManagerHolder.get());
+		CompoundTag blockEntityTag = entity.saveCustomOnly(DynamicRegistryManagerHolder.get());
 		blockEntityTag.remove("x");
 		blockEntityTag.remove("y");
 		blockEntityTag.remove("z");
-		NbtWriteView v = new NbtWriteView(ErrorReporter.EMPTY,NbtOps.INSTANCE,blockEntityTag);
-		entity.removeFromCopiedStackData(v);
+		TagValueOutput v = new TagValueOutput(ProblemReporter.DISCARDING,NbtOps.INSTANCE,blockEntityTag);
+		entity.removeComponentsFromTag(v);
 		BlockItem.setBlockEntityData(item, entity.getType(), v);
-		item.applyComponentsFrom(entity.createComponentMap());
+		item.applyComponents(entity.collectComponents());
 	}
 
 	private static final Supplier<Reflection.MethodInvoker> BlockEntityRenderer_render =
-			Reflection.getOptionalMethod(BlockEntityRenderer.class, "method_3569", MethodType.methodType(void.class, BlockEntity.class, float.class, MatrixStack.class, VertexConsumerProvider.class, int.class, int.class));
+			Reflection.getOptionalMethod(BlockEntityRenderer.class, "method_3569", MethodType.methodType(void.class, BlockEntity.class, float.class, PoseStack.class, MultiBufferSource.class, int.class, int.class));
 	// From BlockEntityRenderDispatcher#renderEntity (1.21.3)
 	// Edited to input a tickDelta and use default light and overlay values
-	public static <T extends BlockEntity> boolean renderBlockEntity(BlockEntityRenderManager dispatcher, T entity, float tickDelta, MatrixStack matrices, VertexConsumerProvider provider) {
-		BlockEntityRenderer<T, BlockEntityRenderState> renderer = dispatcher.get(entity);
+	public static <T extends BlockEntity> boolean renderBlockEntity(BlockEntityRenderDispatcher dispatcher, T entity, float tickDelta, PoseStack matrices, MultiBufferSource provider) {
+		BlockEntityRenderer<T, BlockEntityRenderState> renderer = dispatcher.getRenderer(entity);
 		if (renderer == null)
 			return true;
 		try {
 			Version.newSwitch()
-					.range("1.21.5", null, () -> renderer.render(dispatcher.getRenderState(entity,tickDelta,null),matrices,MinecraftClient.getInstance().worldRenderer.entityRenderCommandQueue,MinecraftClient.getInstance().worldRenderer.worldRenderState.cameraRenderState))
-					.range(null, "1.21.4", () -> BlockEntityRenderer_render.get().invoke(renderer, entity, tickDelta, matrices, provider, 0xF000F0, OverlayTexture.DEFAULT_UV))
+					.range("1.21.5", null, () -> renderer.submit(dispatcher.tryExtractRenderState(entity,tickDelta,null),matrices,Minecraft.getInstance().levelRenderer.submitNodeStorage,Minecraft.getInstance().levelRenderer.levelRenderState.cameraRenderState))
+					.range(null, "1.21.4", () -> BlockEntityRenderer_render.get().invoke(renderer, entity, tickDelta, matrices, provider, 0xF000F0, OverlayTexture.NO_OVERLAY))
 					.run();
 		} catch (Throwable e) {
-			CrashReport report = CrashReport.create(e, "Rendering Block Entity");
-			CrashReportSection entitySection = report.addElement("Block Entity Details");
-			entity.populateCrashReport(entitySection);
-			throw new CrashException(report);
+			CrashReport report = CrashReport.forThrowable(e, "Rendering Block Entity");
+			CrashReportCategory entitySection = report.addCategory("Block Entity Details");
+			entity.fillCrashReportCategory(entitySection);
+			throw new ReportedException(report);
 		}
 		return false;
 	}
@@ -759,25 +719,18 @@ public class MVMisc {
 		return new Color(r, g, b, color.getAlpha()).getRGB();
 	}
 
-	public static CreativeInventoryScreen newCreativeInventoryScreen(ClientPlayerEntity player) {
-		return Version.<CreativeInventoryScreen>newSwitch()
-				.range("1.21.0", null, () -> new CreativeInventoryScreen(
-						player, player.networkHandler.getEnabledFeatures(), MainUtil.client.options.getOperatorItemsTab().getValue()))
-				.range("1.19.3", "1.20.6", () -> Reflection.newInstance(CreativeInventoryScreen.class,
-						new Class<?>[] {PlayerEntity.class, FeatureSet.class, boolean.class},
-						player, player.networkHandler.getEnabledFeatures(), MainUtil.client.options.getOperatorItemsTab().getValue()))
-				.range(null, "1.19.2", () -> Reflection.newInstance(CreativeInventoryScreen.class,
-						new Class<?>[] {PlayerEntity.class},
-						player))
+	public static CreativeModeInventoryScreen newCreativeModeInventoryScreen(LocalPlayer player) {
+		return Version.<CreativeModeInventoryScreen>newSwitch()
+				.range("1.21.0", null, () -> new CreativeModeInventoryScreen(
+						player, player.connection.enabledFeatures(), MainUtil.client.options.operatorItemsTab().get()))
 				.get();
 	}
 
 	private static final Supplier<Reflection.MethodInvoker> Item_getName =
-			Reflection.getOptionalMethod(Item.class, "method_7848", MethodType.methodType(Text.class));
-	public static Text getName(Item item) {
-		return Version.<Text>newSwitch()
-				.range("1.21.2", null, () -> item.getName())
-				.range(null, "1.21.1", () -> Item_getName.get().invoke(item))
+			Reflection.getOptionalMethod(Item.class, "method_7848", MethodType.methodType(Component.class));
+	public static Component getName(ItemStack item) {
+		return Version.<Component>newSwitch()
+				.range("1.21.2", null, () -> item.getItemName())
 				.get();
 	}
 
@@ -800,145 +753,144 @@ public class MVMisc {
 				.get();
 	}
 
-	private static final Supplier<Reflection.MethodInvoker> NbtElement_asString =
-			Reflection.getOptionalMethod(NbtElement.class, "method_10714", MethodType.methodType(String.class));
-	public static String value(NbtString str) {
+	private static final Supplier<Reflection.MethodInvoker> Tag_asString =
+			Reflection.getOptionalMethod(Tag.class, "method_10714", MethodType.methodType(String.class));
+	public static String value(StringTag str) {
 		return Version.<String>newSwitch()
 				.range("1.21.5", null, () -> str.value())
-				.range(null, "1.21.4", () -> NbtElement_asString.get().invoke(str))
+				.range(null, "1.21.4", () -> Tag_asString.get().invoke(str))
 				.get();
 	}
 
-	public static Object newTooltipDisplayComponent(boolean hideTooltip, LinkedHashSet<ComponentType<?>> hiddenComponents) {
-		return Reflection.newInstance(TooltipDisplayComponent.class, new Class<?>[] {boolean.class, SequencedSet.get()}, hideTooltip, hiddenComponents);
+	public static Object newTooltipDisplay(boolean hideTooltip, LinkedHashSet<DataComponentType<?>> hiddenComponents) {
+		return Reflection.newInstance(TooltipDisplay.class, new Class<?>[] {boolean.class, SequencedSet.get()}, hideTooltip, hiddenComponents);
 	}
 
-	private static final Supplier<Reflection.MethodInvoker> TooltipDisplayComponent_hiddenComponents =
-			Reflection.getOptionalMethod(() -> TooltipDisplayComponent.class, () -> "comp_3601", () -> MethodType.methodType(SequencedSet.get()));
-	public static Set<ComponentType<?>> hiddenComponents(Object tooltipDisplayComponent) {
-		return TooltipDisplayComponent_hiddenComponents.get().invoke(tooltipDisplayComponent);
+	private static final Supplier<Reflection.MethodInvoker> TooltipDisplay_hiddenComponents =
+			Reflection.getOptionalMethod(() -> TooltipDisplay.class, () -> "hiddenComponents", () -> MethodType.methodType(SequencedSet.get()));
+	public static Set<DataComponentType<?>> hiddenComponents(Object TooltipDisplay) {
+		return TooltipDisplay_hiddenComponents.get().invoke(TooltipDisplay);
 	}
 
-	private static final Supplier<Reflection.FieldReference> PlayerInventory_armor =
-			Reflection.getOptionalField(PlayerInventory.class, "field_7548", "Lnet/minecraft/class_2371;");
+	private static final Supplier<Reflection.FieldReference> Inventory_armor =
+			Reflection.getOptionalField(Inventory.class, "field_7548", "Lnet/minecraft/class_2371;");
 	@SuppressWarnings("unchecked")
 	public static void setArmor(EquipmentSlot slot, ItemStack item) {
 		Version.newSwitch()
-				.range("1.21.5", null, () -> MainUtil.client.player.equipStack(slot, item))
-				.range(null, "1.21.4", () -> ((DefaultedList<ItemStack>) PlayerInventory_armor.get()
-						.get(MainUtil.client.player.getInventory())).set(slot.getEntitySlotId(), item))
+				.range("1.21.5", null, () -> MainUtil.client.player.setItemSlot(slot, item))
+				.range(null, "1.21.4", () -> ((NonNullList<ItemStack>) Inventory_armor.get()
+						.get(MainUtil.client.player.getInventory())).set(slot.getIndex(), item))
 				.run();
 	}
 
-	private static final Supplier<Reflection.MethodInvoker> StringNbtReader_parseElement =
-			Reflection.getOptionalMethod(StringNbtReader.class, "method_10723", MethodType.methodType(NbtElement.class));
-	public static NbtElement parseNbt(StringReader snbt) throws CommandSyntaxException {
+	private static final Supplier<Reflection.MethodInvoker> TagParser_parseElement =
+			Reflection.getOptionalMethod(TagParser.class, "method_10723", MethodType.methodType(Tag.class));
+	public static Tag parseNbt(StringReader snbt) throws CommandSyntaxException {
 		if (Version.<Boolean>newSwitch()
 				.range("1.21.5", null, true)
 				.range(null, "1.21.4", false)
 				.get()) {
-			return StringNbtReader.fromOps(NbtOps.INSTANCE).read(snbt);
+			return TagParser.create(NbtOps.INSTANCE).parseFully(snbt);
 		}
 
-		return StringNbtReader_parseElement.get().invokeThrowable(CommandSyntaxException.class,
-				Reflection.newInstance(StringNbtReader.class, new Class<?>[] {StringReader.class}, snbt));
+		return TagParser_parseElement.get().invokeThrowable(CommandSyntaxException.class,
+				Reflection.newInstance(TagParser.class, new Class<?>[] {StringReader.class}, snbt));
 	}
-	public static NbtElement parseNbt(String snbt) throws CommandSyntaxException {
+	public static Tag parseNbt(String snbt) throws CommandSyntaxException {
 		return parseNbt(new StringReader(snbt));
 	}
 
-	private static final Supplier<Reflection.FieldReference> StringNbtWriter_SIMPLE_NAME =
-			Reflection.getOptionalField(StringNbtWriter.class, "field_27829", "Ljava/util/regex/Pattern;");
+	private static final Supplier<Reflection.FieldReference> StringTagVisitor_SIMPLE_NAME =
+			Reflection.getOptionalField(StringTagVisitor.class, "field_27829", "Ljava/util/regex/Pattern;");
 	public static boolean isSimpleName(String name) {
 		return Version.<Boolean>newSwitch()
 				.range("1.21.5", null, () -> !name.equalsIgnoreCase("true") && !name.equalsIgnoreCase("false") &&
-						StringNbtWriter.QUOTATION_UNNECESSARY_PATTERN.matcher(name).matches())
-				.range(null, "1.21.4", () -> ((Pattern) StringNbtWriter_SIMPLE_NAME.get().get(null)).matcher(name).matches())
+						StringTagVisitor.UNQUOTED_KEY_MATCH.matcher(name).matches())
+				.range(null, "1.21.4", () -> ((Pattern) StringTagVisitor_SIMPLE_NAME.get().get(null)).matcher(name).matches())
 				.get();
 	}
 
-	private static final Supplier<Reflection.FieldReference> ItemEnchantmentsComponent_showInTooltip =
-			Reflection.getOptionalField(ItemEnchantmentsComponent.class, "field_49390", "Z");
-	public static Object withEnchantments(Object component, Object2IntOpenHashMap<RegistryEntry<Enchantment>> enchantments) {
+	private static final Supplier<Reflection.FieldReference> ItemEnchantments_showInTooltip =
+			Reflection.getOptionalField(ItemEnchantments.class, "field_49390", "Z");
+	public static Object withEnchantments(Object component, Object2IntOpenHashMap<Holder<Enchantment>> enchantments) {
 		return Version.<Object>newSwitch()
-				.range("1.21.5", null, () -> new ItemEnchantmentsComponent(enchantments))
-				.range(null, "1.21.4", () -> Reflection.newInstance(ItemEnchantmentsComponent.class,
+				.range("1.21.5", null, () -> new ItemEnchantments(enchantments))
+				.range(null, "1.21.4", () -> Reflection.newInstance(ItemEnchantments.class,
 						new Class<?>[] {Object2IntOpenHashMap.class, boolean.class},
-						enchantments, component == null ? true : ItemEnchantmentsComponent_showInTooltip.get().get(component)))
+						enchantments, component == null ? true : ItemEnchantments_showInTooltip.get().get(component)))
 				.get();
 	}
 
-	private static final Supplier<Reflection.MethodInvoker> AttributeModifiersComponent_showInTooltip =
-			Reflection.getOptionalMethod(AttributeModifiersComponent.class, "comp_2394", MethodType.methodType(boolean.class));
-	public static Object withAttributes(Object component, List<AttributeModifiersComponent.Entry> list) {
+	private static final Supplier<Reflection.MethodInvoker> ItemAttributeModifiers_showInTooltip =
+			Reflection.getOptionalMethod(ItemAttributeModifiers.class, "comp_2394", MethodType.methodType(boolean.class));
+	public static Object withAttributes(Object component, List<ItemAttributeModifiers.Entry> list) {
 		return Version.<Object>newSwitch()
-				.range("1.21.5", null, () -> new AttributeModifiersComponent(list))
-				.range(null, "1.21.4", () -> Reflection.newInstance(AttributeModifiersComponent.class,
+				.range("1.21.5", null, () -> new ItemAttributeModifiers(list))
+				.range(null, "1.21.4", () -> Reflection.newInstance(ItemAttributeModifiers.class,
 						new Class<?>[] {List.class, boolean.class},
-						list, component == null ? true : AttributeModifiersComponent_showInTooltip.get().invoke(component)))
+						list, component == null ? true : ItemAttributeModifiers_showInTooltip.get().invoke(component)))
 				.get();
 	}
 
-	private static final Supplier<Reflection.MethodInvoker> ClientPlayerInteractionManager_hasCreativeInventory =
-			Reflection.getOptionalMethod(ClientPlayerInteractionManager.class, "method_2914", MethodType.methodType(boolean.class));
+	private static final Supplier<Reflection.MethodInvoker> MultiPlayerGameMode_hasCreativeInventory =
+			Reflection.getOptionalMethod(MultiPlayerGameMode.class, "method_2914", MethodType.methodType(boolean.class));
 	public static boolean hasCreativeInventory() {
 		return Version.<Boolean>newSwitch()
-				.range("1.21.5", null, () -> MainUtil.client.player.isInCreativeMode())
-				.range(null, "1.21.4", () -> ClientPlayerInteractionManager_hasCreativeInventory.get().invoke(MainUtil.client.interactionManager))
+				.range("1.21.5", null, () -> MainUtil.client.player.hasInfiniteMaterials())
+				.range(null, "1.21.4", () -> MultiPlayerGameMode_hasCreativeInventory.get().invoke(MainUtil.client.gameMode))
 				.get();
 	}
 
-	private static final Supplier<Reflection.MethodInvoker> ScreenHandler_setPreviousCursorStack =
-			Reflection.getOptionalMethod(ScreenHandler.class, "method_34250", MethodType.methodType(void.class, ItemStack.class));
-	public static void setPreviousCursorStack(ScreenHandler handler, ItemStack item) {
+	private static final Supplier<Reflection.MethodInvoker> AbstractContainerMenu_setPreviousCursorStack =
+			Reflection.getOptionalMethod(AbstractContainerMenu.class, "method_34250", MethodType.methodType(void.class, ItemStack.class));
+	public static void setPreviousCursorStack(AbstractContainerMenu handler, ItemStack item) {
 		Version.newSwitch()
-				.range("1.21.5", null, () -> handler.trackedCursorSlot.setReceivedStack(item))
-				.range(null, "1.21.4", () -> ScreenHandler_setPreviousCursorStack.get().invoke(handler, item))
+				.range("1.21.5", null, () -> handler.remoteCarried.force(item))
+				.range(null, "1.21.4", () -> AbstractContainerMenu_setPreviousCursorStack.get().invoke(handler, item))
 				.run();
 	}
 
-	private static final Supplier<Reflection.MethodInvoker> ClickSlotC2SPacket_getActionType =
-			Reflection.getOptionalMethod(ClickSlotC2SPacket.class, "method_12195", MethodType.methodType(SlotActionType.class));
-	public static SlotActionType getActionType(ClickSlotC2SPacket packet) {
-		return Version.<SlotActionType>newSwitch()
-				.range("1.21.5", null, () -> packet.actionType())
-				.range(null, "1.21.4", () -> ClickSlotC2SPacket_getActionType.get().invoke(packet))
+	private static final Supplier<Reflection.MethodInvoker> ServerboundContainerClickPacket_getActionType =
+			Reflection.getOptionalMethod(ServerboundContainerClickPacket.class, "method_12195", MethodType.methodType(ContainerInput.class));
+	public static ContainerInput getActionType(ServerboundContainerClickPacket packet) {
+		return Version.<ContainerInput>newSwitch()
+				.range("1.21.5", null, () -> packet.containerInput())
 				.get();
 	}
 
-	private static final Supplier<Reflection.MethodInvoker> ClickSlotC2SPacket_getButton =
-			Reflection.getOptionalMethod(ClickSlotC2SPacket.class, "method_12193", MethodType.methodType(int.class));
-	public static int getButton(ClickSlotC2SPacket packet) {
+	private static final Supplier<Reflection.MethodInvoker> ServerboundContainerClickPacket_getButton =
+			Reflection.getOptionalMethod(ServerboundContainerClickPacket.class, "method_12193", MethodType.methodType(int.class));
+	public static int getButton(ServerboundContainerClickPacket packet) {
 		return Version.<Integer>newSwitch()
-				.range("1.21.5", null, () -> (int) packet.button())
-				.range(null, "1.21.4", () -> ClickSlotC2SPacket_getButton.get().invoke(packet))
+				.range("1.21.5", null, () -> (int) packet.buttonNum())
+				.range(null, "1.21.4", () -> ServerboundContainerClickPacket_getButton.get().invoke(packet))
 				.get();
 	}
 
-	private static final Supplier<Reflection.MethodInvoker> ClickSlotC2SPacket_getSlot =
-			Reflection.getOptionalMethod(ClickSlotC2SPacket.class, "method_12192", MethodType.methodType(int.class));
-	public static int getSlot(ClickSlotC2SPacket packet) {
+	private static final Supplier<Reflection.MethodInvoker> ServerboundContainerClickPacket_getSlot =
+			Reflection.getOptionalMethod(ServerboundContainerClickPacket.class, "method_12192", MethodType.methodType(int.class));
+	public static int getSlot(ServerboundContainerClickPacket packet) {
 		return Version.<Integer>newSwitch()
-				.range("1.21.5", null, () -> (int) packet.slot())
-				.range(null, "1.21.4", () -> ClickSlotC2SPacket_getSlot.get().invoke(packet))
+				.range("1.21.5", null, () -> (int) packet.slotNum())
+				.range(null, "1.21.4", () -> ServerboundContainerClickPacket_getSlot.get().invoke(packet))
 				.get();
 	}
 
-	private static final Supplier<Reflection.MethodInvoker> InventoryS2CPacket_getContents =
-			Reflection.getOptionalMethod(InventoryS2CPacket.class, "method_11441", MethodType.methodType(List.class));
-	public static List<ItemStack> getContents(InventoryS2CPacket packet) {
+	private static final Supplier<Reflection.MethodInvoker> ClientboundContainerSetContentPacket_getContents =
+			Reflection.getOptionalMethod(ClientboundContainerSetContentPacket.class, "method_11441", MethodType.methodType(List.class));
+	public static List<ItemStack> getContents(ClientboundContainerSetContentPacket packet) {
 		return Version.<List<ItemStack>>newSwitch()
-				.range("1.21.5", null, () -> packet.contents())
-				.range(null, "1.21.4", () -> InventoryS2CPacket_getContents.get().invoke(packet))
+				.range("1.21.5", null, () -> packet.items())
+				.range(null, "1.21.4", () -> ClientboundContainerSetContentPacket_getContents.get().invoke(packet))
 				.get();
 	}
 
-	private static final Supplier<Reflection.MethodInvoker> InventoryS2CPacket_getSyncId =
-			Reflection.getOptionalMethod(InventoryS2CPacket.class, "method_11440", MethodType.methodType(int.class));
-	public static int getSyncId(InventoryS2CPacket packet) {
+	private static final Supplier<Reflection.MethodInvoker> ClientboundContainerSetContentPacket_getSyncId =
+			Reflection.getOptionalMethod(ClientboundContainerSetContentPacket.class, "method_11440", MethodType.methodType(int.class));
+	public static int getSyncId(ClientboundContainerSetContentPacket packet) {
 		return Version.<Integer>newSwitch()
-				.range("1.21.5", null, () -> packet.syncId())
-				.range(null, "1.21.4", () -> InventoryS2CPacket_getSyncId.get().invoke(packet))
+				.range("1.21.5", null, () -> packet.stateId())
+				.range(null, "1.21.4", () -> ClientboundContainerSetContentPacket_getSyncId.get().invoke(packet))
 				.get();
 	}
 
@@ -947,22 +899,14 @@ public class MVMisc {
 			Reflection.getOptionalMethod(BoatEntity$Type, () -> "method_7561", () -> MethodType.methodType(BoatEntity$Type.get(), String.class));
 	private static final Supplier<Reflection.FieldReference> BoatItem_type =
 			Reflection.getOptionalField(BoatItem.class, "field_7902", "Lnet/minecraft/class_1690$class_1692;");
-	public static Item getBoatItem(EntityType<?> entityType, NbtCompound nbt) {
+	public static Item getBoatItem(EntityType<?> entityType, CompoundTag nbt) {
 		return Version.<Item>newSwitch()
 				.range("1.21.2", null, () -> {
 					for (Item item : MVRegistry.ITEM) {
-						if (item instanceof BoatItem boat && entityType == boat.boatEntityType)
+						if (item instanceof BoatItem boat && entityType == boat.entityType)
 							return item;
 					}
-					throw new IllegalStateException("Unknown boat entity type: " + EntityType.getId(entityType));
-				})
-				.range(null, "1.21.1", () -> {
-					Object type = BoatEntity$Type_getType.get().invoke(null, nbt.nbte$getStringOrDefault("Type"));
-					for (Item item : MVRegistry.ITEM) {
-						if (item instanceof BoatItem boat && type == BoatItem_type.get().get(boat))
-							return item;
-					}
-					throw new IllegalStateException("Unknown boat entity type: " + EntityType.getId(entityType));
+					throw new IllegalStateException("Unknown boat entity type: " + EntityType.getKey(entityType));
 				})
 				.get();
 	}

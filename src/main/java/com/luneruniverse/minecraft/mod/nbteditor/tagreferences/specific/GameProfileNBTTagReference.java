@@ -8,31 +8,19 @@ import com.luneruniverse.minecraft.mod.nbteditor.multiversion.Reflection;
 import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.general.TagReference;
 import com.mojang.authlib.GameProfile;
 
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
 
-public class GameProfileNBTTagReference implements TagReference<Optional<GameProfile>, NbtCompound> {
-	
-	private static final Class<?> NbtHelper = Reflection.getClass("net.minecraft.class_2512");
-	
-	private static final Reflection.MethodInvoker NbtHelper_toGameProfile =
-			Reflection.getMethod(NbtHelper, "method_10683", MethodType.methodType(GameProfile.class, NbtCompound.class));
+public class GameProfileNBTTagReference implements TagReference<Optional<GameProfile>, CompoundTag> {
+
+
 	@Override
-	public Optional<GameProfile> get(NbtCompound object) {
-		if (object.nbte$contains("SkullOwner", NbtElement.STRING_TYPE))
-			return Optional.of(new GameProfile(new UUID(0L, 0L), object.nbte$getStringOrDefault("SkullOwner")));
-		if (object.nbte$contains("SkullOwner", NbtElement.COMPOUND_TYPE))
-			return Optional.ofNullable(NbtHelper_toGameProfile.invoke(null, object.nbte$getCompoundOrDefault("SkullOwner")));
+	public Optional<GameProfile> get(CompoundTag object) {
 		return Optional.empty();
 	}
-	
-	private static final Reflection.MethodInvoker NbtHelper_writeGameProfile =
-			Reflection.getMethod(NbtHelper, "method_10684", MethodType.methodType(NbtCompound.class, NbtCompound.class, GameProfile.class));
+
 	@Override
-	public void set(NbtCompound object, Optional<GameProfile> value) {
-		value.ifPresentOrElse(
-				profile -> object.put("SkullOwner", NbtHelper_writeGameProfile.invoke(null, new NbtCompound(), value.get())),
-				() -> object.remove("SkullOwner"));
+	public void set(CompoundTag object, Optional<GameProfile> value) {
+
 	}
-	
 }

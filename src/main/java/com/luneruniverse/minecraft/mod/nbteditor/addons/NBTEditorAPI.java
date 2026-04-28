@@ -32,16 +32,16 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.datafixers.DSL.TypeReference;
 
-import net.minecraft.block.Block;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.ingame.CreativeInventoryScreen;
-import net.minecraft.entity.EntityType;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.text.Text;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.network.chat.Component;
 
 /**
  * The main API<br>
@@ -78,8 +78,8 @@ public class NBTEditorAPI {
 	 * @param name The name of the factory (used in the factory command)
 	 * @param extremeAlias The extreme alias
 	 * @param onRegister A consumer for the {@code /factory <name>} argument builder
-	 * @see #registerFactory(String, Consumer)
-	 * @see #registerFactory(String, Text, Consumer)
+	 * @see //#registerFactory(String, Consumer)
+	 * @see //#registerFactory(String, Component, Consumer)
 	 */
 	public static void registerAdvancedFactory(String name, String extremeAlias, Consumer<LiteralArgumentBuilder<FabricClientCommandSource>> onRegister) {
 		FactoryCommand.INSTANCE.getChildren().add(new ClientCommand() {
@@ -103,8 +103,8 @@ public class NBTEditorAPI {
 	 * @param name The name of the factory (used in the factory command)
 	 * @param extremeAlias The extreme alias
 	 * @param factory A consumer for the {@link NBTReference} the factory is called on
-	 * @see #registerFactory(String, Text, Consumer)
-	 * @see #registerAdvancedFactory(String, Consumer)
+	 * @see //#registerFactory(String, Component, Consumer)
+	 * @see //#registerAdvancedFactory(String, Consumer)
 	 */
 	public static void registerFactory(String name, String extremeAlias, Consumer<NBTReference<?>> factory) {
 		registerAdvancedFactory(name, extremeAlias, builder -> builder.executes(context -> {
@@ -124,16 +124,16 @@ public class NBTEditorAPI {
 	 * @param supported If the factory supports the particular reference (item vs. entity, etc.)
 	 * @param unsupportedMsg The message to show in chat if the command is called on an unsupported reference
 	 * @param factory A consumer for the {@link NBTReference} the factory is called on
-	 * @see #registerFactory(String, Consumer)
-	 * @see #registerAdvancedFactory(String, Consumer)
+	 * @see //#registerFactory(String, Consumer)
+	 * @see //#registerAdvancedFactory(String, Consumer)
 	 */
-	public static void registerFactory(String name, String extremeAlias, Text buttonMsg,
-			Predicate<NBTReference<?>> supported, Text unsupportedMsg, Consumer<NBTReference<?>> factory) {
+	public static void registerFactory(String name, String extremeAlias, Component buttonMsg,
+                                       Predicate<NBTReference<?>> supported, Component unsupportedMsg, Consumer<NBTReference<?>> factory) {
 		registerFactory(name, extremeAlias, ref -> {
 			if (supported.test(ref))
 				factory.accept(ref);
 			else if (MainUtil.client.player != null)
-				MainUtil.client.player.sendMessage(unsupportedMsg, false);
+				MainUtil.client.player.sendSystemMessage(unsupportedMsg);
 		});
 		LocalFactoryScreen.BASIC_FACTORIES.add(new LocalFactoryScreen.LocalFactoryReference(buttonMsg, supported, factory));
 	}
@@ -145,7 +145,7 @@ public class NBTEditorAPI {
 	 * @param name The name of the item that will be received (used in the get command)
 	 * @param extremeAlias The extreme alias
 	 * @param onRegister A consumer for the {@code /get <name>} argument builder
-	 * @see #registerAdvancedFactory(String, Consumer) An example of using onRegister
+	 * @see //#registerAdvancedFactory(String, Consumer) An example of using onRegister
 	 * @see MainUtil#getWithMessage(ItemStack)
 	 */
 	public static void registerGetCommand(String name, String extremeAlias, Consumer<LiteralArgumentBuilder<FabricClientCommandSource>> onRegister) {
@@ -169,7 +169,7 @@ public class NBTEditorAPI {
 	 * Add a preset item (/get preset {@literal <name>})
 	 * @param name The name of the item
 	 * @param item The item to add
-	 * @see #registerPresetItem(String)
+	 * @see //#registerPresetItem(String)
 	 */
 	public static void registerPresetItem(String name, Supplier<ItemStack> item) {
 		GetPresetCommand.registerPresetItem(name, item);
@@ -183,7 +183,7 @@ public class NBTEditorAPI {
 	 * @param name The name of the item
 	 * @param reloadable If the item should be re-read every time, allowing for changing it via resource packs
 	 * @return The loaded item, or null if the item couldn't be loaded
-	 * @see #registerPresetItem(String, ItemStack)
+	 * @see //#registerPresetItem(String, ItemStack)
 	 */
 	public static Supplier<ItemStack> registerPresetItem(String name, boolean reloadable) {
 		Supplier<ItemStack> item = GetPresetCommand.registerPresetItem(name);
@@ -284,7 +284,7 @@ public class NBTEditorAPI {
 	 * @param clazz The NBT class to make openable (can be a superclass)
 	 * @param folder The constructor for the folder manager
 	 */
-	public static void registerNBTFolderType(Class<? extends NbtElement> clazz, NBTFolder.Constructor<?> folder) {
+	public static void registerNBTFolderType(Class<? extends Tag> clazz, NBTFolder.Constructor<?> folder) {
 		NBTFolder.TYPES.put(clazz, folder);
 	}
 	
@@ -292,7 +292,7 @@ public class NBTEditorAPI {
 	 * Add an option to the config screen
 	 * @param item A consumer of the global config category, called every time the config screen is opened
 	 * @see #registerConfigItem(String, Supplier)
-	 * @see ConfigCategory#setConfigurable(String, ConfigPath)
+	 * @see ConfigCategory//#setConfigurable(String, ConfigPath)
 	 */
 	public static void registerConfigItem(Consumer<ConfigCategory> item) {
 		ConfigScreen.ADDED_OPTIONS.add(item);
@@ -327,7 +327,7 @@ public class NBTEditorAPI {
 	 * @see #registerInventoryTab(ItemStack, Runnable, Predicate)
 	 */
 	public static void registerInventoryTab(ItemStack item, Runnable onClick) {
-		registerInventoryTab(item, onClick, screen -> screen instanceof CreativeInventoryScreen);
+		registerInventoryTab(item, onClick, screen -> screen instanceof CreativeModeInventoryScreen);
 	}
 	
 	/**
@@ -340,41 +340,41 @@ public class NBTEditorAPI {
 	
 	/**
 	 * Updates old NBT structures into the current Minecraft version
-	 * @see #updateNBTDynamic(TypeReference, NbtCompound)
-	 * @see #updateNBTDynamic(TypeReference, NbtCompound, int)
-	 * @see #updateNBTDynamic(TypeReference, NbtElement, NbtElement, int)
+	 * @see #updateNBTDynamic(TypeReference, CompoundTag)
+	 * @see #updateNBTDynamic(TypeReference, CompoundTag, int)
+	 * @see #updateNBTDynamic(TypeReference, Tag, Tag, int)
 	 */
-	public static <T extends NbtElement> T updateNBT(TypeReference typeRef, T nbt, int oldVersion) {
+	public static <T extends Tag> T updateNBT(TypeReference typeRef, T nbt, int oldVersion) {
 		return MainUtil.update(typeRef, nbt, oldVersion);
 	}
 	/**
 	 * Updates old NBT structures into the current Minecraft version<br>
 	 * If dataVersionTag is not null and a number, this updates from that - otherwise, this updates from defaultOldVersion
-	 * @see #updateNBT(TypeReference, NbtElement, int)
-	 * @see #updateNBTDynamic(TypeReference, NbtCompound)
-	 * @see #updateNBTDynamic(TypeReference, NbtCompound, int)
+	 * @see #updateNBT(TypeReference, Tag, int)
+	 * @see #updateNBTDynamic(TypeReference, CompoundTag)
+	 * @see #updateNBTDynamic(TypeReference, CompoundTag, int)
 	 */
-	public static <T extends NbtElement> T updateNBTDynamic(TypeReference typeRef, T nbt, NbtElement dataVersionTag, int defaultOldVersion) {
+	public static <T extends Tag> T updateNBTDynamic(TypeReference typeRef, T nbt, Tag dataVersionTag, int defaultOldVersion) {
 		return MainUtil.updateDynamic(typeRef, nbt, dataVersionTag, defaultOldVersion);
 	}
 	/**
 	 * Updates old NBT structures into the current Minecraft version<br>
 	 * If a DataVersion tag exists, this updates from that - otherwise, this updates from defaultOldVersion
-	 * @see #updateNBT(TypeReference, NbtElement, int)
-	 * @see #updateNBTDynamic(TypeReference, NbtCompound)
-	 * @see #updateNBTDynamic(TypeReference, NbtElement, NbtElement, int)
+	 * @see #updateNBT(TypeReference, Tag, int)
+	 * @see #updateNBTDynamic(TypeReference, CompoundTag)
+	 * @see #updateNBTDynamic(TypeReference, Tag, Tag, int)
 	 */
-	public static NbtCompound updateNBTDynamic(TypeReference typeRef, NbtCompound nbt, int defaultOldVersion) {
+	public static CompoundTag updateNBTDynamic(TypeReference typeRef, CompoundTag nbt, int defaultOldVersion) {
 		return MainUtil.updateDynamic(typeRef, nbt, defaultOldVersion);
 	}
 	/**
 	 * Updates old NBT structures into the current Minecraft version<br>
 	 * If a DataVersion tag exists, this updates from that - otherwise, nbt is returned
-	 * @see #updateNBT(TypeReference, NbtElement, int)
-	 * @see #updateNBTDynamic(TypeReference, NbtCompound, int)
-	 * @see #updateNBTDynamic(TypeReference, NbtElement, NbtElement, int)
+	 * @see #updateNBT(TypeReference, Tag, int)
+	 * @see #updateNBTDynamic(TypeReference, CompoundTag, int)
+	 * @see #updateNBTDynamic(TypeReference, Tag, Tag, int)
 	 */
-	public static NbtCompound updateNBTDynamic(TypeReference typeRef, NbtCompound nbt) {
+	public static CompoundTag updateNBTDynamic(TypeReference typeRef, CompoundTag nbt) {
 		return MainUtil.updateDynamic(typeRef, nbt);
 	}
 	

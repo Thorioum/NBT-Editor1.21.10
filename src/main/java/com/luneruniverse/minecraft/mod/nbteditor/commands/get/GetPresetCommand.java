@@ -18,9 +18,10 @@ import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 
-import net.minecraft.datafixer.TypeReferences;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.util.datafix.fixes.References;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 public class GetPresetCommand extends ClientCommand {
 	
@@ -29,14 +30,17 @@ public class GetPresetCommand extends ClientCommand {
 		presetItems.put(name, item);
 	}
 	public static Supplier<ItemStack> registerPresetItem(String name) {
-		Supplier<ItemStack> output = () -> Optional.ofNullable(getItem(name)).orElseGet(() -> new ItemStack(Items.BARRIER)
-				.nbte$setCustomName(TextInst.translatable("nbteditor.get.preset_item.missing")));
+		Supplier<ItemStack> output = () -> Optional.ofNullable(getItem(name)).orElseGet(() -> {
+			ItemStack s = new ItemStack(Items.BARRIER);
+			s.set(DataComponents.CUSTOM_NAME,TextInst.translatable("nbteditor.get.preset_item.missing"));
+			return s;
+		});
 		presetItems.put(name, output);
 		return output;
 	}
 	private static ItemStack getItem(String name) {
 		try {
-			return NBTManagers.ITEM.deserialize(MainUtil.updateDynamic(TypeReferences.ITEM_STACK, MainUtil.readNBT(
+			return NBTManagers.ITEM.deserialize(MainUtil.updateDynamic(References.ITEM_STACK, MainUtil.readNBT(
 					MVMisc.getResource(IdentifierInst.of("nbteditor", "presetitems/" + name + ".nbt")).orElseThrow())), true);
 		} catch (Exception e) {
 			NBTEditor.LOGGER.error("Error while loading preset item '" + name + "'", e);

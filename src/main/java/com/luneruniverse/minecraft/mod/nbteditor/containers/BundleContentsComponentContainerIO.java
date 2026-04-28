@@ -2,10 +2,11 @@ package com.luneruniverse.minecraft.mod.nbteditor.containers;
 
 import java.util.Arrays;
 
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.BundleContentsComponent;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.Identifier;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.ItemStackTemplate;
+import net.minecraft.world.item.component.BundleContents;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.resources.Identifier;
 
 public class BundleContentsComponentContainerIO implements ContainerIO<ItemStack> {
 	
@@ -19,7 +20,7 @@ public class BundleContentsComponentContainerIO implements ContainerIO<ItemStack
 	
 	@Override
 	public boolean isSupported(ItemStack container) {
-		BundleContentsComponent component = container.get(DataComponentTypes.BUNDLE_CONTENTS);
+		BundleContents component = container.get(DataComponents.BUNDLE_CONTENTS);
 		return component == null || component.size() <= maxSlots;
 	}
 	
@@ -35,16 +36,16 @@ public class BundleContentsComponentContainerIO implements ContainerIO<ItemStack
 	
 	@Override
 	public ItemStack[] read(ItemStack container) {
-		BundleContentsComponent component = container.get(DataComponentTypes.BUNDLE_CONTENTS);
+		BundleContents component = container.get(DataComponents.BUNDLE_CONTENTS);
 		if (component == null)
 			return new ItemStack[0];
-		return component.stream().toArray(ItemStack[]::new);
+		return component.itemCopyStream().toArray(ItemStack[]::new);
 	}
 	
 	@Override
 	public int write(ItemStack container, ItemStack[] contents) {
-		container.set(DataComponentTypes.BUNDLE_CONTENTS, new BundleContentsComponent(
-				Arrays.stream(contents).filter(item -> item != null && !item.isEmpty()).map(ItemStack::copy).toList()));
+		container.set(DataComponents.BUNDLE_CONTENTS, new BundleContents(
+				Arrays.stream(contents).filter(item -> item != null && !item.isEmpty()).map(i->new ItemStackTemplate(i.typeHolder(),i.getCount(),i.getComponentsPatch())).toList()));
 		return contents.length;
 	}
 	

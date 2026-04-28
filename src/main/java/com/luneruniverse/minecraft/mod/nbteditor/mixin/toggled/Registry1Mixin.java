@@ -7,15 +7,15 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.DynamicRegistryManagerHolder;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.RegistryCache;
 
-import net.minecraft.registry.entry.RegistryEntry;
+import net.minecraft.core.Holder;
 
-@Mixin(targets = "net.minecraft.registry.Registry$1")
+@Mixin(targets = "net.minecraft.core.Registry$1")
 public class Registry1Mixin {
 	
-	@ModifyVariable(method = "getRawId", at = @At("HEAD"))
-	private RegistryEntry<?> getRawId(RegistryEntry<?> entry) {
-		if (entry instanceof RegistryEntry.Reference<?> ref && DynamicRegistryManagerHolder.isOwnedByDefaultManager(ref)) {
-			RegistryEntry.Reference<?> convertedRef = RegistryCache.convertManagerWithCache(ref);
+	@ModifyVariable(method = "getId", at = @At("HEAD"))
+	private Holder<?> getRawId(Holder<?> entry) {
+		if (entry instanceof Holder.Reference<?> ref && DynamicRegistryManagerHolder.isOwnedByDefaultManager(ref)) {
+			Holder.Reference<?> convertedRef = RegistryCache.convertManagerWithCache(ref);
 			if (convertedRef != null)
 				return convertedRef;
 		}

@@ -8,40 +8,40 @@ import java.util.Map;
 
 import com.luneruniverse.minecraft.mod.nbteditor.util.OrderedMap;
 
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.input.CharInput;
-import net.minecraft.client.input.KeyInput;
-import net.minecraft.text.Text;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.network.chat.Component;
 
 public abstract class ConfigGrouping<K, T extends ConfigGrouping<K, T>> implements ConfigPathNamed {
 	
 	protected interface Constructor<K, T extends ConfigGrouping<K, T>> {
-		T newInstance(Text name);
+		T newInstance(Component name);
 	}
 	
-	protected final Text name;
+	protected final Component name;
 	protected final OrderedMap<K, ConfigPath> paths;
 	private final Constructor<K, T> cloneImpl;
 	
-	protected Text namePrefix;
+	protected Component namePrefix;
 	protected final List<ConfigValueListener<ConfigValue<?, ?>>> onChanged;
 	
-	protected ConfigGrouping(Text name, Constructor<K, T> cloneImpl) {
+	protected ConfigGrouping(Component name, Constructor<K, T> cloneImpl) {
 		this.name = name;
 		this.paths = new OrderedMap<>();
 		this.cloneImpl = cloneImpl;
 		this.onChanged = new ArrayList<>();
 	}
 	
-	public Text getName() {
+	public Component getName() {
 		return name;
 	}
 	@Override
-	public void setNamePrefix(Text prefix) {
+	public void setNamePrefix(Component prefix) {
 		namePrefix = prefix;
 	}
 	@Override
-	public Text getNamePrefix() {
+	public Component getNamePrefix() {
 		return namePrefix;
 	}
 	
@@ -91,18 +91,18 @@ public abstract class ConfigGrouping<K, T extends ConfigGrouping<K, T>> implemen
 	
 	// Make sure subclasses offset the mouse properly
 	@Override
-	public abstract boolean mouseClicked(Click click, boolean b);
+	public abstract boolean mouseClicked(MouseButtonEvent click, boolean b);
 	@Override
-	public abstract boolean mouseReleased(Click click);
+	public abstract boolean mouseReleased(MouseButtonEvent click);
 	@Override
 	public abstract void mouseMoved(double mouseX, double mouseY);
 	@Override
-	public abstract boolean mouseDragged(Click click, double deltaX, double deltaY);
+	public abstract boolean mouseDragged(MouseButtonEvent click, double deltaX, double deltaY);
 	@Override
 	public abstract boolean mouseScrolled(double mouseX, double mouseY, double xAmount, double yAmount);
 	
 	@Override
-	public boolean keyPressed(KeyInput keyInput) {
+	public boolean keyPressed(KeyEvent keyInput) {
 		for (ConfigPath path : new ArrayList<>(paths.values())) {
 			if (path.keyPressed(keyInput))
 				return true;
@@ -110,7 +110,7 @@ public abstract class ConfigGrouping<K, T extends ConfigGrouping<K, T>> implemen
 		return false;
 	}
 	@Override
-	public boolean keyReleased(KeyInput keyInput) {
+	public boolean keyReleased(KeyEvent keyInput) {
 		for (ConfigPath path : new ArrayList<>(paths.values())) {
 			if (path.keyReleased(keyInput))
 				return true;
@@ -118,7 +118,7 @@ public abstract class ConfigGrouping<K, T extends ConfigGrouping<K, T>> implemen
 		return false;
 	}
 	@Override
-	public boolean charTyped(CharInput charInput) {
+	public boolean charTyped(CharacterEvent charInput) {
 		for (ConfigPath path : new ArrayList<>(paths.values())) {
 			if (path.charTyped(charInput))
 				return true;

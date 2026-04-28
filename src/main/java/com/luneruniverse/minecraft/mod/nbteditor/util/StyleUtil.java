@@ -8,8 +8,8 @@ import com.luneruniverse.minecraft.mod.nbteditor.localnbt.LocalItem;
 import com.luneruniverse.minecraft.mod.nbteditor.localnbt.LocalNBT;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.Version;
 
-import net.minecraft.text.Style;
-import net.minecraft.util.Formatting;
+import net.minecraft.network.chat.Style;
+import net.minecraft.ChatFormatting;
 
 public class StyleUtil {
 	
@@ -18,28 +18,28 @@ public class StyleUtil {
 			.range(null, "1.21.3", false)
 			.get();
 	
-	public static final Style RESET_STYLE = Style.EMPTY.withColor(Formatting.WHITE)
-			.withBold(false).withItalic(false).withUnderline(false).withStrikethrough(false).withObfuscated(false);
+	public static final Style RESET_STYLE = Style.EMPTY.withColor(ChatFormatting.WHITE)
+			.withBold(false).withItalic(false).withUnderlined(false).withStrikethrough(false).withObfuscated(false);
 	
 	public static Style getBaseNameStyle(LocalNBT localNBT, boolean itemName) {
 		Style baseNameStyle = Style.EMPTY;
 		if (localNBT instanceof LocalItem item) {
 			if (!itemName)
-				baseNameStyle = baseNameStyle.withFormatting(Formatting.ITALIC);
-			baseNameStyle = baseNameStyle.withFormatting(item.getEditableItem().getRarity().formatting);
+				baseNameStyle = baseNameStyle.applyFormat(ChatFormatting.ITALIC);
+			baseNameStyle = baseNameStyle.applyFormat(item.getEditableItem().getRarity().color);
 		} else if (localNBT instanceof LocalBlock)
 			;
 		else if (localNBT instanceof LocalEntity)
-			baseNameStyle = baseNameStyle.withFormatting(Formatting.WHITE);
+			baseNameStyle = baseNameStyle.applyFormat(ChatFormatting.WHITE);
 		else
 			throw new IllegalStateException("Cannot get base name style for " + localNBT.getClass().getName());
 		
 		return baseNameStyle;
 	}
 	
-	public static final Style BASE_LORE_STYLE = Style.EMPTY.withFormatting(Formatting.ITALIC, Formatting.DARK_PURPLE);
+	public static final Style BASE_LORE_STYLE = Style.EMPTY.applyFormats(ChatFormatting.ITALIC, ChatFormatting.DARK_PURPLE);
 	
-	public static final Style BOOK_STYLE = Style.EMPTY.withFormatting(Formatting.BLACK);
+	public static final Style BOOK_STYLE = Style.EMPTY.applyFormat(ChatFormatting.BLACK);
 	
 	public static boolean identical(Style a, Style b) {
 		boolean output = Objects.equals(a.getColor(), b.getColor()) &&
@@ -59,12 +59,12 @@ public class StyleUtil {
 		return output;
 	}
 	
-	public static boolean hasFormatting(Style style, Formatting formatting) {
-		return identical(style, style.withFormatting(formatting));
+	public static boolean hasFormatting(Style style, ChatFormatting formatting) {
+		return identical(style, style.applyFormat(formatting));
 	}
 	
 	public static boolean hasFormatting(Style style, Style base) {
-		return !identical(style.withParent(base), base);
+		return !identical(style.applyTo(base), base);
 	}
 	
 	public static Style minus(Style style, Style base) {
@@ -77,7 +77,7 @@ public class StyleUtil {
 		if (style.italic != null && !style.italic.equals(base.italic))
 			output = output.withItalic(style.italic);
 		if (style.underlined != null && !style.underlined.equals(base.underlined))
-			output = output.withUnderline(style.underlined);
+			output = output.withUnderlined(style.underlined);
 		if (style.strikethrough != null && !style.strikethrough.equals(base.strikethrough))
 			output = output.withStrikethrough(style.strikethrough);
 		if (style.obfuscated != null && !style.obfuscated.equals(base.obfuscated))
@@ -99,15 +99,15 @@ public class StyleUtil {
 		return output;
 	}
 	
-	public static Style minusFormatting(Style style, Style base, Formatting formatting) {
-		if (formatting == Formatting.RESET)
+	public static Style minusFormatting(Style style, Style base, ChatFormatting formatting) {
+		if (formatting == ChatFormatting.RESET)
 			return base;
 		if (formatting.isColor())
 			return style.withColor(base.getColor());
 		return switch (formatting) {
 			case BOLD -> style.withBold(base.bold);
 			case ITALIC -> style.withItalic(base.italic);
-			case UNDERLINE -> style.withUnderline(base.underlined);
+			case UNDERLINE -> style.withUnderlined(base.underlined);
 			case STRIKETHROUGH -> style.withStrikethrough(base.strikethrough);
 			case OBFUSCATED -> style.withObfuscated(base.obfuscated);
 			default -> throw new IllegalArgumentException("Unknown formatting: " + formatting);

@@ -1,22 +1,27 @@
 package com.luneruniverse.minecraft.mod.nbteditor.clientchest;
 
 import com.mojang.brigadier.StringReader;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockEntityProvider;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.block.entity.BlockEntityType;
-import net.minecraft.command.EntitySelectorReader;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.ItemEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.SpawnEggItem;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.IntTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.StringTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.EntityBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.commands.arguments.selector.EntitySelectorParser;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.nbt.*;
-import net.minecraft.registry.Registries;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.StringHelper;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.StringUtil;
+import net.minecraft.core.BlockPos;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,16 +39,16 @@ public class ExtraDataFixes {
 
         fixes.add(new Fix("OOB Enchant Fixer", 3950, -1) {
             @Override
-            public void fix(NbtCompound nbt) {
+            public void fix(CompoundTag nbt) {
                 forEveryRecursiveItem(nbt,tag->{
-                    NbtCompound components = tag.getCompoundOrEmpty("components");
+                    CompoundTag components = tag.getCompoundOrEmpty("components");
                     if (components.contains("minecraft:enchantments")) {
-                        NbtCompound enchantments = components.getCompoundOrEmpty("minecraft:enchantments");
-                        if(enchantments.get("levels") instanceof NbtCompound) {
-                            NbtCompound levels = enchantments.getCompoundOrEmpty("levels");
-                            for(String key : levels.getKeys()) {
-                                if(levels.get(key) instanceof NbtInt i && i.intValue() == 0) {
-                                    levels.put(key,NbtInt.of(1));
+                        CompoundTag enchantments = components.getCompoundOrEmpty("minecraft:enchantments");
+                        if(enchantments.get("levels") instanceof CompoundTag) {
+                            CompoundTag levels = enchantments.getCompoundOrEmpty("levels");
+                            for(String key : levels.keySet()) {
+                                if(levels.get(key) instanceof IntTag i && i.intValue() == 0) {
+                                    levels.put(key, IntTag.valueOf(1));
                                 }
                             }
                         }
@@ -55,10 +60,10 @@ public class ExtraDataFixes {
 
             private String getBEntityId(String blockId) {
                 try {
-                    Block b = Registries.BLOCK.get(Identifier.of(blockId));
-                    if (b instanceof BlockEntityProvider p) {
-                        BlockEntity e = p.createBlockEntity(new BlockPos(0, 0, 0), b.getDefaultState());
-                        return Registries.BLOCK_ENTITY_TYPE.getId(e.getType()).toString();
+                    Block b = BuiltInRegistries.BLOCK.getValue(Identifier.parse(blockId));
+                    if (b instanceof EntityBlock p) {
+                        BlockEntity e = p.newBlockEntity(new BlockPos(0, 0, 0), b.defaultBlockState());
+                        return BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(e.getType()).toString();
                     }
                 } catch (Exception ignored) {
                 }
@@ -66,28 +71,28 @@ public class ExtraDataFixes {
             }
             private String getEntityId(String itemId) {
                 try {
-                    if (Registries.ITEM.get(Identifier.of(itemId)) instanceof SpawnEggItem i) {
-                        EntityType<?> t = i.getEntityType(new ItemStack(i));
-                        return Registries.ENTITY_TYPE.getId(t).toString();
+                    if (BuiltInRegistries.ITEM.getValue(Identifier.parse(itemId)) instanceof SpawnEggItem i) {
+                        EntityType<?> t = i.getType(new ItemStack(i));
+                        return BuiltInRegistries.ENTITY_TYPE.getKey(t).toString();
                     }
                 } catch (Exception e) {
                 }
                 return itemId;
             }
             @Override
-            public void fix(NbtCompound nbt) {
+            public void fix(CompoundTag nbt) {
                 forEveryRecursiveItem(nbt,tag->{
                     Optional<String> id = tag.getString("id");
                     if(id.isPresent()) {
-                        NbtCompound components = tag.getCompoundOrEmpty("components");
+                        CompoundTag components = tag.getCompoundOrEmpty("components");
                         if (components.contains("minecraft:block_entity_data")) {
-                            NbtCompound blockEntityData = components.getCompoundOrEmpty("minecraft:block_entity_data");
+                            CompoundTag blockEntityData = components.getCompoundOrEmpty("minecraft:block_entity_data");
                             String bid = getBEntityId(id.get());
-                            if (blockEntityData.get("id") instanceof NbtString) {
+                            if (blockEntityData.get("id") instanceof StringTag) {
                                 String s = blockEntityData.getString("id").get();
                                 if(s.startsWith("minecraft:")) s = s.substring("minecraft:".length());
                                 if(s.equals("spawner")) {
-                                    blockEntityData.put("id",NbtString.of("minecraft:mob_spawner"));
+                                    blockEntityData.put("id", StringTag.valueOf("minecraft:mob_spawner"));
                                     return;
                                 }
                                 try {
@@ -95,28 +100,28 @@ public class ExtraDataFixes {
                                     if(s.endsWith("command_block") && !s.equals("command_block")) throw new Exception();
                                     if(!s.endsWith("hanging_sign") && s.endsWith("sign") && !s.equals("sign")) throw new Exception();
                                     if(s.endsWith("hanging_sign") && !s.equals("hanging_sign")) throw new Exception();
-                                    Identifier.of(s);
+                                    Identifier.parse(s);
                                 } catch (Exception e) {
-                                    blockEntityData.put("id",NbtString.of(bid));
+                                    blockEntityData.put("id", StringTag.valueOf(bid));
                                 }
                             } else {
-                                blockEntityData.put("id",NbtString.of(bid));
+                                blockEntityData.put("id", StringTag.valueOf(bid));
                             }
                         }
 
                         if (components.contains("minecraft:entity_data")) {
-                            NbtCompound entityData = components.getCompoundOrEmpty("minecraft:entity_data");
+                            CompoundTag entityData = components.getCompoundOrEmpty("minecraft:entity_data");
                             String eid = getEntityId(id.get());
-                            if (entityData.get("id") instanceof NbtString) {
+                            if (entityData.get("id") instanceof StringTag) {
                                 String s = entityData.getString("id").get();
                                 try {
                                     if(s.isEmpty()) throw new Exception();
-                                    Identifier.of(s);
+                                    Identifier.parse(s);
                                 } catch (Exception e) {
-                                    entityData.put("id",NbtString.of(eid));
+                                    entityData.put("id", StringTag.valueOf(eid));
                                 }
                             } else {
-                                entityData.put("id",NbtString.of(eid));
+                                entityData.put("id", StringTag.valueOf(eid));
                             }
                         }
                     }
@@ -126,7 +131,7 @@ public class ExtraDataFixes {
 
     }
 
-    public static void applyFixes(NbtCompound tag, int currentDataVer) {
+    public static void applyFixes(CompoundTag tag, int currentDataVer) {
         for(Fix each : fixes) {
             if(each.isValidDataVersion(currentDataVer)) {
                 each.applyFix(tag);
@@ -149,25 +154,25 @@ public class ExtraDataFixes {
             int max = maxDataVersion == -1 ? Integer.MAX_VALUE : maxDataVersion;
             return dataVersion >= min && dataVersion <= max;
         }
-        public void applyFix(NbtCompound tag) {
+        public void applyFix(CompoundTag tag) {
             fix(tag);
         }
-        protected void forEveryRecursiveItem(NbtElement nbt, Consumer<NbtCompound> itemConsumer) {
-            if(nbt instanceof NbtCompound item) {
+        protected void forEveryRecursiveItem(Tag nbt, Consumer<CompoundTag> itemConsumer) {
+            if(nbt instanceof CompoundTag item) {
                 if(item.contains("components") && item.contains("id")) itemConsumer.accept(item);
-                for(String each : item.getKeys()) {
-                    NbtElement nbt2 = item.get(each);
+                for(String each : item.keySet()) {
+                    Tag nbt2 = item.get(each);
                     forEveryRecursiveItem(nbt2, itemConsumer);
 
                 }
             }
-            if(nbt instanceof NbtList list) {
-                for(NbtElement i : list) {
+            if(nbt instanceof ListTag list) {
+                for(Tag i : list) {
                     forEveryRecursiveItem(i, itemConsumer);
                 }
             }
         }
-        protected abstract void fix(NbtCompound nbt);
+        protected abstract void fix(CompoundTag nbt);
 
     }
 }

@@ -18,10 +18,15 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 
-import net.minecraft.block.ShulkerBoxBlock;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.util.Formatting;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.DyeColor;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.ShulkerBoxBlock;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.ChatFormatting;
+import org.jetbrains.annotations.Nullable;
 import tsp.headdb.ported.Category;
 import tsp.headdb.ported.Head;
 import tsp.headdb.ported.HeadAPI;
@@ -38,7 +43,32 @@ public class GetHdbCommand extends ClientCommand {
 	public String getExtremeAlias() {
 		return "h";
 	}
-	
+
+	public static Block getBlock(@Nullable DyeColor dyeColor) {
+		if (dyeColor == null) {
+			return Blocks.SHULKER_BOX;
+		} else {
+			return switch (dyeColor) {
+				case WHITE -> Blocks.WHITE_SHULKER_BOX;
+				case ORANGE -> Blocks.ORANGE_SHULKER_BOX;
+				case MAGENTA -> Blocks.MAGENTA_SHULKER_BOX;
+				case LIGHT_BLUE -> Blocks.LIGHT_BLUE_SHULKER_BOX;
+				case YELLOW -> Blocks.YELLOW_SHULKER_BOX;
+				case LIME -> Blocks.LIME_SHULKER_BOX;
+				case PINK -> Blocks.PINK_SHULKER_BOX;
+				case GRAY -> Blocks.GRAY_SHULKER_BOX;
+				case LIGHT_GRAY -> Blocks.LIGHT_GRAY_SHULKER_BOX;
+				case CYAN -> Blocks.CYAN_SHULKER_BOX;
+				case BLUE -> Blocks.BLUE_SHULKER_BOX;
+				case BROWN -> Blocks.BROWN_SHULKER_BOX;
+				case GREEN -> Blocks.GREEN_SHULKER_BOX;
+				case RED -> Blocks.RED_SHULKER_BOX;
+				case BLACK -> Blocks.BLACK_SHULKER_BOX;
+				case PURPLE -> Blocks.PURPLE_SHULKER_BOX;
+			};
+		}
+	}
+
 	@Override
 	public void register(LiteralArgumentBuilder<FabricClientCommandSource> builder, String path) {
 		builder.then(literal("search").then(argument("query", StringArgumentType.greedyString()).executes(context -> {
@@ -76,8 +106,8 @@ public class GetHdbCommand extends ClientCommand {
 					if (!HeadAPI.checkUpdated())
 						return Command.SINGLE_SUCCESS;
 					Category category = context.getArgument("category", Category.class);
-					ItemStack shulker = ShulkerBoxBlock.getItemStack(MainUtil.getDyeColor(category.getColor()));
-					shulker.nbte$setCustomName(TextInst.of(Formatting.RESET.toString() + category.getColor() + Formatting.BOLD + category.getTranslatedName().toUpperCase()));
+					ItemStack shulker = new ItemStack(getBlock(MainUtil.getDyeColor(category.getColor())));
+					shulker.set(DataComponents.CUSTOM_NAME,TextInst.of(ChatFormatting.RESET.toString() + category.getColor() + ChatFormatting.BOLD + category.getTranslatedName().toUpperCase()));
 					ItemTagReferences.HIDE_FLAGS.set(shulker, Map.of(HideFlag.CONTAINER, true));
 					ContainerIOs.writeRecursively(shulker, HeadAPI.getHeads(category).stream().map(Head::getItemStack).toList());
 					MainUtil.getWithMessage(shulker);
@@ -87,7 +117,7 @@ public class GetHdbCommand extends ClientCommand {
 						return Command.SINGLE_SUCCESS;
 					String query = context.getArgument("query", String.class);
 					ItemStack shulker = new ItemStack(Items.BROWN_SHULKER_BOX);
-					shulker.nbte$setCustomName(TextInst.of(Formatting.RESET.toString() + Formatting.GOLD + Formatting.BOLD + TextInst.translatable("nbteditor.hdb.search").getString() + ": " + query));
+					shulker.set(DataComponents.CUSTOM_NAME,TextInst.of(ChatFormatting.RESET.toString() + ChatFormatting.GOLD + ChatFormatting.BOLD + TextInst.translatable("nbteditor.hdb.search").getString() + ": " + query));
 					ItemTagReferences.HIDE_FLAGS.set(shulker, Map.of(HideFlag.CONTAINER, true));
 					ContainerIOs.writeRecursively(shulker, HeadAPI.getHeadsByName(query).stream().map(Head::getItemStack).toList());
 					MainUtil.getWithMessage(shulker);

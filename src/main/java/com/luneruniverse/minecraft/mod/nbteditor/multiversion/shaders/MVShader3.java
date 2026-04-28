@@ -4,18 +4,19 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.mojang.blaze3d.pipeline.BlendFunction;
+import com.mojang.blaze3d.pipeline.ColorTargetState;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.vertex.VertexFormat;
 
-import net.minecraft.client.gl.RenderPipelines;
-import net.minecraft.client.render.RenderLayer;
-import net.minecraft.client.render.RenderLayer.MultiPhaseParameters;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.renderer.rendertype.RenderSetup;
+import net.minecraft.client.renderer.rendertype.RenderType;
 
 public class MVShader3 extends MVShader {
 	
 	public static final List<RenderPipeline> RENDER_PIPELINES = new ArrayList<>();
 	
-	private final RenderLayer layer;
+	private final RenderType layer;
 	
 	public MVShader3(MVShader.Builder builder) {
 		RenderPipeline.Builder pipelineBuilder = RenderPipeline.builder(builder.getSnippets().stream()
@@ -24,24 +25,22 @@ public class MVShader3 extends MVShader {
 				.withVertexShader("core/" + builder.getShaderName())
 				.withFragmentShader("core/" + builder.getShaderName())
 				.withVertexFormat((VertexFormat) builder.getVertexFormat().getInternalValue(),
-						(VertexFormat.DrawMode) builder.getDrawMode().getInternalValue());
+						(VertexFormat.Mode) builder.getDrawMode().getInternalValue());
 		
 		if (builder.isTranslucentBlendFunc())
-			pipelineBuilder.withBlend(BlendFunction.TRANSLUCENT);
-		
+			pipelineBuilder.withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT));
+
 		RenderPipeline pipeline = RenderPipelines.register(pipelineBuilder.build());
 		
-		layer = RenderLayer.of(
+		layer = RenderType.create(
 				builder.getLayerName(),
-				builder.getExpectedBufferSize(),
-				pipeline,
-				MultiPhaseParameters.builder().build(builder.isAffectsOutline()));
+				RenderSetup.builder(pipeline).affectsCrumbling().bufferSize(builder.getExpectedBufferSize()).createRenderSetup());
 		
 		RENDER_PIPELINES.add(pipeline);
 	}
 	
 	@Override
-	public RenderLayer getLayer() {
+	public RenderType getLayer() {
 		return layer;
 	}
 	

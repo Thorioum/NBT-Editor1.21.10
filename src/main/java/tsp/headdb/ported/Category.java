@@ -5,31 +5,31 @@ import java.util.Map;
 
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.TextInst;
 
-import net.minecraft.item.ItemStack;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting;
 
 public enum Category {
 	
-    ALPHABET("alphabet", "nbteditor.hdb.category.alphabet", Formatting.YELLOW, 20),
-    ANIMALS("animals", "nbteditor.hdb.category.animals", Formatting.DARK_AQUA, 21),
-    BLOCKS("blocks", "nbteditor.hdb.category.blocks", Formatting.DARK_GRAY, 22),
-    DECORATION("decoration", "nbteditor.hdb.category.decoration", Formatting.LIGHT_PURPLE, 23),
-    FOOD_DRINKS("food-drinks", "nbteditor.hdb.category.food_drinks", Formatting.GOLD, 24),
-    HUMANS("humans", "nbteditor.hdb.category.humans", Formatting.DARK_BLUE, 29),
-    HUMANOID("humanoid", "nbteditor.hdb.category.humanoid", Formatting.AQUA, 30),
-    MISCELLANEOUS("miscellaneous", "nbteditor.hdb.category.miscellaneous", Formatting.DARK_GREEN, 31),
-    MONSTERS("monsters", "nbteditor.hdb.category.monsters", Formatting.RED, 32),
-    PLANTS("plants", "nbteditor.hdb.category.plants", Formatting.GREEN, 33);
+    ALPHABET("alphabet", "nbteditor.hdb.category.alphabet", ChatFormatting.YELLOW, 20),
+    ANIMALS("animals", "nbteditor.hdb.category.animals", ChatFormatting.DARK_AQUA, 21),
+    BLOCKS("blocks", "nbteditor.hdb.category.blocks", ChatFormatting.DARK_GRAY, 22),
+    DECORATION("decoration", "nbteditor.hdb.category.decoration", ChatFormatting.LIGHT_PURPLE, 23),
+    FOOD_DRINKS("food-drinks", "nbteditor.hdb.category.food_drinks", ChatFormatting.GOLD, 24),
+    HUMANS("humans", "nbteditor.hdb.category.humans", ChatFormatting.DARK_BLUE, 29),
+    HUMANOID("humanoid", "nbteditor.hdb.category.humanoid", ChatFormatting.AQUA, 30),
+    MISCELLANEOUS("miscellaneous", "nbteditor.hdb.category.miscellaneous", ChatFormatting.DARK_GREEN, 31),
+    MONSTERS("monsters", "nbteditor.hdb.category.monsters", ChatFormatting.RED, 32),
+    PLANTS("plants", "nbteditor.hdb.category.plants", ChatFormatting.GREEN, 33);
 	
 	private final String name;
-    private final Text translatedName;
-    private final Formatting color;
+    private final Component translatedName;
+    private final ChatFormatting color;
     private final int location;
     private final Map<Category, Head> item = new HashMap<>();
     private static final Category[] values = values();
     
-    Category(String name, String translatedName, Formatting color, int location) {
+    Category(String name, String translatedName, ChatFormatting color, int location) {
         this.name = name;
     	this.translatedName = TextInst.translatable(translatedName);
         this.color = color;
@@ -44,7 +44,7 @@ public enum Category {
         return translatedName.getString();
     }
     
-    public Formatting getColor() {
+    public ChatFormatting getColor() {
         return color;
     }
     

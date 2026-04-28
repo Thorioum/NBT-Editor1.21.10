@@ -1,40 +1,41 @@
 package com.luneruniverse.minecraft.mod.nbteditor.screens;
 
+import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVDrawableHelper;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.TextInst;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 
-import net.minecraft.client.gui.Drawable;
-import net.minecraft.client.gui.Element;
-import net.minecraft.client.gui.Selectable;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.text.Text;
+import net.minecraft.client.gui.components.Renderable;
+import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.client.gui.narration.NarratableEntry;
+import net.minecraft.client.gui.screens.Screen;
+import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.network.chat.Component;
 import org.joml.Matrix3x2fStack;
 
 public class OverlayScreen extends OverlaySupportingScreen {
 	
-	public static <T extends Drawable & Element & Selectable> T setOverlayOrScreen(T overlay, double z, boolean restoreParent) {
-		if (MainUtil.client.currentScreen instanceof OverlaySupportingScreen screen)
+	public static <T extends Renderable & GuiEventListener & NarratableEntry> T setOverlayOrScreen(T overlay, double z, boolean restoreParent) {
+		if (MainUtil.client.screen instanceof OverlaySupportingScreen screen)
 			screen.setOverlay(overlay, z);
 		else
 			MainUtil.client.setScreen(new OverlayScreen(TextInst.of(overlay.getClass().getName()), overlay, z, restoreParent));
 		return overlay;
 	}
-	public static <T extends Drawable & Element & Selectable> T setOverlayOrScreen(T overlay, boolean restoreParent) {
+	public static <T extends Renderable & GuiEventListener & NarratableEntry> T setOverlayOrScreen(T overlay, boolean restoreParent) {
 		return setOverlayOrScreen(overlay, 0, restoreParent);
 	}
 	
 	private Screen parent;
 	
-	private <T extends Drawable & Element & Selectable> OverlayScreen(Text title, T widget, double z, boolean restoreParent) {
+	private <T extends Renderable & GuiEventListener & NarratableEntry> OverlayScreen(Component title, T widget, double z, boolean restoreParent) {
 		super(title);
 		setOverlay(widget, z);
 		if (restoreParent)
-			parent = MainUtil.client.currentScreen;
+			parent = MainUtil.client.screen;
 	}
 	
 	@Override
-	public <T extends Drawable & Element> T setOverlay(T overlay, double z) {
+	public <T extends Renderable & GuiEventListener> T setOverlay(T overlay, double z) {
 		if (overlay == null)
 			MainUtil.client.setScreen(parent);
 		else
@@ -53,14 +54,14 @@ public class OverlayScreen extends OverlaySupportingScreen {
 	@Override
 	protected void init() {
 		if (parent != null)
-			parent.init(client, width, height);
+			parent.init(width, height);
 		super.init();
 	}
 	
 	@Override
 	protected void renderMain(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
 		if (parent != null)
-			parent.render(matrices, -314, -314, delta);
+			parent.extractRenderState(MVDrawableHelper.getDrawContext(matrices), -314, -314, delta);
 	}
 	
 }

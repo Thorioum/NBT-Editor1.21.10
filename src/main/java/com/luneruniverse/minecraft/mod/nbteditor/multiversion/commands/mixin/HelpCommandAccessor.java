@@ -21,11 +21,11 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 
-import net.minecraft.server.command.HelpCommand;
+import net.minecraft.server.commands.HelpCommand;
 
 @Mixin(HelpCommand.class)
 public interface HelpCommandAccessor {
-	@Accessor("FAILED_EXCEPTION")
+	@Accessor("ERROR_FAILED")
 	static SimpleCommandExceptionType getFailedException() {
 		throw new AssertionError("mixin");
 	}

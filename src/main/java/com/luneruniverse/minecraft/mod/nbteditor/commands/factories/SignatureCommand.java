@@ -21,13 +21,13 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 
-import net.minecraft.item.ItemStack;
-import net.minecraft.text.Text;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.network.chat.Component;
 
 public class SignatureCommand extends ClientCommand {
 	
 	private static final File SIGNATURE_FILE = new File(NBTEditorClient.SETTINGS_FOLDER, "signature.json");
-	private static Text signature;
+	private static Component signature;
 	static {
 		if (!SIGNATURE_FILE.exists())
 			signature = TextInst.translatable("nbteditor.sign.default");
@@ -59,7 +59,7 @@ public class SignatureCommand extends ClientCommand {
 			ItemReference ref = ItemReference.getHeldItem();
 			ItemStack item = ref.getItem();
 			
-			List<Text> lore = ItemTagReferences.LORE.get(item);
+			List<Component> lore = ItemTagReferences.LORE.get(item);
 			if (!hasSignature(lore))
 				lore.add(signature);
 			else {
@@ -79,7 +79,7 @@ public class SignatureCommand extends ClientCommand {
 					ItemReference ref = ItemReference.getHeldItem();
 					ItemStack item = ref.getItem();
 					
-					List<Text> lore = ItemTagReferences.LORE.get(item);
+					List<Component> lore = ItemTagReferences.LORE.get(item);
 					if (!hasSignature(lore)) {
 						context.getSource().sendFeedback(TextInst.translatable("nbteditor.sign.not_added"));
 						return Command.SINGLE_SUCCESS;
@@ -92,10 +92,10 @@ public class SignatureCommand extends ClientCommand {
 					return Command.SINGLE_SUCCESS;
 				}))
 				.then(literal("edit").then(argument("signature", FancyTextArgumentType.fancyText(StyleUtil.BASE_LORE_STYLE)).executes(context -> {
-					Text oldSignature = signature;
+					Component oldSignature = signature;
 					
 					try {
-						signature = context.getArgument("signature", Text.class);
+						signature = context.getArgument("signature", Component.class);
 					} catch (IllegalArgumentException e) {
 						throw new SimpleCommandExceptionType(TextInst.translatable("nbteditor.sign.new.missing_arg")).create();
 					}
@@ -109,7 +109,7 @@ public class SignatureCommand extends ClientCommand {
 					ItemReference ref = ItemReference.getHeldItem();
 					ItemStack item = ref.getItem();
 					
-					List<Text> lore = ItemTagReferences.LORE.get(item);
+					List<Component> lore = ItemTagReferences.LORE.get(item);
 					if (hasSignature(lore, oldSignature)) {
 						lore.set(lore.size() - 1, signature);
 						ItemTagReferences.LORE.set(item, lore);
@@ -120,12 +120,12 @@ public class SignatureCommand extends ClientCommand {
 				})));
 	}
 	
-	private static boolean hasSignature(List<Text> lore, Text signature) {
+	private static boolean hasSignature(List<Component> lore, Component signature) {
 		if (lore.isEmpty())
 			return false;
 		return lore.get(lore.size() - 1).getString().equals(signature.getString());
 	}
-	private static boolean hasSignature(List<Text> lore) {
+	private static boolean hasSignature(List<Component> lore) {
 		return hasSignature(lore, signature);
 	}
 	

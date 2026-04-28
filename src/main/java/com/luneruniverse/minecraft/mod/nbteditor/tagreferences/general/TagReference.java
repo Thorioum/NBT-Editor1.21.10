@@ -14,10 +14,10 @@ import java.util.function.UnaryOperator;
 
 import com.luneruniverse.minecraft.mod.nbteditor.localnbt.LocalNBT;
 
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtList;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.nbt.ListTag;
 
 public interface TagReference<T, O> {
 	public static <T1, T2, O> TagReference<T2, O> mapValue(Function<T1, T2> getter, Function<T2, T1> setter, TagReference<T1, O> tagRef) {
@@ -47,25 +47,14 @@ public interface TagReference<T, O> {
 		};
 	}
 	
-	public static <T> TagReference<T, ItemStack> forItems(Supplier<T> defaultValue, TagReference<T, NbtCompound> tagRef) {
-		return new TagReference<>() {
-			@Override
-			public T get(ItemStack object) {
-				if (!object.nbte$hasNbt())
-					return defaultValue.get();
-				return tagRef.get(object.nbte$getNbt());
-			}
-			@Override
-			public void set(ItemStack object, T value) {
-				object.nbte$modifyNbt(nbt -> tagRef.set(nbt, value));
-			}
-		};
+	public static <T> TagReference<T, ItemStack> forItems(Supplier<T> defaultValue, TagReference<T, CompoundTag> tagRef) {
+		return null;
 	}
-	public static <T, O extends LocalNBT> TagReference<T, O> forLocalNBT(Supplier<T> defaultValue, TagReference<T, NbtCompound> tagRef) {
+	public static <T, O extends LocalNBT> TagReference<T, O> forLocalNBT(Supplier<T> defaultValue, TagReference<T, CompoundTag> tagRef) {
 		return new TagReference<>() {
 			@Override
 			public T get(O object) {
-				NbtCompound nbt = object.getNBT();
+				CompoundTag nbt = object.getNBT();
 				if (nbt == null)
 					return defaultValue.get();
 				return tagRef.get(nbt);
@@ -83,35 +72,14 @@ public interface TagReference<T, O> {
 				list -> list == null ? null : list.toArray(len -> (C[]) Array.newInstance(clazz, len)),
 				tagRef);
 	}
-	public static <C, O> TagReference<List<C>, O> forLists(Function<NbtElement, C> getter, Function<C, NbtElement> setter, TagReference<NbtList, O> tagRef) {
-		return mapValue(
-				nbtList -> {
-					List<C> list = new ArrayList<>();
-					for (NbtElement elementNbt : nbtList.nbte$iterable()) {
-						C elementValue = getter.apply(elementNbt);
-						if (elementValue != null)
-							list.add(elementValue);
-					}
-					return list;
-				},
-				list -> {
-					if (list == null)
-						return null;
-					NbtList nbtList = new NbtList();
-					for (C elementValue : list) {
-						NbtElement elementNbt = setter.apply(elementValue);
-						if (elementNbt != null)
-							nbtList.add(elementNbt);
-					}
-					return nbtList;
-				},
-				tagRef);
+	public static <C, O> TagReference<List<C>, O> forLists(Function<Tag, C> getter, Function<C, Tag> setter, TagReference<ListTag, O> tagRef) {
+		return null;
 	}
-	public static <V, O> TagReference<Map<String, V>, O> forMaps(Function<NbtElement, V> getter, Function<V, NbtElement> setter, TagReference<NbtCompound, O> tagRef) {
+	public static <V, O> TagReference<Map<String, V>, O> forMaps(Function<Tag, V> getter, Function<V, Tag> setter, TagReference<CompoundTag, O> tagRef) {
 		return mapValue(
 				compound -> {
 					Map<String, V> output = new HashMap<>();
-					for (String key : compound.getKeys()) {
+					for (String key : compound.keySet()) {
 						V entryValue = getter.apply(compound.get(key));
 						if (entryValue != null)
 							output.put(key, entryValue);
@@ -121,9 +89,9 @@ public interface TagReference<T, O> {
 				map -> {
 					if (map == null)
 						return null;
-					NbtCompound compound = new NbtCompound();
+					CompoundTag compound = new CompoundTag();
 					map.forEach((key, entryValue) -> {
-						NbtElement entryValueNbt = setter.apply(entryValue);
+						Tag entryValueNbt = setter.apply(entryValue);
 						if (entryValueNbt != null)
 							compound.put(key, entryValueNbt);
 					});
@@ -131,20 +99,20 @@ public interface TagReference<T, O> {
 				},
 				tagRef);
 	}
-	public static <T> TagReference<T, NbtCompound> alsoRemove(String path, TagReference<T, NbtCompound> tagRef) {
+	public static <T> TagReference<T, CompoundTag> alsoRemove(String path, TagReference<T, CompoundTag> tagRef) {
 		return new TagReference<>() {
 			@Override
-			public T get(NbtCompound object) {
+			public T get(CompoundTag object) {
 				return tagRef.get(object);
 			}
 			@Override
-			public void set(NbtCompound object, T value) {
+			public void set(CompoundTag object, T value) {
 				tagRef.set(object, value);
 				
 				String[] pathParts = path.split("/");
-				NbtCompound nbt = object;
+				CompoundTag nbt = object;
 				for (int i = 0; i < pathParts.length - 1; i++)
-					nbt = nbt.nbte$getCompoundOrDefault(pathParts[i]);
+					nbt = nbt.getCompoundOrEmpty(pathParts[i]);
 				nbt.remove(pathParts[pathParts.length - 1]);
 			}
 		};

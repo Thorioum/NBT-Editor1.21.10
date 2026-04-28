@@ -23,16 +23,16 @@ import com.luneruniverse.minecraft.mod.nbteditor.screens.configurable.ConfigPane
 import com.luneruniverse.minecraft.mod.nbteditor.screens.containers.ContainerScreen;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.item.Items;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.world.item.Items;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 
 public class LocalFactoryScreen<L extends LocalNBT> extends LocalEditorScreen<L> {
 	
 	public static final Identifier FACTORY_ICON = IdentifierInst.of("nbteditor", "textures/factory.png");
 	
-	public record LocalFactoryReference(Text buttonText, Predicate<NBTReference<?>> supported, Consumer<NBTReference<?>> factory) {}
+	public record LocalFactoryReference(Component buttonText, Predicate<NBTReference<?>> supported, Consumer<NBTReference<?>> factory) {}
 	public static final List<LocalFactoryReference> BASIC_FACTORIES = new ArrayList<>();
 	private static void addFactory(String key, Predicate<NBTReference<?>> supported, Function<NBTReference<?>, Screen> screen) {
 		BASIC_FACTORIES.add(new LocalFactoryReference(TextInst.translatable(key), supported,
@@ -85,7 +85,7 @@ public class LocalFactoryScreen<L extends LocalNBT> extends LocalEditorScreen<L>
 	
 	@Override
 	protected void initEditor() {
-		ConfigPanel newPanel = addDrawableChild(new ConfigPanel(16, 64, width - 32, height - 80, config));
+		ConfigPanel newPanel = addRenderableWidget(new ConfigPanel(16, 64, width - 32, height - 80, config));
 		if (panel != null)
 			newPanel.setScroll(panel.getScroll());
 		panel = newPanel;

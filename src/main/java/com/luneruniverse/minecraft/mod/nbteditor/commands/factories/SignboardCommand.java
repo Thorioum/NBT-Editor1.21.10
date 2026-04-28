@@ -16,15 +16,15 @@ import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 
-import net.minecraft.block.AbstractSignBlock;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.level.block.SignBlock;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 
 public class SignboardCommand extends ClientCommand {
 	
 	public static final NBTReferenceFilter SIGNBOARD_FILTER = NBTReferenceFilter.create(
 			ref -> MVMisc.isSignItem(ref.getItem().getItem()),
-			ref -> ref.getBlock() instanceof AbstractSignBlock,
+			ref -> ref.getBlock() instanceof SignBlock,
 			null,
 			TextInst.translatable("nbteditor.no_ref.signboard"),
 			TextInst.translatable("nbteditor.no_hand.no_item.signboard"));

@@ -1,6 +1,6 @@
 package com.luneruniverse.minecraft.mod.nbteditor.util;
 
-import net.minecraft.entity.EquipmentSlot;
+import net.minecraft.world.entity.EquipmentSlot;
 
 /**
  * <h1>Slot Formats:</h1>
@@ -197,7 +197,7 @@ public class SlotUtil {
 	
 	public static int createArmorInInv(EquipmentSlot slot) {
 		if (slot.getType() == EquipmentSlot.Type.HUMANOID_ARMOR)
-			return slot.getEntitySlotId() + 36;
+			return slot.getIndex() + 36;
 		throw new IllegalArgumentException("Invalid armor index: " + slot);
 	}
 	

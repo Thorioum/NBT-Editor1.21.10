@@ -4,13 +4,14 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import net.minecraft.core.component.DataComponents;
 import org.apache.commons.lang3.Validate;
 
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.TextInst;
 import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.ItemTagReferences;
 
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 public class LocalHead extends Head {
 
@@ -26,7 +27,7 @@ public class LocalHead extends Head {
         Validate.notNull(uuid, "uuid must not be null!");
         
         ItemStack item = new ItemStack(Items.PLAYER_HEAD);
-        item.nbte$setCustomName(TextInst.of(Utils.colorize("&e" + name)));
+        item.set(DataComponents.CUSTOM_NAME,TextInst.of(Utils.colorize("&e" + name)));
         ItemTagReferences.PROFILE_NAME.set(item, Optional.of(name));
         ItemTagReferences.LORE.set(item, List.of(TextInst.of(Utils.colorize("&7UUID: " + uuid.toString()))));
         

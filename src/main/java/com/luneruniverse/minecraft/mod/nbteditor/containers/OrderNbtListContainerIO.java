@@ -1,16 +1,17 @@
 package com.luneruniverse.minecraft.mod.nbteditor.containers;
 
 import java.util.Arrays;
+import java.util.Optional;
 
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.nbt.manager.NBTManagers;
 
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtList;
-import net.minecraft.util.Identifier;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.resources.Identifier;
 
-public class OrderNbtListContainerIO implements ContainerIO<NbtList> {
+public class OrderNbtListContainerIO implements ContainerIO<ListTag> {
 	
 	private final int maxSlots;
 	private final Identifier[] textures;
@@ -20,50 +21,57 @@ public class OrderNbtListContainerIO implements ContainerIO<NbtList> {
 		this.textures = new Identifier[maxSlots];
 	}
 	
-	public ContainerIO<NbtCompound> forNbtCompound(String key) {
-		return DelegateContainerIO.map(this, nbt -> nbt.nbte$getListOrDefault(key), (nbt, list) -> nbt.put(key, list));
+	public ContainerIO<CompoundTag> forNbtCompound(String key) {
+		return DelegateContainerIO.map(this, nbt -> nbt.getListOrEmpty(key), (nbt, list) -> nbt.put(key, list));
 	}
-	public ContainerIO<NbtCompound> forNbtCompoundItems() {
+	public ContainerIO<CompoundTag> forNbtCompoundItems() {
 		return forNbtCompound("Items");
 	}
 	
 	@Override
-	public boolean isSupported(NbtList container) {
-		return container.size() <= maxSlots && container.nbte$getHeldType().filter(
-				heldType -> heldType == 0 || heldType == NbtElement.COMPOUND_TYPE).isPresent();
+	public boolean isSupported(ListTag container) {
+		byte ht = (byte) 0;
+		for (Tag element : container) {
+			if (ht == 0)
+				ht = element.getId();
+			else if (ht != element.getId()){}
+		}
+
+		return container.size() <= maxSlots && Optional.of(ht).filter(
+				heldType -> heldType == 0 || heldType == Tag.TAG_COMPOUND).isPresent();
 	}
 	
 	@Override
-	public int getMaxSlots(NbtList container) {
+	public int getMaxSlots(ListTag container) {
 		return maxSlots;
 	}
 	
 	@Override
-	public Identifier[] getTextures(NbtList container) {
+	public Identifier[] getTextures(ListTag container) {
 		return textures;
 	}
 	
 	@Override
-	public ItemStack[] read(NbtList container) {
-		return container.nbte$stream().map(itemNbt -> NBTManagers.ITEM.deserializeOrElse(
-				(NbtCompound) itemNbt, ItemStack.EMPTY)).toArray(ItemStack[]::new);
+	public ItemStack[] read(ListTag container) {
+		return container.stream().map(itemNbt -> NBTManagers.ITEM.deserializeOrElse(
+				(CompoundTag) itemNbt, ItemStack.EMPTY)).toArray(ItemStack[]::new);
 	}
 	
 	@Override
-	public int write(NbtList container, ItemStack[] contents) {
+	public int write(ListTag container, ItemStack[] contents) {
 		container.clear();
 		Arrays.stream(contents).filter(item -> item != null && !item.isEmpty())
-				.map(item -> item.nbte$serialize(true)).forEach(container::add);
+				.map(item -> NBTManagers.ITEM.serialize(item,true)).forEach(container::add);
 		return contents.length;
 	}
 	
 	@Override
-	public int getNumWritten(NbtList container, ItemStack[] contents) {
+	public int getNumWritten(ListTag container, ItemStack[] contents) {
 		return contents.length;
 	}
 	
 	@Override
-	public int getWrittenSlotIndex(NbtList container, ItemStack[] contents, int slot) {
+	public int getWrittenSlotIndex(ListTag container, ItemStack[] contents, int slot) {
 		int output = slot;
 		for (int i = 0; i < slot; i++) {
 			if (contents[i] == null || contents[i].isEmpty())

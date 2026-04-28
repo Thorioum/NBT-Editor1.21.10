@@ -9,7 +9,7 @@ import com.luneruniverse.minecraft.mod.nbteditor.screens.containers.ContainerScr
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 import com.luneruniverse.minecraft.mod.nbteditor.util.SaveQueue;
 
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.item.ItemStack;
 
 public class ContainerItemReference<L extends LocalNBT> implements ItemReference {
 	
@@ -27,8 +27,8 @@ public class ContainerItemReference<L extends LocalNBT> implements ItemReference
 			contents[slot] = toSave;
 			ContainerIOs.write(containerValue, contents);
 			
-			if (MainUtil.client.currentScreen instanceof ContainerScreen screen && screen.getReference() == container)
-				screen.getScreenHandler().getSlot(slot).setStackNoCallbacks(toSave);
+			if (MainUtil.client.screen instanceof ContainerScreen screen && screen.getReference() == container)
+				screen.getMenu().getSlot(slot).set(toSave);
 			
 			AtomicBoolean done = new AtomicBoolean();
 			Object lock = new Object();

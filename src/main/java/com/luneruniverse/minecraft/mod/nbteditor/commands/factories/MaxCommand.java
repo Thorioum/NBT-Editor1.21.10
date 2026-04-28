@@ -18,7 +18,7 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.item.ItemStack;
 
 public class MaxCommand extends ClientCommand {
 	
@@ -58,7 +58,7 @@ public class MaxCommand extends ClientCommand {
 		
 		enchants.removeDuplicates();
 		MVRegistry.getEnchantmentRegistry().forEach(enchant -> {
-			if ((allEnchants || enchant.isAcceptableItem(item)) && (cursed || !MVEnchantments.isCursed(enchant)))
+			if ((allEnchants || enchant.canEnchant(item)) && (cursed || !MVEnchantments.isCursed(enchant)))
 				enchants.setEnchant(enchant, enchantLevel == -1 ? enchant.getMaxLevel() : enchantLevel, true);
 		});
 		

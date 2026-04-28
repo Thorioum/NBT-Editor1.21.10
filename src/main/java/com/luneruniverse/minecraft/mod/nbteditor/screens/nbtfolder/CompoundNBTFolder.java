@@ -10,33 +10,33 @@ import java.util.stream.Collectors;
 import com.luneruniverse.minecraft.mod.nbteditor.screens.NBTEditorScreen;
 import com.luneruniverse.minecraft.mod.nbteditor.screens.NBTValue;
 
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
 
-public class CompoundNBTFolder implements NBTFolder<NbtCompound> {
+public class CompoundNBTFolder implements NBTFolder<CompoundTag> {
 	
-	private final Supplier<NbtCompound> get;
-	private final Consumer<NbtCompound> set;
+	private final Supplier<CompoundTag> get;
+	private final Consumer<CompoundTag> set;
 	
-	public CompoundNBTFolder(Supplier<NbtCompound> get, Consumer<NbtCompound> set) {
+	public CompoundNBTFolder(Supplier<CompoundTag> get, Consumer<CompoundTag> set) {
 		this.get = get;
 		this.set = set;
 	}
 	
 	@Override
-	public NbtCompound getNBT() {
+	public CompoundTag getNBT() {
 		return get.get();
 	}
 	
 	@Override
-	public void setNBT(NbtCompound value) {
+	public void setNBT(CompoundTag value) {
 		set.accept(value);
 	}
 	
 	@Override
 	public List<NBTValue> getEntries(NBTEditorScreen<?> screen) {
-		NbtCompound nbt = getNBT();
-		return nbt.getKeys().stream().map(key -> new NBTValue(screen, key, nbt.get(key))).collect(Collectors.toList());
+		CompoundTag nbt = getNBT();
+		return nbt.keySet().stream().map(key -> new NBTValue(screen, key, nbt.get(key))).collect(Collectors.toList());
 	}
 	
 	@Override
@@ -45,27 +45,27 @@ public class CompoundNBTFolder implements NBTFolder<NbtCompound> {
 	}
 	
 	@Override
-	public NbtElement getValue(String key) {
+	public Tag getValue(String key) {
 		return getNBT().get(key);
 	}
 	
 	@Override
-	public void setValue(String key, NbtElement value) {
-		NbtCompound nbt = getNBT();
+	public void setValue(String key, Tag value) {
+		CompoundTag nbt = getNBT();
 		nbt.put(key, value);
 		setNBT(nbt);
 	}
 	
 	@Override
 	public void addKey(String key) {
-		NbtCompound nbt = getNBT();
+		CompoundTag nbt = getNBT();
 		nbt.putInt(key, 0);
 		setNBT(nbt);
 	}
 	
 	@Override
 	public void removeKey(String key) {
-		NbtCompound nbt = getNBT();
+		CompoundTag nbt = getNBT();
 		nbt.remove(key);
 		setNBT(nbt);
 	}
@@ -73,7 +73,7 @@ public class CompoundNBTFolder implements NBTFolder<NbtCompound> {
 	@Override
 	public Optional<String> getNextKey(Optional<String> pastingKey) {
 		return pastingKey.map(key -> {
-			NbtCompound nbt = getNBT();
+			CompoundTag nbt = getNBT();
 			if (nbt.contains(key)) {
 				key += " - Copy";
 				String baseKey = key;

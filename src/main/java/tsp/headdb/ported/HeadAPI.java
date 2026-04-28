@@ -15,7 +15,7 @@ import com.luneruniverse.minecraft.mod.nbteditor.NBTEditorClient;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.TextInst;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 
-import net.minecraft.client.network.PlayerListEntry;
+import net.minecraft.client.multiplayer.PlayerInfo;
 import tsp.headdb.ported.inventory.InventoryUtils;
 
 /**
@@ -71,7 +71,7 @@ public final class HeadAPI {
     
     public static boolean checkUpdated() {
     	if (HeadAPI.getDatabase().isLastUpdateOld()) {
-			MainUtil.client.player.sendMessage(TextInst.translatable("nbteditor.hdb.unloaded_database"), false);
+			MainUtil.client.player.sendSystemMessage(TextInst.translatable("nbteditor.hdb.unloaded_database"));
 			return false;
     	}
     	
@@ -267,7 +267,7 @@ public final class HeadAPI {
      */
     public static List<LocalHead> getLocalHeads() {
         List<LocalHead> heads = new ArrayList<>();
-        for (PlayerListEntry player : MainUtil.client.getNetworkHandler().getPlayerList()) {
+        for (PlayerInfo player : MainUtil.client.getConnection().getOnlinePlayers()) {
             heads.add(new LocalHead(player.getProfile().id())
                     .withName(player.getProfile().name()));
         }

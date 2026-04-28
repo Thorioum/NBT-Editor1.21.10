@@ -55,7 +55,10 @@ public class MVGlStateManager {
 			Reflection.getOptionalMethod(platform_GlStateManager, () -> "_colorMask", () -> MethodType.methodType(void.class, boolean.class, boolean.class, boolean.class, boolean.class));
 	public static void _colorMask(boolean red, boolean green, boolean blue, boolean alpha) {
 		if (OPEN_GL)
-			GlStateManager._colorMask(red, green, blue, alpha);
+			GlStateManager._colorMask((red   ? 1 : 0) |
+					(green ? 2 : 0) |
+					(blue  ? 4 : 0) |
+					(alpha ? 8 : 0));
 		else
 			GlStateManager__colorMask.get().invoke(null, red, green, blue, alpha);
 	}
@@ -70,7 +73,7 @@ public class MVGlStateManager {
 			Reflection.getOptionalField(GlStateManager$CapabilityTracker, () -> "field_5051", () -> "Z");
 	public static boolean isScissorEnabled() {
 		if (OPEN_GL)
-			return GlStateManager.SCISSOR.capState.state;
+			return GlStateManager.SCISSOR.mode.enabled;
 		else
 			return GlStateManager$CapabilityTracker_state.get().get(GlStateManager$ScissorTestState_capState.get().get(GlStateManager_SCISSOR.get().get(null)));
 	}

@@ -11,12 +11,13 @@ import com.luneruniverse.minecraft.mod.nbteditor.nbtreferences.itemreferences.It
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
-import net.minecraft.entity.Entity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.text.HoverEvent;
-import net.minecraft.text.Style;
-import net.minecraft.text.StyleSpriteSource;
-import net.minecraft.util.InvalidIdentifierException;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.FontDescription;
+import net.minecraft.IdentifierException;
+import net.minecraft.world.item.ItemStackTemplate;
 
 public record FancyTextStyleOptionNode(StyleOption option, String value, List<FancyTextNode> contents) implements FancyTextNode {
 	
@@ -30,7 +31,7 @@ public record FancyTextStyleOptionNode(StyleOption option, String value, List<Fa
 			case SHOW_ITEM -> {
 				ItemStack item;
 				try {
-					item = MainUtil.client.player.getInventory().getStack(Integer.parseInt(value));
+					item = MainUtil.client.player.getInventory().getItem(Integer.parseInt(value));
 				} catch (NumberFormatException e) {
 					try {
 						item = ItemReference.getHeldItem().getItem();
@@ -38,7 +39,7 @@ public record FancyTextStyleOptionNode(StyleOption option, String value, List<Fa
 						item = ItemStack.EMPTY;
 					}
 				}
-				yield style.withHoverEvent(MVTextEvents.HoverAction.SHOW_ITEM.newEvent(item));
+				yield style.withHoverEvent(MVTextEvents.HoverAction.SHOW_ITEM.newEvent(new ItemStackTemplate(item.typeHolder(),item.count(),item.getComponentsPatch())));
 			}
 			case SHOW_ENTITY -> {
 				Entity entity;
@@ -49,23 +50,23 @@ public record FancyTextStyleOptionNode(StyleOption option, String value, List<Fa
 					if (!uuid.contains("-"))
 						uuid = uuid.replaceFirst("(\\p{XDigit}{8})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}+)", "$1-$2-$3-$4-$5");
 					UUID uuidObj = UUID.fromString(uuid);
-					entity = StreamSupport.stream(MainUtil.client.world.getEntities().spliterator(), false)
-							.filter(testEntity -> testEntity.getUuid().equals(uuidObj)).findFirst()
+					entity = StreamSupport.stream(MainUtil.client.level.entitiesForRendering().spliterator(), false)
+							.filter(testEntity -> testEntity.getUUID().equals(uuidObj)).findFirst()
 							.orElseThrow(IllegalArgumentException::new);
 				} catch (IllegalArgumentException e) {
-					if (MainUtil.client.targetedEntity != null)
-						entity = MainUtil.client.targetedEntity;
+					if (MainUtil.client.crosshairPickEntity != null)
+						entity = MainUtil.client.crosshairPickEntity;
 					else
 						entity = MainUtil.client.player;
 				}
 				yield style.withHoverEvent(MVTextEvents.HoverAction.SHOW_ENTITY.newEvent(
-						new HoverEvent.EntityContent(entity.getType(), entity.getUuid(), entity.getName())));
+						new HoverEvent.EntityTooltipInfo(entity.getType(), entity.getUUID(), entity.getName())));
 			}
 			case INSERTION -> style.withInsertion(value);
 			case FONT -> {
 				try {
-					yield style.withFont(new StyleSpriteSource.Font(IdentifierInst.of(value)));
-				} catch (InvalidIdentifierException e) {
+					yield style.withFont(new FontDescription.Resource(IdentifierInst.of(value)));
+				} catch (IdentifierException e) {
 					yield style.withFont(Style.EMPTY.getFont());
 				}
 			}

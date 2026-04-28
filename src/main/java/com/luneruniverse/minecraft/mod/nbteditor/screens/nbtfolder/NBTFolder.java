@@ -11,33 +11,33 @@ import com.luneruniverse.minecraft.mod.nbteditor.screens.NBTEditorScreen;
 import com.luneruniverse.minecraft.mod.nbteditor.screens.NBTValue;
 import com.luneruniverse.minecraft.mod.nbteditor.util.ClassMap;
 
-import net.minecraft.nbt.AbstractNbtList;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtString;
+import net.minecraft.nbt.CollectionTag;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.nbt.StringTag;
 
-public interface NBTFolder<T extends NbtElement> {
+public interface NBTFolder<T extends Tag> {
 	
-	public interface Constructor<T extends NbtElement> {
+	public interface Constructor<T extends Tag> {
 		public NBTFolder<T> create(Supplier<T> get, Consumer<T> set);
 	}
-	public static final ClassMap<NbtElement, Constructor<?>> TYPES = getTypesMap();
-	private static ClassMap<NbtElement, Constructor<?>> getTypesMap() {
-		ClassMap<NbtElement, Constructor<?>> output = new ClassMap<>();
-		output.put(AbstractNbtList.class, (Constructor<AbstractNbtList>) ListNBTFolder::new);
-		output.put(NbtCompound.class, (Constructor<NbtCompound>) CompoundNBTFolder::new);
-		output.put(NbtString.class, (Constructor<NbtString>) StringNBTFolder::new);
+	public static final ClassMap<Tag, Constructor<?>> TYPES = getTypesMap();
+	private static ClassMap<Tag, Constructor<?>> getTypesMap() {
+		ClassMap<Tag, Constructor<?>> output = new ClassMap<>();
+		output.put(CollectionTag.class, (Constructor<CollectionTag>) ListNBTFolder::new);
+		output.put(CompoundTag.class, (Constructor<CompoundTag>) CompoundNBTFolder::new);
+		output.put(StringTag.class, (Constructor<StringTag>) StringNBTFolder::new);
 		return output;
 	}
 	@SuppressWarnings("unchecked")
-	public static <T extends NbtElement> NBTFolder<T> get(Class<T> nbt, Supplier<T> get, Consumer<T> set) {
+	public static <T extends Tag> NBTFolder<T> get(Class<T> nbt, Supplier<T> get, Consumer<T> set) {
 		Constructor<?> constructor = TYPES.get(nbt);
 		if (constructor == null)
 			return null;
 		return ((Constructor<T>) constructor).create(get, set);
 	}
 	@SuppressWarnings("unchecked")
-	public static <T extends NbtElement> NBTFolder<? extends T> get(T nbt) {
+	public static <T extends Tag> NBTFolder<? extends T> get(T nbt) {
 		AtomicReference<T> ref = new AtomicReference<>(nbt);
 		return get((Class<T>) nbt.getClass(), ref::getPlain, ref::setPlain);
 	}
@@ -48,8 +48,8 @@ public interface NBTFolder<T extends NbtElement> {
 	public List<NBTValue> getEntries(NBTEditorScreen<?> screen);
 	public boolean hasEmptyKey();
 	
-	public NbtElement getValue(String key);
-	public void setValue(String key, NbtElement value);
+	public Tag getValue(String key);
+	public void setValue(String key, Tag value);
 	
 	public void addKey(String key);
 	public void removeKey(String key);
@@ -59,12 +59,12 @@ public interface NBTFolder<T extends NbtElement> {
 	public boolean handlesDuplicateKeys();
 	
 	public default NBTFolder<?> getSubFolder(String key) {
-		NbtElement value = getValue(key);
+		Tag value = getValue(key);
 		if (value == null)
 			return null;
 		return getSubFolder(key, value.getClass());
 	}
-	private <T2 extends NbtElement> NBTFolder<T2> getSubFolder(String key, Class<T2> clazz) {
+	private <T2 extends Tag> NBTFolder<T2> getSubFolder(String key, Class<T2> clazz) {
 		return get(clazz, () -> clazz.cast(getValue(key)), newValue -> setValue(key, newValue));
 	}
 	

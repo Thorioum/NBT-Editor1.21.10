@@ -12,10 +12,10 @@ import java.util.stream.Collectors;
 
 import com.luneruniverse.minecraft.mod.nbteditor.server.ServerMVMisc;
 
-import net.minecraft.block.BlockState;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.network.PacketByteBuf;
-import net.minecraft.state.property.Property;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.world.level.block.state.properties.Property;
 
 public class BlockStateProperties {
 	
@@ -29,7 +29,7 @@ public class BlockStateProperties {
 			this.options = options;
 		}
 		public <T extends Comparable<T>> BlockStateProperty(Property<T> property, BlockState state) {
-			this(property.name(state.get(property)), ServerMVMisc.getValues(property).stream().map(option -> property.name(option)).toList());
+			this(property.getName(state.getValue(property)), ServerMVMisc.getValues(property).stream().map(option -> property.getName(option)).toList());
 		}
 		private void setValue(String value) {
 			if (!options.contains(value))
@@ -54,14 +54,14 @@ public class BlockStateProperties {
 		for (Property<?> property : state.getProperties())
 			properties.put(property.getName(), new BlockStateProperty(property, state));
 	}
-	public BlockStateProperties(PacketByteBuf payload) {
+	public BlockStateProperties(FriendlyByteBuf payload) {
 		properties = new LinkedHashMap<>();
 		for (int i = 0, numProperties = payload.readVarInt(); i < numProperties; i++) {
-			String name = payload.readString();
+			String name = payload.readUtf();
 			int valueIndex = payload.readVarInt();
 			List<String> options = new ArrayList<>();
 			for (int optionI = 0, numOptions = payload.readVarInt(); optionI < numOptions; optionI++)
-				options.add(payload.readString());
+				options.add(payload.readUtf());
 			properties.put(name, new BlockStateProperty(options.get(valueIndex), options));
 		}
 	}
@@ -95,9 +95,9 @@ public class BlockStateProperties {
 		return state;
 	}
 	private <T extends Comparable<T>> BlockState applyPropertyTo(BlockState state, Property<T> property, String value) {
-		T valueObj = ServerMVMisc.getValues(property).stream().filter(option -> property.name(option).equals(value)).findFirst()
+		T valueObj = ServerMVMisc.getValues(property).stream().filter(option -> property.getName(option).equals(value)).findFirst()
 				.orElseThrow(() -> new IllegalArgumentException("The property value doesn't exist!"));
-		return state.with(property, valueObj);
+		return state.setValue(property, valueObj);
 	}
 	
 	public BlockStateProperties mapTo(BlockState state) {
@@ -113,16 +113,16 @@ public class BlockStateProperties {
 		return mapTo(state).applyTo(state);
 	}
 	
-	public NbtCompound getValues() {
-		NbtCompound output = new NbtCompound();
+	public CompoundTag getValues() {
+		CompoundTag output = new CompoundTag();
 		for (Map.Entry<String, BlockStateProperty> property : properties.entrySet())
 			output.putString(property.getKey(), property.getValue().value);
 		return output;
 	}
-	public Set<String> setValues(NbtCompound blockStateTag) {
+	public Set<String> setValues(CompoundTag blockStateTag) {
 		Set<String> unset = new HashSet<>(properties.keySet());
-		for (String tag : blockStateTag.getKeys()) {
-			blockStateTag.nbte$getString(tag).ifPresent(value -> {
+		for (String tag : blockStateTag.keySet()) {
+			blockStateTag.getString(tag).ifPresent(value -> {
 				BlockStateProperty property = properties.get(tag);
 				if (property == null)
 					return;
@@ -156,13 +156,13 @@ public class BlockStateProperties {
 		return unset;
 	}
 	
-	public void writeToPayload(PacketByteBuf payload) {
+	public void writeToPayload(FriendlyByteBuf payload) {
 		payload.writeVarInt(properties.size());
 		properties.forEach((name, property) -> {
-			payload.writeString(name);
+			payload.writeUtf(name);
 			payload.writeVarInt(property.options.indexOf(property.value));
 			payload.writeVarInt(property.options.size());
-			property.options.forEach(payload::writeString);
+			property.options.forEach(payload::writeUtf);
 		});
 	}
 	

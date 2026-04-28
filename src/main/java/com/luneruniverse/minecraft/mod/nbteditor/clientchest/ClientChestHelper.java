@@ -8,13 +8,13 @@ import com.luneruniverse.minecraft.mod.nbteditor.NBTEditorClient;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.TextInst;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.item.ItemStack;
 
 public class ClientChestHelper {
 	
 	private static void trySend(String key) {
 		if (MainUtil.client.player != null)
-			MainUtil.client.player.sendMessage(TextInst.translatable(key), false);
+			MainUtil.client.player.sendSystemMessage(TextInst.translatable(key));
 	}
 	
 	public static boolean setNameOfPage(int page, String name) {

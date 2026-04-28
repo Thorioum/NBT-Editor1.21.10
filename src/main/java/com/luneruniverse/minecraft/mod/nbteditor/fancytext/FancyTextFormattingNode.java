@@ -2,16 +2,16 @@ package com.luneruniverse.minecraft.mod.nbteditor.fancytext;
 
 import com.luneruniverse.minecraft.mod.nbteditor.util.StyleUtil;
 
-import net.minecraft.text.Style;
-import net.minecraft.util.Formatting;
+import net.minecraft.network.chat.Style;
+import net.minecraft.ChatFormatting;
 
-public record FancyTextFormattingNode(Formatting formatting) implements FancyTextNode {
+public record FancyTextFormattingNode(ChatFormatting formatting) implements FancyTextNode {
 	
 	@Override
 	public Style modifyStyle(Style style) {
-		if (formatting == Formatting.RESET)
-			return StyleUtil.RESET_STYLE.withParent(style);
-		return style.withFormatting(formatting);
+		if (formatting == ChatFormatting.RESET)
+			return StyleUtil.RESET_STYLE.applyTo(style);
+		return style.applyFormat(formatting);
 	}
 	
 	@Override

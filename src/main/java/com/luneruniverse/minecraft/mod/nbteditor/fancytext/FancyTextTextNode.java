@@ -1,6 +1,6 @@
 package com.luneruniverse.minecraft.mod.nbteditor.fancytext;
 
-import net.minecraft.text.Style;
+import net.minecraft.network.chat.Style;
 
 public record FancyTextTextNode(String text) implements FancyTextNode {
 	

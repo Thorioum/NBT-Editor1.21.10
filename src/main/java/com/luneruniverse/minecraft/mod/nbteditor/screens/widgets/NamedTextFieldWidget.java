@@ -3,17 +3,16 @@ package com.luneruniverse.minecraft.mod.nbteditor.screens.widgets;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVTextFieldWidget;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVTooltip;
 
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.text.Text;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.network.chat.Component;
 import org.joml.Matrix3x2fStack;
 
 public class NamedTextFieldWidget extends MVTextFieldWidget {
 	
-	protected Text name;
+	protected Component name;
 	protected boolean valid;
 	
-	public NamedTextFieldWidget(int x, int y, int width, int height, TextFieldWidget copyFrom) {
+	public NamedTextFieldWidget(int x, int y, int width, int height, EditBox copyFrom) {
 		super(x, y, width, height, copyFrom);
 		valid = true;
 	}
@@ -26,7 +25,7 @@ public class NamedTextFieldWidget extends MVTextFieldWidget {
 		super.tooltip(tooltip);
 		return this;
 	}
-	public NamedTextFieldWidget name(Text name) {
+	public NamedTextFieldWidget name(Component name) {
 		this.name = name;
 		return this;
 	}
@@ -40,10 +39,10 @@ public class NamedTextFieldWidget extends MVTextFieldWidget {
 	
 	
 	@Override
-	public void render(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
+	public void extractRenderState(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
 		if (name != null && shouldShowName())
-			setSuggestion(text.isEmpty() ? name.getString() : null);
-		super.render(matrices, mouseX, mouseY, delta);
+			setSuggestion(value.isEmpty() ? name.getString() : null);
+		super.extractRenderState(matrices, mouseX, mouseY, delta);
 	}
 	
 	protected boolean shouldShowName() {

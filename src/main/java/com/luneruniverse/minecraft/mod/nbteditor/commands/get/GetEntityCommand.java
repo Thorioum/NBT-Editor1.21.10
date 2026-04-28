@@ -17,12 +17,12 @@ import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mt1006.nbt_ac.autocomplete.NbtSuggestionManager;
 
-import net.minecraft.command.argument.NbtCompoundArgumentType;
-import net.minecraft.command.argument.PosArgument;
-import net.minecraft.command.argument.Vec3ArgumentType;
-import net.minecraft.entity.EntityType;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.commands.arguments.CompoundTagArgument;
+import net.minecraft.commands.arguments.coordinates.Coordinates;
+import net.minecraft.commands.arguments.coordinates.Vec3Argument;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.phys.Vec3;
 
 public class GetEntityCommand extends ClientCommand {
 	
@@ -41,20 +41,20 @@ public class GetEntityCommand extends ClientCommand {
 		Command<FabricClientCommandSource> getEntity = context -> {
 			EntityType<?> entityType = context.getArgument("entity", EntityType.class);
 			
-			PosArgument posArg = getDefaultArg(context, "pos", null, PosArgument.class);
-			Vec3d pos = (posArg == null ? null : posArg.getPos(MVMisc.getCommandSource(context.getSource().getPlayer())));
+			Coordinates posArg = getDefaultArg(context, "pos", null, Coordinates.class);
+			Vec3 pos = (posArg == null ? null : posArg.getPosition(MVMisc.getCommandSource(context.getSource().getPlayer())));
 			
-			NbtCompound nbtArg = getDefaultArg(context, "nbt", new NbtCompound(), NbtCompound.class);
+			CompoundTag nbtArg = getDefaultArg(context, "nbt", new CompoundTag(), CompoundTag.class);
 			
 			LocalEntity entity = new LocalEntity(entityType, nbtArg);
 			
 			if (pos == null) {
 				entity.toItem(false).ifPresentOrElse(MainUtil::getWithMessage,
-						() -> MainUtil.client.player.sendMessage(TextInst.translatable("nbteditor.nbt.export.item.error"), false));
+						() -> MainUtil.client.player.sendSystemMessage(TextInst.translatable("nbteditor.nbt.export.item.error")));
 			} else if (NBTEditorClient.SERVER_CONN.isEditingExpanded())
-				entity.summon(MainUtil.client.world.getRegistryKey(), pos);
+				entity.summon(MainUtil.client.level.dimension(), pos);
 			else
-				MainUtil.client.player.sendMessage(TextInst.translatable("nbteditor.requires_server"), false);
+				MainUtil.client.player.sendSystemMessage(TextInst.translatable("nbteditor.requires_server"));
 			
 			return Command.SINGLE_SUCCESS;
 		};
@@ -62,18 +62,18 @@ public class GetEntityCommand extends ClientCommand {
 			if (NBTAutocompleteIntegration.INSTANCE.isEmpty())
 				return Suggestions.empty();
 			EntityType<?> entityType = context.getArgument("entity", EntityType.class);
-			String name = "entity/" + EntityType.getId(entityType);
+			String name = "entity/" + EntityType.getKey(entityType);
 			String tag = suggestionsBuilder.getRemaining();
 			return NbtSuggestionManager.loadFromName(name, tag, suggestionsBuilder, false);
 		};
 		
 		builder.then(argument("entity", SummonableEntityArgumentType.summonableEntity())
-				.then(argument("pos", Vec3ArgumentType.vec3())
-						.then(argument("nbt", NbtCompoundArgumentType.nbtCompound())
+				.then(argument("pos", Vec3Argument.vec3())
+						.then(argument("nbt", CompoundTagArgument.compoundTag())
 								.suggests(nbtSuggestions)
 								.executes(getEntity))
 						.executes(getEntity))
-				.then(argument("nbt", NbtCompoundArgumentType.nbtCompound())
+				.then(argument("nbt", CompoundTagArgument.compoundTag())
 						.suggests(nbtSuggestions)
 						.executes(getEntity))
 				.executes(getEntity));

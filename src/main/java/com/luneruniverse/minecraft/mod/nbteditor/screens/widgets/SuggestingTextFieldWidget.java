@@ -15,95 +15,95 @@ import com.mojang.brigadier.ParseResults;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.gui.screen.ChatInputSuggestor;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.client.input.KeyInput;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.text.OrderedText;
-import net.minecraft.text.Style;
-import net.minecraft.text.Text;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.gui.components.CommandSuggestions;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.input.KeyEvent;
+import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.Component;
 import org.joml.Matrix3x2fStack;
 
 public class SuggestingTextFieldWidget extends NamedTextFieldWidget {
 	
-	private final ChatInputSuggestor suggestor;
-	private BiFunction<String, Integer, CompletableFuture<Suggestions>> suggestions;
+	private final CommandSuggestions suggestor;
+	private BiFunction<String, Integer, CompletableFuture<Suggestions>> suggestionsFunc;
 	
-	public SuggestingTextFieldWidget(Screen screen, int x, int y, int width, int height, TextFieldWidget copyFrom) {
+	public SuggestingTextFieldWidget(Screen screen, int x, int y, int width, int height, EditBox copyFrom) {
 		super(x, y, width, height, copyFrom);
-		suggestor = new ChatInputSuggestor(MainUtil.client, screen, this, MainUtil.client.textRenderer, false, true, 0, 7, false, 0x80000000) {
+		suggestor = new CommandSuggestions(MainUtil.client, screen, this, MainUtil.client.font, false, true, 0, 7, false, 0x80000000) {
 			@Override
-			public void refresh() {
-				if (!this.completingSuggestions) {
+			public void updateCommandInfo() {
+				if (!this.keepSuggestions) {
 					SuggestingTextFieldWidget.this.setSuggestion(null);
-					this.window = null;
+					this.suggestions = null;
 				}
-				this.messages.clear();
-				if (this.window == null || !this.completingSuggestions) {
-					if (suggestions == null)
+				this.commandUsage.clear();
+				if (this.suggestions == null || !this.keepSuggestions) {
+					if (suggestionsFunc == null)
 						this.pendingSuggestions = new SuggestionsBuilder("", 0).buildFuture();
 					else
-						this.pendingSuggestions = suggestions.apply(SuggestingTextFieldWidget.this.text, SuggestingTextFieldWidget.this.getCursor());
-					this.pendingSuggestions.thenRun(() -> {
+						this.pendingSuggestions = suggestionsFunc.apply(SuggestingTextFieldWidget.this.value, SuggestingTextFieldWidget.this.getCursorPosition());
+					this.pendingSuggestions.thenAccept((s) -> {
 						if (!this.pendingSuggestions.isDone())
 							return;
-						showCommandSuggestions();
+						updateUsageInfo(currentParse,s);
 					});
 				}
 			}
 			@Override
-			protected OrderedText provideRenderText(String original, int firstCharacterIndex) {
-				return OrderedText.styledForwardsVisitedString(original, Style.EMPTY);
+			protected FormattedCharSequence formatChat(String original, int firstCharacterIndex) {
+				return FormattedCharSequence.forward(original, Style.EMPTY);
 			}
 		};
-		suggestor.parse = new ParseResults<>(null);
+		suggestor.currentParse = new ParseResults<>(null);
 		
-		setChangedListener(null);
+		setResponder(null);
 	}
 	public SuggestingTextFieldWidget(Screen screen, int x, int y, int width, int height) {
 		this(screen, x, y, width, height, null);
 	}
 	
 	@Override
-	public void setChangedListener(Consumer<String> listener) {
-		super.setChangedListener(str -> {
-			suggestor.refresh();
+	public void setResponder(Consumer<String> listener) {
+		super.setResponder(str -> {
+			suggestor.updateCommandInfo();
 			if (listener != null)
 				listener.accept(str);
 		});
 	}
 	
 	@Override
-	public SuggestingTextFieldWidget name(Text name) {
+	public SuggestingTextFieldWidget name(Component name) {
 		super.name(name);
 		return this;
 	}
 	
 	public SuggestingTextFieldWidget suggest(BiFunction<String, Integer, CompletableFuture<Suggestions>> suggestions) {
-		this.suggestions = suggestions;
-		suggestor.refresh();
+		this.suggestionsFunc = suggestions;
+		suggestor.updateCommandInfo();
 		return this;
 	}
 	
 	private static final Supplier<Reflection.MethodInvoker> ChatInputSuggestor_render =
-			Reflection.getOptionalMethod(ChatInputSuggestor.class, "method_23923", MethodType.methodType(void.class, MatrixStack.class, int.class, int.class));
+			Reflection.getOptionalMethod(CommandSuggestions.class, "method_23923", MethodType.methodType(void.class, PoseStack.class, int.class, int.class));
 	@Override
-	public void render(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
+	public void extractRenderState(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
 		if (!isDropdownOnly())
-			super.render(matrices, mouseX, mouseY, delta);
+			super.extractRenderState(matrices, mouseX, mouseY, delta);
 		matrices.pushMatrix();
 		matrices.translate(0, 0);
 		Version.newSwitch()
-				.range("1.20.0", null, () -> suggestor.render(MVDrawableHelper.getDrawContext(matrices), mouseX, mouseY))
+				.range("1.20.0", null, () -> suggestor.extractRenderState(MVDrawableHelper.getDrawContext(matrices), mouseX, mouseY))
 				.range(null, "1.19.4", () -> ChatInputSuggestor_render.get().invoke(suggestor, matrices, mouseX, mouseY))
 				.run();
 		matrices.popMatrix();
 	}
 	@Override
 	protected boolean shouldShowName() {
-		return suggestor.window == null;
+		return suggestor.suggestions == null;
 	}
 	public boolean isDropdownOnly() {
 		return false;
@@ -113,7 +113,7 @@ public class SuggestingTextFieldWidget extends NamedTextFieldWidget {
 	}
 	
 	@Override
-	public boolean mouseClicked(Click click, boolean b) {
+	public boolean mouseClicked(MouseButtonEvent click, boolean b) {
 		return suggestor.mouseClicked(click) || !isDropdownOnly() && super.mouseClicked(click,b);
 	}
 	
@@ -123,7 +123,7 @@ public class SuggestingTextFieldWidget extends NamedTextFieldWidget {
 	}
 	
 	@Override
-	public boolean keyPressed(KeyInput keyInput) {
+	public boolean keyPressed(KeyEvent keyInput) {
 		if (!isMultiFocused())
 			return false;
 		return suggestor.keyPressed(keyInput) || !isDropdownOnly() && super.keyPressed(keyInput);
@@ -131,8 +131,8 @@ public class SuggestingTextFieldWidget extends NamedTextFieldWidget {
 	
 	@Override
 	public boolean isMouseOver(double mouseX, double mouseY) {
-		if (suggestor.window != null) {
-			if (suggestor.window.area.contains((int) mouseX, (int) mouseY))
+		if (suggestor.suggestions != null) {
+			if (suggestor.suggestions.rect.contains((int) mouseX, (int) mouseY))
 				return true;
 		}
 		return !isDropdownOnly() && super.isMouseOver(mouseX, mouseY);
@@ -140,8 +140,8 @@ public class SuggestingTextFieldWidget extends NamedTextFieldWidget {
 	
 	@Override
 	public void onMultiFocusedSet(boolean focused, boolean prevFocused) {
-		suggestor.setWindowActive(focused);
-		suggestor.refresh();
+		suggestor.setAllowSuggestions(focused);
+		suggestor.updateCommandInfo();
 	}
 	
 }

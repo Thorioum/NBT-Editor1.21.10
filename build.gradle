@@ -1,5 +1,5 @@
 plugins {
-	id 'fabric-loom' version "${loom_version}"
+	id 'net.fabricmc.fabric-loom' version "${loom_version}"
 	id 'maven-publish'
 }
 
@@ -34,24 +34,25 @@ loom {
 	accessWidenerPath = file("src/main/resources/nbteditor.accesswidener")
 }
 
+tasks.withType(JavaCompile) {
+	options.compilerArgs << "-Xmaxerrs" << "10000"
+}
+
 dependencies {
 	// To change the versions see the gradle.properties file
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
-	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
 	
 	// Fabric API. This is technically optional, but you probably want it anyway.
-	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-	
+	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+
 	// Uncomment the following line to enable the deprecated Fabric API modules. 
 	// These are included in the Fabric API production distribution and allow you to update your mod to the latest modules at a later more convenient time.
 	
 	// modImplementation "net.fabricmc.fabric-api:fabric-api-deprecated:${project.fabric_version}"
-	
-	implementation files("nbteditor_1.17/build/devlibs/nbteditor_1.17-0.0.0-dev.jar")
-	
-	modImplementation "maven.modrinth:modmenu:16.0.0-rc.1"
-	modImplementation "maven.modrinth:nbt-autocomplete:1.3.13-fabric-1.21.9"
+
+	implementation "maven.modrinth:modmenu:18.0.0-alpha.8"
+	implementation "maven.modrinth:nbt-autocomplete:1.3.15-fabric-26.1"
 }
 
 processResources {
@@ -63,56 +64,16 @@ processResources {
 }
 
 tasks.withType(JavaCompile).configureEach {
-	it.options.release = 16
+	it.options.release = 25
 }
 
 java {
-	sourceCompatibility = JavaVersion.VERSION_16
-	targetCompatibility = JavaVersion.VERSION_16
+	sourceCompatibility = JavaVersion.VERSION_25
+	targetCompatibility = JavaVersion.VERSION_25
 }
-
-compileJava.dependsOn ":nbteditor_1.17:jar"
-remapSourcesJar.dependsOn ":nbteditor_1.17:jar"
 
 import groovy.json.JsonSlurper
 import groovy.json.JsonOutput
-
-def checkRefmap(Map json) {
-	if (!(json.keySet() - ["mappings", "data"]).isEmpty())
-		return false;
-	if (!(json.data.keySet() - ["named:intermediary"]).isEmpty())
-		return false;
-	return true;
-}
-
-task mergeRefmapJson {
-	dependsOn classes
-	dependsOn ":nbteditor_1.17:classes"
-	
-	doLast {
-		File mainRefmap = file("build/classes/java/main/nbteditor-refmap.json")
-		File additionalRefmap = file("nbteditor_1.17/build/classes/java/main/nbteditor_1.17-refmap.json")
-		
-		if (!mainRefmap.exists())
-			throw new GradleException("Missing main refmap!");
-		if (!additionalRefmap.exists())
-			throw new GradleException("Missing 1.17 refmap!");
-		
-		def parser = new JsonSlurper()
-		def mainJson = parser.parse(mainRefmap)
-		def additionalJson = parser.parse(additionalRefmap)
-		
-		if (!checkRefmap(mainJson))
-			throw new GradleException("Main refmap is invalid!");
-		if (!checkRefmap(additionalJson))
-			throw new GradleException("1.17 refmap is invalid!");
-		
-		mainJson.mappings += additionalJson.mappings
-		mainJson.data["named:intermediary"] += additionalJson.data["named:intermediary"]
-		
-		mainRefmap.text = JsonOutput.prettyPrint(JsonOutput.toJson(mainJson))
-	}
-}
 
 jar {
 	inputs.property "archivesName", project.base.archivesName
@@ -120,8 +81,6 @@ jar {
 	from("LICENSE") {
 		rename { "${it}_${inputs.properties.archivesName}"}
 	}
-	
-	dependsOn mergeRefmapJson
 }
 
 def getGitHash() {
@@ -129,27 +88,12 @@ def getGitHash() {
 }
 
 task mergeDevLibs(type: Jar) {
-	dependsOn remapJar
-	dependsOn ":nbteditor_1.17:jar"
-	
-	from(zipTree(jar.archiveFile.get()))
-	
-	from(zipTree("nbteditor_1.17/build/devlibs/nbteditor_1.17-0.0.0-dev.jar")) {
-		include "**/*.class"
-	}
 	
 	archiveFile.set(file("${buildDir}/devlibs/nbteditor-${project.mod_version}-${getGitHash()}-dev.jar"))
 }
 
 task mergeLibs(type: Jar) {
-	dependsOn remapJar
-	dependsOn ":nbteditor_1.17:remapJar"
-	
-	from(zipTree(remapJar.archiveFile.get()))
-	
-	from(zipTree("nbteditor_1.17/build/libs/nbteditor_1.17-0.0.0.jar")) {
-		include "**/*.class"
-	}
+
 	
 	archiveFile.set(file("${buildDir}/libs/nbteditor-${project.mod_version}-${getGitHash()}.jar"))
 }

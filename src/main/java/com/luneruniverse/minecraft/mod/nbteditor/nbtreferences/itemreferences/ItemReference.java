@@ -9,26 +9,27 @@ import com.luneruniverse.minecraft.mod.nbteditor.localnbt.LocalItemStack;
 import com.luneruniverse.minecraft.mod.nbteditor.localnbt.LocalNBT;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVRegistry;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.TextInst;
+import com.luneruniverse.minecraft.mod.nbteditor.multiversion.nbt.manager.NBTManagers;
 import com.luneruniverse.minecraft.mod.nbteditor.nbtreferences.NBTReference;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.text.Text;
-import net.minecraft.util.Hand;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.resources.Identifier;
 
 public interface ItemReference extends NBTReference<LocalItem> {
-	public static ItemReference getHeldItem(Predicate<ItemStack> isAllowed, Text failText) throws CommandSyntaxException {
-		ItemStack item = MainUtil.client.player.getMainHandStack();
-		Hand hand = Hand.MAIN_HAND;
+	public static ItemReference getHeldItem(Predicate<ItemStack> isAllowed, Component failText) throws CommandSyntaxException {
+		ItemStack item = MainUtil.client.player.getMainHandItem();
+		InteractionHand hand = InteractionHand.MAIN_HAND;
 		if (item == null || item.isEmpty() || !isAllowed.test(item)) {
-			item = MainUtil.client.player.getOffHandStack();
-			hand = Hand.OFF_HAND;
+			item = MainUtil.client.player.getOffhandItem();
+			hand = InteractionHand.OFF_HAND;
 		}
 		if (item == null || item.isEmpty() || !isAllowed.test(item))
 			throw new SimpleCommandExceptionType(failText).create();
@@ -42,23 +43,23 @@ public interface ItemReference extends NBTReference<LocalItem> {
 		try {
 			return getHeldItem();
 		} catch (CommandSyntaxException e) {
-			return new HandItemReference(Hand.MAIN_HAND);
+			return new HandItemReference(InteractionHand.MAIN_HAND);
 		}
 	}
 	public static ItemReference getHeldAir() throws CommandSyntaxException {
-		if (MainUtil.client.player.getMainHandStack().isEmpty())
-			return new HandItemReference(Hand.MAIN_HAND);
-		if (MainUtil.client.player.getOffHandStack().isEmpty())
-			return new HandItemReference(Hand.OFF_HAND);
+		if (MainUtil.client.player.getMainHandItem().isEmpty())
+			return new HandItemReference(InteractionHand.MAIN_HAND);
+		if (MainUtil.client.player.getOffhandItem().isEmpty())
+			return new HandItemReference(InteractionHand.OFF_HAND);
 		throw new SimpleCommandExceptionType(TextInst.translatable("nbteditor.no_hand.all_item")).create();
 	}
 	
-	public static ItemReference getContainerItem(HandledScreen<?> screen, Slot slot) {
-		if (slot.inventory == MainUtil.client.player.getInventory()) {
-			return new InventoryItemReference(slot.getIndex()).setParent(
+	public static ItemReference getContainerItem(AbstractContainerScreen<?> screen, Slot slot) {
+		if (slot.container == MainUtil.client.player.getInventory()) {
+			return new InventoryItemReference(slot.getContainerSlot()).setParent(
 					() -> NBTEditorClient.CURSOR_MANAGER.showBranch(screen));
 		}
-		return new ServerItemReference(screen, slot.id);
+		return new ServerItemReference(screen, slot.index);
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -115,8 +116,8 @@ public interface ItemReference extends NBTReference<LocalItem> {
 	
 	public ItemStack getItem();
 	public void saveItem(ItemStack toSave, Runnable onFinished);
-	public default void saveItem(ItemStack toSave, Text msg) {
-		saveItem(toSave, () -> MainUtil.client.player.sendMessage(msg, false));
+	public default void saveItem(ItemStack toSave, Component msg) {
+		saveItem(toSave, () -> MainUtil.client.player.sendSystemMessage(msg));
 	}
 	public default void saveItem(ItemStack toSave) {
 		saveItem(toSave, () -> {});
@@ -136,18 +137,18 @@ public interface ItemReference extends NBTReference<LocalItem> {
 		return MVRegistry.ITEM.getId(getItem().getItem());
 	}
 	@Override
-	public default NbtCompound getNBT() {
-		NbtCompound nbt = getItem().nbte$getNbt();
+	public default CompoundTag getNBT() {
+		CompoundTag nbt = NBTManagers.ITEM.getNbt(getItem());
 		if (nbt != null)
 			return nbt;
-		return new NbtCompound();
+		return new CompoundTag();
 	}
 	@Override
-	public default void saveNBT(Identifier id, NbtCompound toSave, Runnable onFinished) {
+	public default void saveNBT(Identifier id, CompoundTag toSave, Runnable onFinished) {
 		ItemStack item = getItem();
 		if (!MVRegistry.ITEM.getId(item.getItem()).equals(id))
 			item = MainUtil.setType(MVRegistry.ITEM.get(id), item);
-		item.nbte$setNbt(toSave);
+		NBTManagers.ITEM.setNbt(item,toSave);
 		saveItem(item, onFinished);
 	}
 	

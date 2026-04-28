@@ -10,20 +10,20 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import com.luneruniverse.minecraft.mod.nbteditor.misc.MixinLink;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.tooltip.Tooltip;
-import net.minecraft.text.OrderedText;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.util.FormattedCharSequence;
 
 @Mixin(Tooltip.class)
 public class TooltipMixin {
 	
 	@Shadow
-	private List<OrderedText> lines;
+	private List<FormattedCharSequence> cachedTooltip;
 	
-	@Inject(method = "getLines", at = @At("HEAD"), cancellable = true)
-	private void getLines(MinecraftClient client, CallbackInfoReturnable<List<OrderedText>> info) {
+	@Inject(method = "toCharSequence", at = @At("HEAD"), cancellable = true)
+	private void getLines(Minecraft client, CallbackInfoReturnable<List<FormattedCharSequence>> info) {
 		if (MixinLink.NEW_TOOLTIPS.containsKey((Tooltip) (Object) this))
-			info.setReturnValue(lines);
+			info.setReturnValue(cachedTooltip);
 	}
 	
 }

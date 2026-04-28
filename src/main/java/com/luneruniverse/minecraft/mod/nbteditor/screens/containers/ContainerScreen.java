@@ -1,7 +1,7 @@
 package com.luneruniverse.minecraft.mod.nbteditor.screens.containers;
 
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.input.KeyInput;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.KeyEvent;
 import org.lwjgl.glfw.GLFW;
 
 import com.luneruniverse.minecraft.mod.nbteditor.NBTEditorClient;
@@ -17,10 +17,10 @@ import com.luneruniverse.minecraft.mod.nbteditor.screens.ConfigScreen;
 import com.luneruniverse.minecraft.mod.nbteditor.screens.factories.LocalFactoryScreen;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 
-import net.minecraft.item.ItemStack;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.screen.slot.SlotActionType;
-import net.minecraft.text.Text;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.inventory.ContainerInput;
+import net.minecraft.network.chat.Component;
 
 public class ContainerScreen<L extends LocalNBT> extends ClientHandledScreen {
 	
@@ -33,7 +33,7 @@ public class ContainerScreen<L extends LocalNBT> extends ClientHandledScreen {
 		NBTEditorClient.CURSOR_MANAGER.showBranch(new ContainerScreen<>(ref));
 	}
 	
-	private final Text unsavedTitle;
+	private final Component unsavedTitle;
 	
 	private final NBTReference<L> ref;
 	private final L localNBT;
@@ -56,7 +56,7 @@ public class ContainerScreen<L extends LocalNBT> extends ClientHandledScreen {
 		
 		ItemStack[] contents = ContainerIOs.read(localNBT);
 		for (int i = 0; i < contents.length; i++)
-			handler.getSlot(i).setStackNoCallbacks(contents[i] == null ? ItemStack.EMPTY : contents[i].copy());
+			menu.getSlot(i).set(contents[i] == null ? ItemStack.EMPTY : contents[i].copy());
 	}
 	
 	@Override
@@ -64,7 +64,7 @@ public class ContainerScreen<L extends LocalNBT> extends ClientHandledScreen {
 		super.init();
 		
 		if (ref instanceof ItemReference item && item.isLockable()) {
-			this.addDrawableChild(MVMisc.newButton(16, 64, 83, 20, ConfigScreen.isLockSlots() ? TextInst.translatable("nbteditor.client_chest.slots.unlock") : TextInst.translatable("nbteditor.client_chest.slots.lock"), btn -> {
+			this.addRenderableWidget(MVMisc.newButton(16, 64, 83, 20, ConfigScreen.isLockSlots() ? TextInst.translatable("nbteditor.client_chest.slots.unlock") : TextInst.translatable("nbteditor.client_chest.slots.lock"), btn -> {
 				navigationClicked = true;
 				if (ConfigScreen.isLockSlotsRequired()) {
 					btn.active = false;
@@ -75,29 +75,29 @@ public class ContainerScreen<L extends LocalNBT> extends ClientHandledScreen {
 			})).active = !ConfigScreen.isLockSlotsRequired();
 		}
 		
-		addDrawableChild(MVMisc.newTexturedButton(width - 36, 22, 20, 20, 20,
+		addRenderableWidget(MVMisc.newTexturedButton(width - 36, 22, 20, 20, 20,
 				LocalFactoryScreen.FACTORY_ICON,
-				btn -> client.setScreen(new LocalFactoryScreen<>(ref)),
+				btn -> minecraft.setScreen(new LocalFactoryScreen<>(ref)),
 				new MVTooltip("nbteditor.factory")));
 	}
 	
 	@Override
-	protected Text getRenderedTitle() {
+	protected Component getRenderedTitle() {
 		return saved ? title : unsavedTitle;
 	}
 	
 	@Override
-	public boolean mouseClicked(Click click, boolean doubled) {
+	public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
 		navigationClicked = false;
 		return super.mouseClicked(click, doubled);
 	}
 	
 	@Override
-	protected void onMouseClick(Slot slot, int slotId, int button, SlotActionType actionType) {
+	protected void slotClicked(Slot slot, int slotId, int button, ContainerInput actionType) {
 		if (navigationClicked)
 			return;
 		
-		super.onMouseClick(slot, slotId, button, actionType);
+		super.slotClicked(slot, slotId, button, actionType);
 	}
 	@Override
 	public boolean allowEnchantmentCombine() {
@@ -120,9 +120,9 @@ public class ContainerScreen<L extends LocalNBT> extends ClientHandledScreen {
 		save();
 	}
 	private void save() {
-		ItemStack[] contents = new ItemStack[this.handler.getInventory().size()];
+		ItemStack[] contents = new ItemStack[this.menu.getContainer().getContainerSize()];
 		for (int i = 0; i < contents.length; i++)
-			contents[i] = this.handler.getInventory().getStack(i);
+			contents[i] = this.menu.getContainer().getItem(i);
 		ContainerIOs.write(localNBT, contents);
 		
 		saved = false;
@@ -131,15 +131,15 @@ public class ContainerScreen<L extends LocalNBT> extends ClientHandledScreen {
 		});
 	}
 	
-	public boolean keyPressed(KeyInput keyInput) {
-		if (MainUtil.client.options.inventoryKey.matchesKey(keyInput)) {
+	public boolean keyPressed(KeyEvent keyInput) {
+		if (MainUtil.client.options.keyInventory.matches(keyInput)) {
 			ref.showParent();
 			return true;
 		}
 		
-		if (focusedSlot != null && (focusedSlot.id < numSlots || focusedSlot.inventory != this.handler.getInventory())) {
-			if (keyInput.key() != GLFW.GLFW_KEY_DELETE || !getLockedSlotsInfo().isBlocked(focusedSlot, true)) {
-				if (handleKeybind(keyInput.key(), focusedSlot, () -> show(ref), slot -> getContainerRef(slot.getIndex())))
+		if (hoveredSlot != null && (hoveredSlot.index < numSlots || hoveredSlot.container != this.menu.getContainer())) {
+			if (keyInput.key() != GLFW.GLFW_KEY_DELETE || !getLockedSlotsInfo().isBlocked(hoveredSlot, true)) {
+				if (handleKeybind(keyInput.key(), hoveredSlot, () -> show(ref), slot -> getContainerRef(slot.getContainerSlot())))
 					return true;
 			}
 		}
@@ -147,20 +147,20 @@ public class ContainerScreen<L extends LocalNBT> extends ClientHandledScreen {
 		return super.keyPressed(keyInput);
 	}
 	private ContainerItemReference<L> getContainerRef(int slot) {
-		ItemStack[] contents = new ItemStack[this.handler.getInventory().size()];
+		ItemStack[] contents = new ItemStack[this.menu.getContainer().getContainerSize()];
 		for (int i = 0; i < contents.length; i++)
-			contents[i] = this.handler.getInventory().getStack(i);
+			contents[i] = this.menu.getContainer().getItem(i);
 		return new ContainerItemReference<>(ref, ContainerIOs.getWrittenSlotIndex(localNBT, contents, slot));
 	}
 	
 	@Override
-	protected void handledScreenTick() {
+	protected void containerTick() {
 		if (!ref.exists())
 			ref.showParent();
 	}
 	
 	@Override
-	public boolean shouldPause() {
+	public boolean isPauseScreen() {
 		return true;
 	}
 	
@@ -169,13 +169,13 @@ public class ContainerScreen<L extends LocalNBT> extends ClientHandledScreen {
 	}
 	
 	@Override
-	public void close() {
+	public void onClose() {
 		ref.escapeParent();
 	}
 	@Override
 	public void removed() {
 		for (int i = numSlots; i < 27; i++) { // Items that will get deleted
-			ItemStack item = this.handler.getInventory().getStack(i);
+			ItemStack item = this.menu.getContainer().getItem(i);
 			if (item != null && !item.isEmpty())
 				MainUtil.get(item, true);
 		}

@@ -5,11 +5,13 @@ import com.luneruniverse.minecraft.mod.nbteditor.multiversion.IdentifierInst;
 import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.ItemTagReferences;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 
-import net.minecraft.block.entity.BlockEntityType;
-import net.minecraft.entity.EntityType;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.util.Identifier;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.item.component.TypedEntityData;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
 
 public interface ContainerIO<T> {
 	public static final Identifier HELMET_TEXTURE = IdentifierInst.of("minecraft", "container/slot/helmet");
@@ -24,41 +26,28 @@ public interface ContainerIO<T> {
 	
 	public static final Identifier BREWING_FUEL_TEXTURE = IdentifierInst.of("minecraft", "container/slot/brewing_fuel");
 	public static final Identifier POTION_TEXTURE = IdentifierInst.of("minecraft", "container/slot/potion");
+
 	
-	public static ContainerIO<ItemStack> forItemStack(ContainerIO<NbtCompound> io) {
-		return DelegateContainerIO.map(io, item -> {
-			NbtCompound nbt = item.nbte$getNbt();
-			if (nbt == null)
-				return new NbtCompound();
-			return nbt;
-		}, (item, nbt) -> item.nbte$setNbt(nbt));
-	}
-	
-	public static ContainerIO<ItemStack> forItemStackBlockEntityTag(ContainerIO<NbtCompound> io, String entityId) {
+	public static ContainerIO<ItemStack> forItemStackBlockEntityTag(ContainerIO<TypedEntityData<BlockEntityType<?>>> io, String entityId) {
 		return DelegateContainerIO.map(io,
 				ItemTagReferences.BLOCK_ENTITY_DATA::get,
-				(item, blockEntityNbt) -> ItemTagReferences.BLOCK_ENTITY_DATA.set(
-						item, MainUtil.fillId(blockEntityNbt, entityId)));
+                ItemTagReferences.BLOCK_ENTITY_DATA::set);
 	}
-	public static ContainerIO<ItemStack> forItemStackBlockEntityTag(ContainerIO<NbtCompound> io, BlockEntityType<?> entityId) {
-		return forItemStackBlockEntityTag(io, BlockEntityType.getId(entityId).toString());
-	}
-	
-	public static ContainerIO<ItemStack> forItemStackEntityTag(ContainerIO<NbtCompound> io, String entityId) {
+
+	public static ContainerIO<ItemStack> forItemStackEntityTag(ContainerIO<TypedEntityData<EntityType<?>>> io, String entityId) {
 		return DelegateContainerIO.map(io,
 				ItemTagReferences.ENTITY_DATA::get,
-				(item, entityNbt) -> ItemTagReferences.ENTITY_DATA.set(
-						item, MainUtil.fillId(entityNbt, entityId)));
+                ItemTagReferences.ENTITY_DATA::set);
 	}
-	public static ContainerIO<ItemStack> forItemStackEntityTag(ContainerIO<NbtCompound> io, EntityType<?> entityId) {
-		return forItemStackEntityTag(io, EntityType.getId(entityId).toString());
+	public static ContainerIO<ItemStack> forItemStackEntityTag(ContainerIO<TypedEntityData<EntityType<?>>> io, EntityType<?> entityId) {
+		return forItemStackEntityTag(io, EntityType.getKey(entityId).toString());
 	}
 	
-	public static <T extends LocalNBT> ContainerIO<T> forLocalNBT(ContainerIO<NbtCompound> io) {
+	public static <T extends LocalNBT> ContainerIO<T> forLocalNBT(ContainerIO<CompoundTag> io) {
 		return DelegateContainerIO.map(io, item -> {
-			NbtCompound nbt = item.getNBT();
+			CompoundTag nbt = item.getNBT();
 			if (nbt == null)
-				return new NbtCompound();
+				return new CompoundTag();
 			return nbt;
 		}, (item, nbt) -> item.setNBT(nbt));
 	}

@@ -3,8 +3,8 @@ package com.luneruniverse.minecraft.mod.nbteditor.packets;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.IdentifierInst;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.networking.MVPacket;
 
-import net.minecraft.network.PacketByteBuf;
-import net.minecraft.util.Identifier;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.resources.Identifier;
 
 public class GetLecternBlockC2SPacket implements MVPacket {
 	
@@ -15,7 +15,7 @@ public class GetLecternBlockC2SPacket implements MVPacket {
 	public GetLecternBlockC2SPacket(int requestId) {
 		this.requestId = requestId;
 	}
-	public GetLecternBlockC2SPacket(PacketByteBuf payload) {
+	public GetLecternBlockC2SPacket(FriendlyByteBuf payload) {
 		this.requestId = payload.readVarInt();
 	}
 	
@@ -24,7 +24,7 @@ public class GetLecternBlockC2SPacket implements MVPacket {
 	}
 	
 	@Override
-	public void write(PacketByteBuf payload) {
+	public void write(FriendlyByteBuf payload) {
 		payload.writeVarInt(requestId);
 	}
 	

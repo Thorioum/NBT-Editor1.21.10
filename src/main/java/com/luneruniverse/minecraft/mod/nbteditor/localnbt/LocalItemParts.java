@@ -12,27 +12,31 @@ import com.luneruniverse.minecraft.mod.nbteditor.multiversion.Version;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.nbt.manager.NBTManagers;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
+import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.resources.RegistryOps;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import org.joml.Matrix3x2fStack;
+
+import static com.luneruniverse.minecraft.mod.nbteditor.containers.ItemEntityContainerIO.lookup;
 
 public class LocalItemParts extends LocalItem {
 	
 	private Item item;
-	private NbtCompound nbt;
+	private CompoundTag nbt;
 	private int count;
 	
 	private ItemStack cachedItem;
-	private NbtCompound cachedNbt;
+	private CompoundTag cachedNbt;
 	
 	public LocalItemParts(ItemStack item) {
 		this.item = item.getItem();
-		this.nbt = item.nbte$getNbt();
+		this.nbt = ItemStack.CODEC.encodeStart(lookup().createSerializationContext(RegistryOps.create(NbtOps.INSTANCE, lookup())), item).getOrThrow().asCompound().get().getCompoundOrEmpty("components");
 		this.count = item.getCount();
 		
 		if (this.item == null)
@@ -60,7 +64,7 @@ public class LocalItemParts extends LocalItem {
 	
 	private void setCachedItemCount() {
 		Version.newSwitch()
-				.range("1.21.0", null, () -> cachedItem.setCount(Math.min(count, cachedItem.getMaxCount())))
+				.range("1.21.0", null, () -> cachedItem.setCount(Math.min(count, cachedItem.getMaxStackSize())))
 				.range(null, "1.20.6", () -> cachedItem.setCount(count))
 				.run();
 	}
@@ -74,7 +78,7 @@ public class LocalItemParts extends LocalItem {
 		cachedItem = new ItemStack(item, 1);
 		cachedNbt = (nbt == null ? null : nbt.copy());
 		try {
-			cachedItem.nbte$setNbt(cachedNbt);
+			NBTManagers.ITEM.setNbt(cachedItem,cachedNbt);
 		} catch (Exception e) {
 			NBTEditor.LOGGER.warn("Error while updating item cache", e);
 			cachedItem = oldCachedItem;
@@ -101,11 +105,11 @@ public class LocalItemParts extends LocalItem {
 	}
 	
 	@Override
-	public Text getName() {
+	public Component getName() {
 		return MainUtil.getCustomItemNameSafely(getCachedItem());
 	}
 	@Override
-	public void setName(Text name) {
+	public void setName(Component name) {
 		if (NBTManagers.COMPONENTS_EXIST) {
 			if (name == null) {
 				if (nbt != null) {
@@ -113,13 +117,13 @@ public class LocalItemParts extends LocalItem {
 					nbt.remove("minecraft:custom_name");
 				}
 			} else {
-				NbtCompound nbt = getOrCreateNBT();
+				CompoundTag nbt = getOrCreateNBT();
 				nbt.put(nbt.contains("minecraft:custom_name") || !nbt.contains("custom_name") ?
 						"minecraft:custom_name" : "custom_name", TextInst.toMinecraft(name));
 			}
 		} else {
-			NbtCompound nbt = getOrCreateNBT();
-			NbtCompound display = nbt.nbte$getCompoundOrDefault("display");
+			CompoundTag nbt = getOrCreateNBT();
+			CompoundTag display = nbt.getCompoundOrEmpty("display");
 			if (name == null)
 				display.remove("Name");
 			else {
@@ -160,17 +164,17 @@ public class LocalItemParts extends LocalItem {
 	}
 	
 	@Override
-	public NbtCompound getNBT() {
+	public CompoundTag getNBT() {
 		return nbt;
 	}
 	@Override
-	public void setNBT(NbtCompound nbt) {
+	public void setNBT(CompoundTag nbt) {
 		this.nbt = nbt;
 	}
 	@Override
-	public NbtCompound getOrCreateNBT() {
+	public CompoundTag getOrCreateNBT() {
 		if (nbt == null)
-			nbt = new NbtCompound();
+			nbt = new CompoundTag();
 		return nbt;
 	}
 	
@@ -184,8 +188,8 @@ public class LocalItemParts extends LocalItem {
 		return Optional.of(getCachedItem().copy());
 	}
 	@Override
-	public NbtCompound serialize() {
-		NbtCompound output = new NbtCompound();
+	public CompoundTag serialize() {
+		CompoundTag output = new CompoundTag();
 		output.putString("id", getId().toString());
 		output.put(NBTManagers.COMPONENTS_EXIST ? "components" : "tag", nbt);
 		output.putInt("count", count);
@@ -193,8 +197,8 @@ public class LocalItemParts extends LocalItem {
 		return output;
 	}
 	@Override
-	public Text toHoverableText() {
-		return getCachedItem().toHoverableText();
+	public Component toHoverableText() {
+		return getCachedItem().getDisplayName();
 	}
 	
 	@Override

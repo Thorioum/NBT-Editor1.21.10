@@ -8,11 +8,11 @@ import com.luneruniverse.minecraft.mod.nbteditor.nbtreferences.itemreferences.It
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 import com.luneruniverse.minecraft.mod.nbteditor.util.SlotUtil;
 
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.item.ItemStack;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.screen.slot.SlotActionType;
+import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.inventory.ContainerInput;
 import org.joml.Matrix3x2fStack;
 
 public class LockedSlotsInfo {
@@ -70,19 +70,19 @@ public class LockedSlotsInfo {
 		return this;
 	}
 	
-	public boolean isBlocked(Slot slot, int button, SlotActionType actionType, boolean explicitly) {
-		if (actionType == SlotActionType.SWAP && playerLockedHotbarSlots.contains(button))
+	public boolean isBlocked(Slot slot, int button, ContainerInput actionType, boolean explicitly) {
+		if (actionType == ContainerInput.SWAP && playerLockedHotbarSlots.contains(button))
 			return true;
 		
-		if (slot.inventory == MainUtil.client.player.getInventory()) {
-			if (playerLockedSlots.contains(slot.getIndex()))
+		if (slot.container == MainUtil.client.player.getInventory()) {
+			if (playerLockedSlots.contains(slot.getContainerSlot()))
 				return true;
 		} else {
-			if (containerLockedSlots.contains(slot.getIndex()))
+			if (containerLockedSlots.contains(slot.getContainerSlot()))
 				return true;
 			
 			if (!explicitly) {
-				ItemStack item = slot.getStack();
+				ItemStack item = slot.getItem();
 				if (item == null || item.isEmpty()) {
 					if (airLocked)
 						return true;
@@ -96,12 +96,12 @@ public class LockedSlotsInfo {
 		return false;
 	}
 	public boolean isBlocked(Slot slot, boolean explicitly) {
-		return isBlocked(slot, 0, SlotActionType.PICKUP, explicitly);
+		return isBlocked(slot, 0, ContainerInput.PICKUP, explicitly);
 	}
 	
-	public void renderLockedHighlights(Matrix3x2fStack matrices, ScreenHandler handler, boolean explicitly, boolean player, boolean container) {
+	public void renderLockedHighlights(Matrix3x2fStack matrices, AbstractContainerMenu handler, boolean explicitly, boolean player, boolean container) {
 		for (Slot slot : handler.slots) {
-			if ((slot.inventory == MainUtil.client.player.getInventory() ? player : container) && isBlocked(slot, explicitly))
+			if ((slot.container == MainUtil.client.player.getInventory() ? player : container) && isBlocked(slot, explicitly))
 				MVDrawableHelper.drawSlotHighlight(matrices, slot.x, slot.y, 0x60FF0000);
 		}
 	}

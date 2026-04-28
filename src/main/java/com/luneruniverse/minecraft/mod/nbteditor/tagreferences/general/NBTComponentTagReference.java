@@ -8,10 +8,10 @@ import com.luneruniverse.minecraft.mod.nbteditor.multiversion.DynamicRegistryMan
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Codec;
 
-import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
 
-public class NBTComponentTagReference<T, C> implements TagReference<T, NbtCompound> {
+public class NBTComponentTagReference<T, C> implements TagReference<T, CompoundTag> {
 	
 	private final String tag;
 	private final Codec<C> codec;
@@ -39,19 +39,19 @@ public class NBTComponentTagReference<T, C> implements TagReference<T, NbtCompou
 	}
 	
 	@Override
-	public T get(NbtCompound object) {
-		return codec.decode(DynamicRegistryManagerHolder.get().getOps(NbtOps.INSTANCE), object.get(tag))
+	public T get(CompoundTag object) {
+		return codec.decode(DynamicRegistryManagerHolder.get().createSerializationContext(NbtOps.INSTANCE), object.get(tag))
 				.result().map(Pair::getFirst).map(getter).orElseGet(defaultValue);
 	}
 	
 	@Override
-	public void set(NbtCompound object, T value) {
+	public void set(CompoundTag object, T value) {
 		if (value == null && !passNullValue) {
 			object.remove(tag);
 			return;
 		}
 		C componentValue = (defaultComponent == null ? null :
-			codec.decode(DynamicRegistryManagerHolder.get().getOps(NbtOps.INSTANCE), object.get(tag))
+			codec.decode(DynamicRegistryManagerHolder.get().createSerializationContext(NbtOps.INSTANCE), object.get(tag))
 			.result().map(Pair::getFirst).orElseGet(defaultComponent));
 		componentValue = setter.apply(componentValue, value);
 		if (componentValue == null) {
@@ -59,7 +59,7 @@ public class NBTComponentTagReference<T, C> implements TagReference<T, NbtCompou
 			return;
 		}
 		object.put(tag, codec.encodeStart(
-				DynamicRegistryManagerHolder.get().getOps(NbtOps.INSTANCE), componentValue).getOrThrow());
+				DynamicRegistryManagerHolder.get().createSerializationContext(NbtOps.INSTANCE), componentValue).getOrThrow());
 	}
 	
 }

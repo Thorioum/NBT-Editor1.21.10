@@ -8,9 +8,9 @@ import com.luneruniverse.minecraft.mod.nbteditor.multiversion.nbt.manager.nbt.NB
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.nbt.manager.nbt.NBTEntityNBTManager;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.nbt.manager.nbt.NBTItemNBTManager;
 
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.entity.Entity;
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.item.ItemStack;
 
 public class NBTManagers {
 	public static final boolean COMPONENTS_EXIST;

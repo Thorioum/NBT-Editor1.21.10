@@ -14,9 +14,9 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.util.StringHelper;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.util.StringUtil;
 
 public class GetSkullCommand extends ClientCommand {
 	
@@ -34,8 +34,8 @@ public class GetSkullCommand extends ClientCommand {
 	public void register(LiteralArgumentBuilder<FabricClientCommandSource> builder, String path) {
 		builder.then(argument("player", StringArgumentType.word()).executes(context -> {
 			String player = context.getArgument("player", String.class);
-			if (NBTManagers.COMPONENTS_EXIST && !StringHelper.isValidPlayerName(player)) {
-				MainUtil.client.player.sendMessage(TextInst.translatable("nbteditor.skull.invalid_player_name"), false);
+			if (NBTManagers.COMPONENTS_EXIST && !StringUtil.isValidPlayerName(player)) {
+				MainUtil.client.player.sendSystemMessage(TextInst.translatable("nbteditor.skull.invalid_player_name"));
 				return Command.SINGLE_SUCCESS;
 			}
 			ItemStack item = new ItemStack(Items.PLAYER_HEAD, 1);

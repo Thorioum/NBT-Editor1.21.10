@@ -7,7 +7,7 @@ import com.luneruniverse.minecraft.mod.nbteditor.NBTEditorClient;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.TextInst;
 import com.luneruniverse.minecraft.mod.nbteditor.nbtreferences.itemreferences.ItemReference;
 
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
 
 public interface NBTReferenceFilter extends Predicate<NBTReference<?>> {
 	public static final NBTReferenceFilter ANY = create(ref -> true, ref -> true, ref -> true,
@@ -23,7 +23,7 @@ public interface NBTReferenceFilter extends Predicate<NBTReference<?>> {
 			Predicate<ItemReference> itemFilter,
 			Predicate<BlockReference> blockFilter,
 			Predicate<EntityReference> entityFilter,
-			Supplier<Text> failMsg) {
+			Supplier<Component> failMsg) {
 		return new NBTReferenceFilter() {
 			@Override
 			public boolean test(NBTReference<?> ref) {
@@ -36,7 +36,7 @@ public interface NBTReferenceFilter extends Predicate<NBTReference<?>> {
 				return false;
 			}
 			@Override
-			public Text getFailMessage() {
+			public Component getFailMessage() {
 				return failMsg.get();
 			}
 			@Override
@@ -58,22 +58,22 @@ public interface NBTReferenceFilter extends Predicate<NBTReference<?>> {
 	 * Avoid passing in <code>() -> false</code> as this is inefficient for blocks and entities
 	 */
 	public static NBTReferenceFilter create(
-			Predicate<ItemReference> itemFilter,
-			Predicate<BlockReference> blockFilter,
-			Predicate<EntityReference> entityFilter,
-			Text expandedFailMsg,
-			Text nonExpandedFailMsg) {
+            Predicate<ItemReference> itemFilter,
+            Predicate<BlockReference> blockFilter,
+            Predicate<EntityReference> entityFilter,
+            Component expandedFailMsg,
+            Component nonExpandedFailMsg) {
 		return create(itemFilter, blockFilter, entityFilter,
 				() -> NBTEditorClient.SERVER_CONN.isEditingExpanded() ? expandedFailMsg : nonExpandedFailMsg);
 	}
-	public static NBTReferenceFilter create(Predicate<NBTReference<?>> filter, Supplier<Text> failMsg) {
+	public static NBTReferenceFilter create(Predicate<NBTReference<?>> filter, Supplier<Component> failMsg) {
 		return create(filter::test, filter::test, filter::test, failMsg);
 	}
-	public static NBTReferenceFilter create(Predicate<NBTReference<?>> filter, Text expandedFailMsg, Text nonExpandedFailMsg) {
+	public static NBTReferenceFilter create(Predicate<NBTReference<?>> filter, Component expandedFailMsg, Component nonExpandedFailMsg) {
 		return create(filter::test, filter::test, filter::test, expandedFailMsg, nonExpandedFailMsg);
 	}
 	
-	public Text getFailMessage();
+	public Component getFailMessage();
 	
 	// Use to avoid requesting block or entity data when it will always be rejected
 	public default boolean isItemAllowed() {

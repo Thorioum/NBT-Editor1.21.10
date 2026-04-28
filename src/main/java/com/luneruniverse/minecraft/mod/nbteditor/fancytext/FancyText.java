@@ -13,16 +13,20 @@ import com.luneruniverse.minecraft.mod.nbteditor.multiversion.TextInst;
 import com.luneruniverse.minecraft.mod.nbteditor.util.StyleUtil;
 import com.mojang.brigadier.StringReader;
 
-import net.minecraft.text.*;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.Identifier;
+import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.FontDescription;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.Style;
+import net.minecraft.ChatFormatting;
+import net.minecraft.resources.Identifier;
 
 public class FancyText {
 	
-	public static Text parse(String str, Style base) {
+	public static Component parse(String str, Style base) {
 		List<FancyTextToken> tokens = FancyTextToken.parse(new StringReader(str));
 		List<FancyTextNode> nodes = FancyTextNode.parse(tokens);
-		return gen(nodes, base.withParent(StyleUtil.RESET_STYLE));
+		return gen(nodes, base.applyTo(StyleUtil.RESET_STYLE));
 	}
 	private static EditableText gen(List<FancyTextNode> nodes, Style base) {
 		int numberOfTextNodes = nodes.stream().mapToInt(FancyTextNode::getNumberOfTextNodes).sum();
@@ -38,7 +42,7 @@ public class FancyText {
 				if (numberOfTextNodes != 1 || event.getNumberOfTextNodes() == 1) {
 					Style eventStyle = event.modifyStyle(style);
 					output.append(gen(event.contents(), eventStyle).styled(
-							genStyle -> StyleUtil.minus(genStyle.withParent(eventStyle), base)));
+							genStyle -> StyleUtil.minus(genStyle.applyTo(eventStyle), base)));
 				}
 			} else
 				style = node.modifyStyle(style);
@@ -48,8 +52,8 @@ public class FancyText {
 		return output;
 	}
 	
-	public static Map.Entry<String, Boolean> stringify(Text text, Style base) {
-		base = base.withParent(StyleUtil.RESET_STYLE);
+	public static Map.Entry<String, Boolean> stringify(Component text, Style base) {
+		base = base.applyTo(StyleUtil.RESET_STYLE);
 		StringBuilder output = new StringBuilder();
 		
 		AtomicReference<Style> style = new AtomicReference<>(base);
@@ -57,7 +61,7 @@ public class FancyText {
 		AtomicReference<ClickEvent> clickEvent = new AtomicReference<>(null);
 		AtomicReference<HoverEvent> hoverEvent = new AtomicReference<>(null);
 		AtomicReference<String> insertion = new AtomicReference<>(null);
-		AtomicReference<StyleSpriteSource> font = new AtomicReference<>(null);
+		AtomicReference<FontDescription> font = new AtomicReference<>(null);
 		AtomicBoolean errors = new AtomicBoolean(false);
 		text.visit((partStyle, partText) -> {
 			if (!Objects.equals(partStyle.getClickEvent(), clickEvent.getPlain()) ||
@@ -136,11 +140,11 @@ public class FancyText {
 			}
 			
 			if (changes.getColor() != null) {
-				Formatting formatting = Formatting.byName(changes.getColor().getName());
+				ChatFormatting formatting = ChatFormatting.getByName(changes.getColor().serialize());
 				if (formatting == null)
-					output.append("&" + changes.getColor().getHexCode());
+					output.append("&" + changes.getColor().formatValue());
 				else
-					output.append("&" + formatting.getCode());
+					output.append("&" + formatting.getChar());
 			}
 			if (StyleUtil.SHADOW_COLOR_EXISTS && changes.getShadowColor() != null) {
 				if (changes.getShadowColor() >>> 24 == 0xFF)
@@ -180,10 +184,10 @@ public class FancyText {
 		return Map.entry(output.toString(), errors.getPlain());
 	}
 	
-	public static Text parse(String str) {
+	public static Component parse(String str) {
 		return parse(str, Style.EMPTY);
 	}
-	public static Map.Entry<String, Boolean> stringify(Text text) {
+	public static Map.Entry<String, Boolean> stringify(Component text) {
 		return stringify(text, Style.EMPTY);
 	}
 	

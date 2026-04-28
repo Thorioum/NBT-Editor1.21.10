@@ -40,9 +40,8 @@
 
   "depends": {
     "fabricloader": ">=0.16.0",
-    "fabric": "*",
-    "minecraft": ">=1.17-",
-    "java": ">=16"
+    "fabric-api": "*",
+    "java": ">=25"
   },
   "suggests": {
     "nbt_ac": ">=1.1"

@@ -11,7 +11,7 @@ import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 
-import net.minecraft.command.argument.ItemStackArgument;
+import net.minecraft.commands.arguments.item.ItemInput;
 
 public class NBTNewCommand extends ClientCommand {
 	
@@ -29,7 +29,7 @@ public class NBTNewCommand extends ClientCommand {
 	public void register(LiteralArgumentBuilder<FabricClientCommandSource> builder, String path) {
 		builder.then(argument("item", MVMisc.getItemStackArg()).executes(context -> {
 			ItemReference ref = ItemReference.getHeldAir();
-			ref.saveItem(context.getArgument("item", ItemStackArgument.class).createStack(1, true));
+			ref.saveItem(context.getArgument("item", ItemInput.class).createItemStack(1));
 			MainUtil.client.setScreen(new NBTEditorScreen<>(ref));
 			return Command.SINGLE_SUCCESS;
 		}));

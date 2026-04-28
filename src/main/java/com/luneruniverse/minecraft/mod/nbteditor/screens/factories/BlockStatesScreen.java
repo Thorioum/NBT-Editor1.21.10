@@ -20,8 +20,8 @@ import com.luneruniverse.minecraft.mod.nbteditor.screens.configurable.ConfigValu
 import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.ItemTagReferences;
 import com.luneruniverse.minecraft.mod.nbteditor.util.BlockStateProperties;
 
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.item.BlockItem;
+import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.world.item.BlockItem;
 import org.joml.Matrix3x2fStack;
 
 public class BlockStatesScreen<L extends LocalNBT> extends LocalEditorScreen<L> {
@@ -37,11 +37,11 @@ public class BlockStatesScreen<L extends LocalNBT> extends LocalEditorScreen<L> 
 		BlockStateProperties state;
 		Set<String> unset;
 		if (localNBT instanceof LocalItem item) {
-			defaultState = new BlockStateProperties(((BlockItem) item.getItemType()).getBlock().getDefaultState());
+			defaultState = new BlockStateProperties(((BlockItem) item.getItemType()).getBlock().defaultBlockState());
 			state = defaultState.copy();
 			unset = state.setValuesMap(ItemTagReferences.BLOCK_STATE.get(item.getEditableItem()));
 		} else if (localNBT instanceof LocalBlock block) {
-			defaultState = new BlockStateProperties(block.getBlock().getDefaultState());
+			defaultState = new BlockStateProperties(block.getBlock().defaultBlockState());
 			state = block.getState();
 			unset = new HashSet<>();
 		} else
@@ -81,7 +81,7 @@ public class BlockStatesScreen<L extends LocalNBT> extends LocalEditorScreen<L> 
 	
 	@Override
 	protected void initEditor() {
-		ConfigPanel newPanel = addDrawableChild(new ConfigPanel(16, 64, width - 32, height - 80, blockStates));
+		ConfigPanel newPanel = addRenderableWidget(new ConfigPanel(16, 64, width - 32, height - 80, blockStates));
 		if (panel != null)
 			newPanel.setScroll(panel.getScroll());
 		panel = newPanel;
@@ -90,7 +90,7 @@ public class BlockStatesScreen<L extends LocalNBT> extends LocalEditorScreen<L> 
 	@Override
 	public void renderEditor(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
 		if (!hasBlockStates)
-			MVDrawableHelper.drawTextWithShadow(matrices, textRenderer, TextInst.translatable("nbteditor.block_states.none"), 16, 64, -1);
+			MVDrawableHelper.drawTextWithShadow(matrices, font, TextInst.translatable("nbteditor.block_states.none"), 16, 64, -1);
 	}
 	
 }

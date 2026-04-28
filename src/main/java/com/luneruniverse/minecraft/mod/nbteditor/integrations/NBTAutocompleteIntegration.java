@@ -20,12 +20,12 @@ import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import com.mt1006.nbt_ac.autocomplete.NbtSuggestionManager;
 
-import net.minecraft.command.argument.ItemStringReader;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtList;
-import net.minecraft.nbt.NbtString;
-import net.minecraft.util.Identifier;
+import net.minecraft.commands.arguments.item.ItemParser;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.StringTag;
+import net.minecraft.resources.Identifier;
 
 public class NBTAutocompleteIntegration extends Integration {
 	
@@ -47,7 +47,7 @@ public class NBTAutocompleteIntegration extends Integration {
 		return "nbt_ac";
 	}
 	
-	private CompletableFuture<Suggestions> getSuggestions(String type, Identifier id, NbtElement nbt, List<String> path, String key, String value, int cursor, Collection<String> otherTags) {
+	private CompletableFuture<Suggestions> getSuggestions(String type, Identifier id, Tag nbt, List<String> path, String key, String value, int cursor, Collection<String> otherTags) {
 		if (value != null && otherTags != null)
 			throw new IllegalArgumentException("Both value and otherTags can't be non-null at the same time!");
 		if (key == null && value == null)
@@ -71,7 +71,7 @@ public class NBTAutocompleteIntegration extends Integration {
 		boolean firstKey = true;
 		if (nbt != null) {
 			for (String piece : path) {
-				if (nbt instanceof NbtCompound compound) {
+				if (nbt instanceof CompoundTag compound) {
 					if (firstKey && components) {
 						pathBuilder.append('[');
 						pathBuilder.append(piece);
@@ -82,7 +82,7 @@ public class NBTAutocompleteIntegration extends Integration {
 						pathBuilder.append(':');
 					}
 					nbt = compound.get(piece);
-				} else if (nbt instanceof NbtList list) {
+				} else if (nbt instanceof ListTag list) {
 					pathBuilder.append('[');
 					nbt = list.get(Integer.parseInt(piece));
 				} else
@@ -92,18 +92,18 @@ public class NBTAutocompleteIntegration extends Integration {
 		}
 		int fieldStart = pathBuilder.length();
 		if (key != null) {
-			if (nbt instanceof NbtCompound) {
+			if (nbt instanceof CompoundTag) {
 				if (firstKey && components)
 					pathBuilder.append('[');
 				else
 					pathBuilder.append('{');
-			} else if (nbt instanceof NbtList)
+			} else if (nbt instanceof ListTag)
 				pathBuilder.append('[');
 			else
 				return new SuggestionsBuilder("", 0).buildFuture();
 			fieldStart = pathBuilder.length();
 			
-			if (nbt instanceof NbtCompound) {
+			if (nbt instanceof CompoundTag) {
 				if (firstKey && components)
 					pathBuilder.append(key);
 				else {
@@ -113,7 +113,7 @@ public class NBTAutocompleteIntegration extends Integration {
 			}
 			
 			if (value != null) {
-				if (nbt instanceof NbtCompound) {
+				if (nbt instanceof CompoundTag) {
 					if (firstKey && components)
 						pathBuilder.append('=');
 					else
@@ -163,14 +163,14 @@ public class NBTAutocompleteIntegration extends Integration {
 	private String escapeKey(String key) {
 		if (key.isEmpty() || MVMisc.isSimpleName(key))
 			return key;
-		return NbtString.escape(key);
+		return StringTag.quoteAndEscape(key);
 	}
 	private CompletableFuture<Suggestions> loadFromName(String name, String tag, boolean components) {
 		if (components) {
 			name = name.substring("item/".length());
 			int shift = name.length();
 			SuggestionsBuilder builder = new SuggestionsBuilder(name + tag, 0);
-			return new ItemStringReader(DynamicRegistryManagerHolder.get()).getSuggestions(builder).thenApply(suggestions -> {
+			return new ItemParser(DynamicRegistryManagerHolder.get()).fillSuggestions(builder).thenApply(suggestions -> {
 				return new Suggestions(shiftRange(suggestions.getRange(), -shift), suggestions.getList().stream()
 						.map(suggestion -> shiftSuggestion(suggestion, -shift)).collect(Collectors.toList()));
 			});

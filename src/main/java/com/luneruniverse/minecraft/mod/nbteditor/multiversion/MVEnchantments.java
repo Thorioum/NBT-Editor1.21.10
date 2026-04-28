@@ -6,16 +6,16 @@ import java.util.function.Supplier;
 import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.ItemTagReferences;
 import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.specific.data.Enchants;
 
-import net.minecraft.enchantment.Enchantment;
-import net.minecraft.enchantment.Enchantments;
-import net.minecraft.item.ItemStack;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.tag.EnchantmentTags;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Style;
-import net.minecraft.text.Text;
-import net.minecraft.text.Texts;
-import net.minecraft.util.Formatting;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.Enchantments;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.tags.EnchantmentTags;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.ComponentUtils;
+import net.minecraft.ChatFormatting;
 
 public class MVEnchantments {
 	
@@ -27,20 +27,20 @@ public class MVEnchantments {
 	@SuppressWarnings("unchecked")
 	private static Enchantment getEnchantment(String field) {
 		Object output = Reflection.getField(Enchantments.class, field,
-				DATA_PACK_ENCHANTMENTS ? "Lnet/minecraft/class_5321;" : "Lnet/minecraft/class_1887;").get(null);
+				DATA_PACK_ENCHANTMENTS ? "Lnet/minecraft/resources/ResourceKey;" : "Lnet/minecraft/class_1887;").get(null);
 		if (DATA_PACK_ENCHANTMENTS)
-			return MVRegistry.getEnchantmentRegistry().get(((RegistryKey<Enchantment>) output).getValue());
+			return MVRegistry.getEnchantmentRegistry().get(((ResourceKey<Enchantment>) output).identifier());
 		return (Enchantment) output;
 	}
 	
-	public static final Enchantment LOYALTY = getEnchantment("field_9120");
-	public static final Enchantment FIRE_ASPECT = getEnchantment("field_9124");
+	public static final Enchantment LOYALTY = getEnchantment("LOYALTY");
+	public static final Enchantment FIRE_ASPECT = getEnchantment("FIRE_ASPECT");
 	
 	private static final Supplier<Reflection.MethodInvoker> Enchantment_isCursed =
 			Reflection.getOptionalMethod(Enchantment.class, "method_8195", MethodType.methodType(boolean.class));
 	public static boolean isCursed(Enchantment enchant) {
 		return Version.<Boolean>newSwitch()
-				.range("1.21.0", null, () -> MVRegistry.getEnchantmentRegistry().getInternalValue().getEntry(enchant).isIn(EnchantmentTags.CURSE))
+				.range("1.21.0", null, () -> MVRegistry.getEnchantmentRegistry().getInternalValue().wrapAsHolder(enchant).is(EnchantmentTags.CURSE))
 				.range(null, "1.20.6", () -> Enchantment_isCursed.get().invoke(enchant))
 				.get();
 	}
@@ -53,12 +53,12 @@ public class MVEnchantments {
 	
 	private static final Supplier<Reflection.MethodInvoker> Enchantment_getTranslationKey =
 			Reflection.getOptionalMethod(Enchantment.class, "method_8184", MethodType.methodType(String.class));
-	public static Text getEnchantmentName(Enchantment enchant) {
-		Formatting color = (isCursed(enchant) ? Formatting.RED : Formatting.GRAY);
-		return Version.<Text>newSwitch()
+	public static Component getEnchantmentName(Enchantment enchant) {
+		ChatFormatting color = (isCursed(enchant) ? ChatFormatting.RED : ChatFormatting.GRAY);
+		return Version.<Component>newSwitch()
 				.range("1.21.0", null, () -> {
-					MutableText output = enchant.description().copy();
-					Texts.setStyleIfAbsent(output, Style.EMPTY.withColor(color));
+					MutableComponent output = enchant.description().copy();
+					ComponentUtils.mergeStyles(output, Style.EMPTY.withColor(color));
 					return output;
 				})
 				.range(null, "1.20.6", () -> {

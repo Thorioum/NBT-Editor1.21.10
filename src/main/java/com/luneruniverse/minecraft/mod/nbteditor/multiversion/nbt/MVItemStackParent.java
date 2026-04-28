@@ -5,14 +5,14 @@ import java.util.function.UnaryOperator;
 
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVComponentType;
 
-import net.minecraft.item.ItemStack;
-import net.minecraft.text.Text;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.network.chat.Component;
 
 public interface MVItemStackParent {
 	public default boolean nbte$hasCustomName() {
 		throw new RuntimeException("Missing implementation for MVItemStackParent#nbte$hasCustomName");
 	}
-	public default ItemStack nbte$setCustomName(Text name) {
+	public default ItemStack nbte$setCustomName(Component name) {
 		throw new RuntimeException("Missing implementation for MVItemStackParent#nbte$setCustomName");
 	}
 	

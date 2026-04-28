@@ -6,20 +6,20 @@ import java.util.List;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVButtonWidget;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVTooltip;
 
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
 
 public class ConfigValueBoolean extends MVButtonWidget implements ConfigValue<Boolean, ConfigValueBoolean> {
 	
-	private final Text on;
-	private final Text off;
+	private final Component on;
+	private final Component off;
 	private final boolean defaultValue;
 	private boolean value;
 	private MVTooltip tooltip;
 	
 	private final List<ConfigValueListener<ConfigValueBoolean>> onChanged;
 	
-	public ConfigValueBoolean(boolean value, boolean defaultValue, int width, Text on, Text off, MVTooltip tooltip) {
-		super(0, 0, width, 20, value ? on : off, btn -> ((ConfigValueBoolean) btn).setValue(!((ConfigValueBoolean) btn).getValue()), tooltip);
+	public ConfigValueBoolean(boolean value, boolean defaultValue, int width, Component on, Component off, MVTooltip tooltip) {
+		super(0, 0, width, 20, value ? on : off, btn -> ((ConfigValueBoolean) btn).setValue(!((ConfigValueBoolean) btn).getConfigValue()), tooltip);
 		this.on = on;
 		this.off = off;
 		this.value = value;
@@ -27,10 +27,10 @@ public class ConfigValueBoolean extends MVButtonWidget implements ConfigValue<Bo
 		this.tooltip = tooltip;
 		this.onChanged = new ArrayList<>();
 	}
-	public ConfigValueBoolean(boolean value, boolean defaultValue, int width, Text on, Text off) {
+	public ConfigValueBoolean(boolean value, boolean defaultValue, int width, Component on, Component off) {
 		this(value, defaultValue, width, on, off, MVTooltip.EMPTY);
 	}
-	private ConfigValueBoolean(boolean value, boolean defaultValue, int width, Text on, Text off, MVTooltip tooltipSupplier, List<ConfigValueListener<ConfigValueBoolean>> onChanged) {
+	private ConfigValueBoolean(boolean value, boolean defaultValue, int width, Component on, Component off, MVTooltip tooltipSupplier, List<ConfigValueListener<ConfigValueBoolean>> onChanged) {
 		this(value, defaultValue, width, on, off, tooltipSupplier);
 		this.onChanged.addAll(onChanged);
 	}
@@ -47,7 +47,7 @@ public class ConfigValueBoolean extends MVButtonWidget implements ConfigValue<Bo
 		onChanged.forEach(listener -> listener.onValueChanged(this));
 	}
 	@Override
-	public Boolean getValue() {
+	public Boolean getConfigValue() {
 		return value;
 	}
 	@Override

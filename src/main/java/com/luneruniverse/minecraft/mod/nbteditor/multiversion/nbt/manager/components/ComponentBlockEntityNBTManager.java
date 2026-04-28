@@ -8,46 +8,48 @@ import com.luneruniverse.minecraft.mod.nbteditor.multiversion.nbt.manager.NBTMan
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.component.ComponentMap;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
+import net.minecraft.util.ProblemReporter.PathElement;
+import net.minecraft.util.ProblemReporter.Problem;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.client.Minecraft;
+import net.minecraft.core.component.DataComponentMap;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.nbt.NbtOps;
-import net.minecraft.registry.RegistryWrapper;
-import net.minecraft.storage.NbtReadView;
-import net.minecraft.storage.NbtWriteView;
-import net.minecraft.storage.WriteView;
-import net.minecraft.util.ErrorReporter;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.TagValueOutput;
+import net.minecraft.world.level.storage.ValueOutput;
+import net.minecraft.util.ProblemReporter;
 
 public class ComponentBlockEntityNBTManager implements NBTManager<BlockEntity> {
 	
-	private static final Codec<ComponentMap> BlockEntity_Components_CODEC = Version.<Codec<ComponentMap>>newSwitch()
-			.range("1.21.5", null, () -> ComponentMap.CODEC)
+	private static final Codec<DataComponentMap> BlockEntity_Components_CODEC = Version.<Codec<DataComponentMap>>newSwitch()
+			.range("1.21.5", null, () -> DataComponentMap.CODEC)
 			.get();
 
-	private static class sErrorReporter implements ErrorReporter {
-		public Error lastError = null;
+	private static class sErrorReporter implements ProblemReporter {
+		public Problem lastError = null;
 		@Override
-		public ErrorReporter makeChild(Context context) {
+		public ProblemReporter forChild(PathElement context) {
 			return null;
 		}
 
 		@Override
-		public void report(Error error) {
+		public void report(Problem error) {
 			lastError = error;
 		}
 	}
 	@Override
-	public Attempt<NbtCompound> trySerialize(BlockEntity subject) {
+	public Attempt<CompoundTag> trySerialize(BlockEntity subject) {
 		// Based on BlockEntity#createNbtWithId
 		
-		RegistryWrapper.WrapperLookup registryLookup = DynamicRegistryManagerHolder.get();
+		HolderLookup.Provider registryLookup = DynamicRegistryManagerHolder.get();
 		
-		NbtCompound output = new NbtCompound();
+		CompoundTag output = new CompoundTag();
 		sErrorReporter errorReporter = new sErrorReporter();
-		subject.writeDataWithId(new NbtWriteView(errorReporter,NbtOps.INSTANCE,output));
-		return new Attempt<>(output, errorReporter.lastError == null ? null : errorReporter.lastError.getMessage());
+		subject.saveWithId(new TagValueOutput(errorReporter,NbtOps.INSTANCE,output));
+		return new Attempt<>(output, errorReporter.lastError == null ? null : errorReporter.lastError.description());
 	}
 	
 	@Override
@@ -55,16 +57,16 @@ public class ComponentBlockEntityNBTManager implements NBTManager<BlockEntity> {
 		return true;
 	}
 	@Override
-	public NbtCompound getNbt(BlockEntity subject) {
-		return subject.createNbt(DynamicRegistryManagerHolder.get());
+	public CompoundTag getNbt(BlockEntity subject) {
+		return subject.saveWithoutMetadata(DynamicRegistryManagerHolder.get());
 	}
 	@Override
-	public NbtCompound getOrCreateNbt(BlockEntity subject) {
+	public CompoundTag getOrCreateNbt(BlockEntity subject) {
 		return getNbt(subject);
 	}
 	@Override
-	public void setNbt(BlockEntity subject, NbtCompound nbt) {
-		subject.read(NbtReadView.create(ErrorReporter.EMPTY,DynamicRegistryManagerHolder.get(),nbt));
+	public void setNbt(BlockEntity subject, CompoundTag nbt) {
+		subject.loadWithComponents(TagValueInput.create(ProblemReporter.DISCARDING,DynamicRegistryManagerHolder.get(),nbt));
 	}
 	
 }

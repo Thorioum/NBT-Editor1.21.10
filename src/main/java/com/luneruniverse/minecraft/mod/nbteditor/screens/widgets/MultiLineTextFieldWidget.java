@@ -13,9 +13,9 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
 import com.luneruniverse.minecraft.mod.nbteditor.NBTEditor;
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.input.CharInput;
-import net.minecraft.client.input.KeyInput;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
 import org.joml.Matrix3x2fStack;
 import org.lwjgl.glfw.GLFW;
 
@@ -32,16 +32,15 @@ import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 import com.luneruniverse.minecraft.mod.nbteditor.util.TextUtil;
 import com.mojang.brigadier.suggestion.Suggestions;
 
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.Selectable;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.text.Text;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.narration.NarratableEntry;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.narration.NarrationElementOutput;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.network.chat.Component;
 import net.minecraft.util.Util;
 
-public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable, Selectable {
+public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable, NarratableEntry {
 	
 	private class FindAndReplaceWidget extends TranslatedGroupWidget {
 		private static String findValue = "";
@@ -50,13 +49,13 @@ public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable
 		
 		private final NamedTextFieldWidget find;
 		private final NamedTextFieldWidget replace;
-		private final ButtonWidget regexBtn;
+		private final Button regexBtn;
 		private boolean dragging;
 		private Matcher lastRegexMatch;
 		
 		public FindAndReplaceWidget() {
-			super(MainUtil.client.getWindow().getScaledWidth() / 2 - 100,
-					MainUtil.client.getWindow().getScaledHeight() / 2 - 30, 200);
+			super(MainUtil.client.getWindow().getGuiScaledWidth() / 2 - 100,
+					MainUtil.client.getWindow().getGuiScaledHeight() / 2 - 30, 200);
 			find = addWidget(new NamedTextFieldWidget(0, 0, 176, 16)
 					.name(TextInst.translatable("nbteditor.multi_line_text.find")));
 			replace = addWidget(new NamedTextFieldWidget(0, 20, 200, 16)
@@ -96,13 +95,13 @@ public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable
 			if (selStart != selEnd)
 				findValue = getSelectedText();
 			find.setMaxLength(Integer.MAX_VALUE);
-			find.setText(findValue);
-			find.setChangedListener(str -> findValue = str);
+			find.setValue(findValue);
+			find.setResponder(str -> findValue = str);
 			setFocused(find);
 			
 			replace.setMaxLength(Integer.MAX_VALUE);
-			replace.setText(replaceValue);
-			replace.setChangedListener(str -> replaceValue = str);
+			replace.setValue(replaceValue);
+			replace.setResponder(str -> replaceValue = str);
 		}
 		
 		private boolean goToNext(boolean backward, boolean wrap) {
@@ -195,7 +194,7 @@ public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable
 		}
 		
 		@Override
-		public boolean keyPressed(KeyInput keyInput) {
+		public boolean keyPressed(KeyEvent keyInput) {
 			int keyCode = keyInput.key();
 			if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
 				OverlaySupportingScreen.setOverlayStatic(null);
@@ -227,10 +226,10 @@ public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable
 		}
 	}
 	
-	private static final TextRenderer textRenderer = MainUtil.client.textRenderer;
+	private static final Font textRenderer = MainUtil.client.font;
 	
 	public static MultiLineTextFieldWidget create(MultiLineTextFieldWidget prev, int x, int y, int width, int height,
-			String text, Function<String, Text> formatter, boolean newLines, Consumer<String> onChange) {
+                                                  String text, Function<String, Component> formatter, boolean newLines, Consumer<String> onChange) {
 		if (prev == null)
 			return new MultiLineTextFieldWidget(x, y, width, height, text, formatter, newLines, onChange);
 		if (prev.newLines != newLines)
@@ -259,7 +258,7 @@ public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable
 	private int width;
 	private int height;
 	private String text;
-	private Function<String, Text> formatter;
+	private Function<String, Component> formatter;
 	private final boolean newLines;
 	private Consumer<String> onChange;
 	protected int maxLines;
@@ -268,8 +267,8 @@ public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable
 	private int selColor;
 	private boolean shadow;
 	
-	private final List<Text> lines;
-	private final List<Text> renderedLines;
+	private final List<Component> lines;
+	private final List<Component> renderedLines;
 	private final List<Map.Entry<String, Integer>> undo;
 	private int undoPos;
 	private int cursor;
@@ -284,9 +283,9 @@ public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable
 	private SuggestingTextFieldWidget suggestor;
 	
 	protected MultiLineTextFieldWidget(int x, int y, int width, int height, String text,
-			Function<String, Text> formatter, boolean newLines, Consumer<String> onChange) {
-		text = MVMisc.stripInvalidChars(text, newLines);
-		
+                                       Function<String, Component> formatter, boolean newLines, Consumer<String> onChange) {
+		if(newLines) text = MVMisc.stripInvalidChars(text, true);
+
 		this.x = x;
 		this.y = y;
 		this.width = width;
@@ -321,7 +320,7 @@ public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable
 		this(x, y, width, height, text, null, newLines, onChange);
 	}
 	
-	public MultiLineTextFieldWidget setFormatter(Function<String, Text> formatter) {
+	public MultiLineTextFieldWidget setFormatter(Function<String, Component> formatter) {
 		this.formatter = formatter;
 		generateLines();
 		return this;
@@ -368,7 +367,7 @@ public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable
 				@Override
 				public Point getSpecialDropdownPos() {
 					Point output = getXYPos(cursor);
-					output.y += textRenderer.fontHeight * 1.5 + scroll;
+					output.y += textRenderer.lineHeight * 1.5 + scroll;
 					return output;
 				}
 			};
@@ -378,10 +377,10 @@ public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable
 		return this;
 	}
 	private void syncToSuggestor() {
-		if (!suggestor.text.equals(text))
-			suggestor.setText(text);
+		if (!suggestor.value.equals(text))
+			suggestor.setValue(text);
 		
-		if (suggestor.getCursor() != cursor)
+		if (suggestor.getCursorPosition() != cursor)
 			MVMisc.setCursor(suggestor, cursor);
 		
 		boolean focus = isMultiFocused();
@@ -389,11 +388,11 @@ public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable
 			suggestor.setMultiFocused(focus);
 	}
 	private void syncFromSuggestor() {
-		if (!suggestor.text.equals(text))
-			setText(suggestor.text);
+		if (!suggestor.value.equals(text))
+			setText(suggestor.value);
 		
-		if (suggestor.getCursor() != cursor)
-			setCursor(suggestor.getCursor());
+		if (suggestor.getCursorPosition() != cursor)
+			setCursor(suggestor.getCursorPosition());
 	}
 	
 	public int getX() {
@@ -425,7 +424,7 @@ public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable
 	}
 	
 	@Override
-	public void render(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
+	public void extractRenderState(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
 		MVDrawableHelper.fill(matrices, x, y, x + width, y + height, bgColor);
 		
 		MVDrawableHelper.enableScissor(matrices, x, y, width, height);
@@ -436,9 +435,9 @@ public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable
 		renderHighlightsBelow(matrices, mouseX, mouseY, delta);
 		
 		int yOffset = y;
-		for (Text line : renderedLines) {
-			MVDrawableHelper.drawText(matrices, textRenderer, line, x + textRenderer.fontHeight, yOffset + textRenderer.fontHeight, -1, shadow);
-			yOffset += textRenderer.fontHeight * 1.5;
+		for (Component line : renderedLines) {
+			MVDrawableHelper.drawText(matrices, textRenderer, line, x + textRenderer.lineHeight, yOffset + textRenderer.lineHeight, -1, shadow);
+			yOffset += textRenderer.lineHeight * 1.5;
 		}
 		
 		Version.newSwitch()
@@ -451,16 +450,16 @@ public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable
 		
 		if (isMultiFocused() && cursorBlinkTracker / 6 % 2 == 0) {
 			Point cursor = getXYPos(this.cursor);
-			MVDrawableHelper.fill(matrices, cursor.x, cursor.y, cursor.x + 1, cursor.y + textRenderer.fontHeight, cursorColor);
+			MVDrawableHelper.fill(matrices, cursor.x, cursor.y, cursor.x + 1, cursor.y + textRenderer.lineHeight, cursorColor);
 		}
 		
 		matrices.popMatrix();
 		
-		scrollBar.render(matrices, mouseX, mouseY, delta);
+		scrollBar.extractRenderState(matrices, mouseX, mouseY, delta);
 		
 		if (suggestor != null) {
 			syncToSuggestor();
-			suggestor.render(matrices, mouseX, mouseY, delta);
+			suggestor.extractRenderState(matrices, mouseX, mouseY, delta);
 		}
 		
 		MVDrawableHelper.disableScissor(matrices);
@@ -471,16 +470,16 @@ public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable
 		Point startPos = getXYPos(start);
 		Point endPos = getXYPos(end);
 		if (startPos.y == endPos.y)
-			MVDrawableHelper.fill(matrices, startPos.x, startPos.y, endPos.x, endPos.y + textRenderer.fontHeight, color);
+			MVDrawableHelper.fill(matrices, startPos.x, startPos.y, endPos.x, endPos.y + textRenderer.lineHeight, color);
 		else {
 			int line = 0;
 			int lineY;
-			while ((lineY = startPos.y + line * (int) (textRenderer.fontHeight * 1.5)) < endPos.y) {
-				Point lineStart = line == 0 ? startPos : new Point(x + textRenderer.fontHeight, lineY);
-				MVDrawableHelper.fill(matrices, lineStart.x, lineStart.y, x + width - textRenderer.fontHeight, lineStart.y + textRenderer.fontHeight, color);
+			while ((lineY = startPos.y + line * (int) (textRenderer.lineHeight * 1.5)) < endPos.y) {
+				Point lineStart = line == 0 ? startPos : new Point(x + textRenderer.lineHeight, lineY);
+				MVDrawableHelper.fill(matrices, lineStart.x, lineStart.y, x + width - textRenderer.lineHeight, lineStart.y + textRenderer.lineHeight, color);
 				line++;
 			}
-			MVDrawableHelper.fill(matrices, x + textRenderer.fontHeight, lineY, endPos.x, endPos.y + textRenderer.fontHeight, color);
+			MVDrawableHelper.fill(matrices, x + textRenderer.lineHeight, lineY, endPos.x, endPos.y + textRenderer.lineHeight, color);
 		}
 	}
 	
@@ -494,7 +493,7 @@ public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable
 		renderedLines.clear();
 		
 		String text = this.text;
-		Text formattedText = (formatter == null ? TextInst.of(text) : formatter.apply(text));
+		Component formattedText = (formatter == null ? TextInst.of(text) : formatter.apply(text));
 		boolean endsWithNewLine = false;
 		while (!text.isEmpty()) {
 			if (text.charAt(0) == '\n') {
@@ -506,7 +505,7 @@ public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable
 				continue;
 			}
 			int charPos = 1;
-			while (textRenderer.getWidth(TextUtil.substring(formattedText, 0, charPos)) < width - textRenderer.fontHeight * 2) {
+			while (textRenderer.width(TextUtil.substring(formattedText, 0, charPos)) < width - textRenderer.lineHeight * 2) {
 				charPos++;
 				if (text.length() < charPos || text.charAt(charPos - 1) == '\n')
 					break;
@@ -519,14 +518,14 @@ public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable
 			formattedText = TextUtil.substring(formattedText, extraPos);
 		}
 		if (endsWithNewLine) {
-			Text emptyLine = TextInst.of("");
+			Component emptyLine = TextInst.of("");
 			lines.add(emptyLine);
 			renderedLines.add(emptyLine);
 		}
 	}
 	
 	@Override
-	public boolean mouseClicked(Click click, boolean doubled) {
+	public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
 		if (suggestor != null) {
 			syncToSuggestor();
 			if (suggestor.mouseClicked(click, doubled)) {
@@ -546,7 +545,7 @@ public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable
 	}
 	
 	@Override
-	public boolean mouseDragged(Click click, double deltaX, double deltaY) {
+	public boolean mouseDragged(MouseButtonEvent click, double deltaX, double deltaY) {
 		if (scrollBar.mouseDragged(click, deltaX, deltaY))
 			return true;
 		if (!isMouseOver(click.x(), click.y()))
@@ -574,14 +573,14 @@ public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable
 		if (lines.isEmpty())
 			return 0;
 		
-		int line = (mouseY - y - textRenderer.fontHeight) / (int) (textRenderer.fontHeight * 1.5);
+		int line = (mouseY - y - textRenderer.lineHeight) / (int) (textRenderer.lineHeight * 1.5);
 		if (line >= lines.size())
 			line = lines.size() - 1;
 		
-		Text lineValue = renderedLines.get(line);
+		Component lineValue = renderedLines.get(line);
 		int lineLen = lineValue.getString().length();
 		int charPos = 0;
-		while (textRenderer.getWidth(TextUtil.substring(lineValue, 0, charPos)) < mouseX - x - textRenderer.fontHeight) {
+		while (textRenderer.width(TextUtil.substring(lineValue, 0, charPos)) < mouseX - x - textRenderer.lineHeight) {
 			charPos++;
 			if (charPos > lineLen)
 				break;
@@ -601,24 +600,24 @@ public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable
 		int lineX = 0;
 		int lineY = 0;
 		if (charPos >= text.length()) {
-			lineX = lines.isEmpty() ? 0 : textRenderer.getWidth(lines.get(lines.size() - 1));
+			lineX = lines.isEmpty() ? 0 : textRenderer.width(lines.get(lines.size() - 1));
 			lineY = lines.isEmpty() ? 0 : lines.size() - 1;
 		} else {
 			int i = 0;
-			for (Text line : lines) {
+			for (Component line : lines) {
 				int lineLen = line.getString().length();
 				if (lineLen <= charPos) {
 					lineY++;
 					charPos -= lineLen;
 				} else {
-					lineX = textRenderer.getWidth(TextUtil.substring(lines.get(i), 0, charPos));
+					lineX = textRenderer.width(TextUtil.substring(lines.get(i), 0, charPos));
 					break;
 				}
 				i++;
 			}
 		}
 		
-		return new Point(lineX + textRenderer.fontHeight + x, lineY * (int) (textRenderer.fontHeight * 1.5) + textRenderer.fontHeight + y);
+		return new Point(lineX + textRenderer.lineHeight + x, lineY * (int) (textRenderer.lineHeight * 1.5) + textRenderer.lineHeight + y);
 	}
 	
 	@Override
@@ -634,8 +633,8 @@ public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable
 		return scrollBar.mouseScrolled(mouseX, mouseY, xAmount, yAmount);
 	}
 	private int getMaxScroll() {
-		return -Math.max(0, lines.size() * (int) (textRenderer.fontHeight * 1.5) +
-				textRenderer.fontHeight + (overscroll ? height / 3 : 0) - height);
+		return -Math.max(0, lines.size() * (int) (textRenderer.lineHeight * 1.5) +
+				textRenderer.lineHeight + (overscroll ? height / 3 : 0) - height);
 	}
 	
 	@Override
@@ -687,7 +686,7 @@ public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable
 			setCursor(0, true);
 			cursorX = -1;
 		} else
-			setCursor(getCharPos(cursorX, pos.y - (int) (textRenderer.fontHeight * 1.5)), true);
+			setCursor(getCharPos(cursorX, pos.y - (int) (textRenderer.lineHeight * 1.5)), true);
 	}
 	private void moveCursorDown() {
 		Point pos = getXYPos(cursor);
@@ -697,11 +696,11 @@ public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable
 			setCursor(text.length(), true);
 			cursorX = -1;
 		} else
-			setCursor(getCharPos(cursorX, pos.y + (int) (textRenderer.fontHeight * 1.5)), true);
+			setCursor(getCharPos(cursorX, pos.y + (int) (textRenderer.lineHeight * 1.5)), true);
 	}
 	
 	@Override
-	public boolean keyPressed(KeyInput keyInput) {
+	public boolean keyPressed(KeyEvent keyInput) {
 		int keyCode = keyInput.key();
 		if (suggestor != null && (keyCode != GLFW.GLFW_KEY_UP && keyCode != GLFW.GLFW_KEY_DOWN || NBTEditor.hasAltDown())) {
 			syncToSuggestor();
@@ -719,16 +718,16 @@ public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable
 			return true;
 		}
 		if (NBTEditor.isCopy(keyCode)) {
-			MainUtil.client.keyboard.setClipboard(onCopy(getSelectedText(), getSelStart(), getSelEnd() - getSelStart()));
+			MainUtil.client.keyboardHandler.setClipboard(onCopy(getSelectedText(), getSelStart(), getSelEnd() - getSelStart()));
 			return true;
 		}
 		if (NBTEditor.isPaste(keyCode)) {
-			this.write(pasteFilter(onPaste(MainUtil.client.keyboard.getClipboard(), getSelStart(), getSelEnd() - getSelStart())));
+			this.write(pasteFilter(onPaste(MainUtil.client.keyboardHandler.getClipboard(), getSelStart(), getSelEnd() - getSelStart())));
 			cursorX = -1;
 			return true;
 		}
 		if (NBTEditor.isCut(keyCode)) {
-			MainUtil.client.keyboard.setClipboard(onCopy(getSelectedText(), getSelStart(), getSelEnd() - getSelStart()));
+			MainUtil.client.keyboardHandler.setClipboard(onCopy(getSelectedText(), getSelStart(), getSelEnd() - getSelStart()));
 			this.write("");
 			cursorX = -1;
 			return true;
@@ -890,7 +889,7 @@ public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable
 	}
 	
 	private int getCursorPosWithOffset(int offset) {
-		return Util.moveCursor(this.text, NBTEditor.hasShiftDown() ? cursor : (offset > 0 ? getSelEnd() : getSelStart()), offset);
+		return Util.offsetByCodepoints(this.text, NBTEditor.hasShiftDown() ? cursor : (offset > 0 ? getSelEnd() : getSelStart()), offset);
 	}
 	
 	private void erase(boolean backwards) {
@@ -938,7 +937,7 @@ public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable
 	}
 	
 	@Override
-	public boolean charTyped(CharInput charInput) {
+	public boolean charTyped(CharacterEvent charInput) {
 		if (MVMisc.isValidChar((char) charInput.codepoint())) {
 			this.write(Character.toString(charInput.codepoint()));
 			cursorX = -1;
@@ -970,12 +969,12 @@ public class MultiLineTextFieldWidget implements MVDrawable, MVElement, Tickable
 	
 	
 	@Override
-	public SelectionType getType() {
-		return SelectionType.NONE;
+	public NarrationPriority narrationPriority() {
+		return NarrationPriority.NONE;
 	}
 	
 	@Override
-	public void appendNarrations(NarrationMessageBuilder var1) {
+	public void updateNarration(NarrationElementOutput var1) {
 		
 	}
 	

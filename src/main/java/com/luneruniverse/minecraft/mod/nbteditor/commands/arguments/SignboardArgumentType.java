@@ -16,9 +16,9 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 
-import net.minecraft.command.CommandSource;
-import net.minecraft.item.Item;
-import net.minecraft.util.Identifier;
+import net.minecraft.commands.SharedSuggestionProvider;
+import net.minecraft.world.item.Item;
+import net.minecraft.resources.Identifier;
 
 public class SignboardArgumentType implements ArgumentType<Item> {
 	
@@ -50,7 +50,7 @@ public class SignboardArgumentType implements ArgumentType<Item> {
 	}
 	
 	public <S> CompletableFuture<Suggestions> listSuggestions(CommandContext<S> context, SuggestionsBuilder builder) {
-		return CommandSource.suggestIdentifiers(signs.keySet(), builder);
+		return SharedSuggestionProvider.suggestResource(signs.keySet(), builder);
 	}
 	
 	public Collection<String> getExamples() {

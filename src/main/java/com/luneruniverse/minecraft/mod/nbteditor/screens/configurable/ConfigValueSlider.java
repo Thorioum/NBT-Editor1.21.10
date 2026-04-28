@@ -4,20 +4,21 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
+import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVDrawableHelper;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.gui.widget.SliderWidget;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.text.Text;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.gui.components.AbstractSliderButton;
+import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.network.chat.Component;
 import org.joml.Matrix3x2fStack;
 
-public class ConfigValueSlider<T extends Number> extends SliderWidget implements ConfigValue<T, ConfigValueSlider<T>> {
+public class ConfigValueSlider<T extends Number> extends AbstractSliderButton implements ConfigValue<T, ConfigValueSlider<T>> {
 	
-	public static ConfigValueSlider<Integer> forInt(int width, int value, int defaultValue, int min, int max, int step, Function<Integer, Text> msg) {
+	public static ConfigValueSlider<Integer> forInt(int width, int value, int defaultValue, int min, int max, int step, Function<Integer, Component> msg) {
 		return new ConfigValueSlider<>(width, value, defaultValue, min, max, step, msg, Double::intValue, null);
 	}
-	public static ConfigValueSlider<Double> forDouble(int width, double value, double defaultValue, double min, double max, double step, Function<Double, Text> msg) {
+	public static ConfigValueSlider<Double> forDouble(int width, double value, double defaultValue, double min, double max, double step, Function<Double, Component> msg) {
 		return new ConfigValueSlider<>(width, value, defaultValue, min, max, step, msg, Double::doubleValue, null);
 	}
 	
@@ -27,12 +28,12 @@ public class ConfigValueSlider<T extends Number> extends SliderWidget implements
 	private final T min;
 	private final T max;
 	private final T step;
-	private final Function<T, Text> msg;
+	private final Function<T, Component> msg;
 	private final Function<Double, T> caster;
 	
 	private final List<ConfigValueListener<ConfigValueSlider<T>>> onChanged;
 	
-	private ConfigValueSlider(int width, T value, T defaultValue, T min, T max, T step, Function<T, Text> msg, Function<Double, T> caster, List<ConfigValueListener<ConfigValueSlider<T>>> onChanged) {
+	private ConfigValueSlider(int width, T value, T defaultValue, T min, T max, T step, Function<T, Component> msg, Function<Double, T> caster, List<ConfigValueListener<ConfigValueSlider<T>>> onChanged) {
 		super(0, 0, width, 20, msg.apply(value), (value.doubleValue() - min.doubleValue()) / (max.doubleValue() - min.doubleValue()));
 		this.actualValue = value;
 		this.defaultValue = defaultValue;
@@ -47,8 +48,8 @@ public class ConfigValueSlider<T extends Number> extends SliderWidget implements
 	}
 	
 	@Override
-	public void render(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
-		super.render(matrices, mouseX, mouseY, delta);
+	public void extractRenderState(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
+		super.extractRenderState(MVDrawableHelper.getDrawContext(matrices), mouseX, mouseY, delta);
 	}
 	
 	// There is no element focusing in configs, so onDrag is called for everything
@@ -58,7 +59,7 @@ public class ConfigValueSlider<T extends Number> extends SliderWidget implements
 	private double mouseClickX = -1;
 	private double mouseClickY = -1;
 	@Override
-	public boolean mouseClicked(Click click, boolean doubled) {
+	public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
 		boolean output = super.mouseClicked(click, doubled);
 		if (output) {
 			mouseClickX = click.x();
@@ -67,7 +68,7 @@ public class ConfigValueSlider<T extends Number> extends SliderWidget implements
 		return clicked = output;
 	}
 	@Override
-	protected void onDrag(Click click, double deltaX, double deltaY) {
+	protected void onDrag(MouseButtonEvent click, double deltaX, double deltaY) {
 		if (clicked && MainUtil.equals(click.x(), mouseClickX + deltaX) && MainUtil.equals(click.y(), mouseClickY + deltaY)) {
 			mouseClickX += deltaX;
 			mouseClickY += deltaY;
@@ -101,7 +102,7 @@ public class ConfigValueSlider<T extends Number> extends SliderWidget implements
 		updateMessage();
 	}
 	@Override
-	public T getValue() {
+	public T getConfigValue() {
 		return actualValue;
 	}
 	@Override

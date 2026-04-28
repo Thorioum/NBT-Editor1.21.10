@@ -4,7 +4,7 @@ import java.lang.invoke.MethodType;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
 
-import net.minecraft.client.render.entity.EntityRenderManager;
+import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import org.joml.Matrix3x2fStack;
 import org.joml.Quaternionf;
 
@@ -12,7 +12,7 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 
-import net.minecraft.client.util.math.MatrixStack;
+import com.mojang.blaze3d.vertex.PoseStack;
 
 public class MVQuaternionf {
 	

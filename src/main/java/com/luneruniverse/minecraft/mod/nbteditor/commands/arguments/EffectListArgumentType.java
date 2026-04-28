@@ -19,22 +19,22 @@ import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 
-import net.minecraft.command.CommandSource;
-import net.minecraft.entity.effect.StatusEffect;
-import net.minecraft.entity.effect.StatusEffectInstance;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.util.Identifier;
+import net.minecraft.commands.SharedSuggestionProvider;
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.resources.Identifier;
 
-public class EffectListArgumentType implements ArgumentType<Collection<StatusEffectInstance>> {
+public class EffectListArgumentType implements ArgumentType<Collection<MobEffectInstance>> {
 	
 	public enum Arg {
-		DURATION("-duration", (effect, str) -> MVMisc.newStatusEffectInstance(MVMisc.getEffectType(effect), Integer.parseInt(str) * 20, effect.getAmplifier(), effect.isAmbient(), effect.shouldShowParticles(), effect.shouldShowIcon()), false),
-		AMPLIFIER("-amplifier", (effect, str) -> MVMisc.newStatusEffectInstance(MVMisc.getEffectType(effect), effect.getDuration(), Integer.parseInt(str), effect.isAmbient(), effect.shouldShowParticles(), effect.shouldShowIcon()), false),
-		AMBIENT("-ambient", (effect, str) -> MVMisc.newStatusEffectInstance(MVMisc.getEffectType(effect), effect.getDuration(), effect.getAmplifier(), parseBoolean(str), effect.shouldShowParticles(), effect.shouldShowIcon()), true),
-		PERMANENT("-permanent", (effect, str) -> MVMisc.newStatusEffectInstance(MVMisc.getEffectType(effect), -1, effect.getAmplifier(), effect.isAmbient(), effect.shouldShowParticles(), effect.shouldShowIcon()), true),
-		SHOW_PARTICLES("-showparticles", (effect, str) -> MVMisc.newStatusEffectInstance(MVMisc.getEffectType(effect), effect.getDuration(), effect.getAmplifier(), effect.isAmbient(), parseBoolean(str), effect.shouldShowIcon()), true),
-		SHOW_ICON("-showicon", (effect, str) -> MVMisc.newStatusEffectInstance(MVMisc.getEffectType(effect), effect.getDuration(), effect.getAmplifier(), effect.isAmbient(), effect.shouldShowParticles(), parseBoolean(str)), true);
-		
+		DURATION("-duration", (effect, str) -> MVMisc.newMobEffectInstance(MVMisc.getEffectType(effect), Integer.parseInt(str) * 20, effect.getAmplifier(), effect.isAmbient(), effect.isVisible(), effect.showIcon()), false),
+		AMPLIFIER("-amplifier", (effect, str) -> MVMisc.newMobEffectInstance(MVMisc.getEffectType(effect), effect.getDuration(), Integer.parseInt(str), effect.isAmbient(), effect.isVisible(), effect.showIcon()), false),
+		AMBIENT("-ambient", (effect, str) -> MVMisc.newMobEffectInstance(MVMisc.getEffectType(effect), effect.getDuration(), effect.getAmplifier(), parseBoolean(str), effect.isVisible(), effect.showIcon()), true),
+		PERMANENT("-permanent", (effect, str) -> MVMisc.newMobEffectInstance(MVMisc.getEffectType(effect), -1, effect.getAmplifier(), effect.isAmbient(), effect.isVisible(), effect.showIcon()), true),
+		SHOW_PARTICLES("-showparticles", (effect, str) -> MVMisc.newMobEffectInstance(MVMisc.getEffectType(effect), effect.getDuration(), effect.getAmplifier(), effect.isAmbient(), parseBoolean(str), effect.showIcon()), true),
+		SHOW_ICON("-showicon", (effect, str) -> MVMisc.newMobEffectInstance(MVMisc.getEffectType(effect), effect.getDuration(), effect.getAmplifier(), effect.isAmbient(), effect.isVisible(), parseBoolean(str)), true);
+
 		private static boolean parseBoolean(String str) {
 			if (str.equalsIgnoreCase("true"))
 				return true;
@@ -45,10 +45,10 @@ public class EffectListArgumentType implements ArgumentType<Collection<StatusEff
 		}
 		
 		private final String name;
-		private final BiFunction<StatusEffectInstance, String, StatusEffectInstance> apply;
+		private final BiFunction<MobEffectInstance, String, MobEffectInstance> apply;
 		private final boolean isBoolean;
 		
-		private Arg(String name, BiFunction<StatusEffectInstance, String, StatusEffectInstance> apply, boolean isBoolean) {
+		private Arg(String name, BiFunction<MobEffectInstance, String, MobEffectInstance> apply, boolean isBoolean) {
 			this.name = name;
 			this.apply = apply;
 			this.isBoolean = isBoolean;
@@ -67,25 +67,25 @@ public class EffectListArgumentType implements ArgumentType<Collection<StatusEff
 	private EffectListArgumentType() {}
 
 	@SuppressWarnings("unchecked")
-	public static Collection<StatusEffectInstance> getStatusEffectInstance(CommandContext<ServerCommandSource> context, String name) {
+	public static Collection<MobEffectInstance> getStatusEffectInstance(CommandContext<CommandSourceStack> context, String name) {
 		return context.getArgument(name, Collection.class);
 	}
 
-	public Collection<StatusEffectInstance> parse(StringReader stringReader) throws CommandSyntaxException {
-		List<StatusEffectInstance> effects = new ArrayList<>();
+	public Collection<MobEffectInstance> parse(StringReader stringReader) throws CommandSyntaxException {
+		List<MobEffectInstance> effects = new ArrayList<>();
 		while (stringReader.canRead()) {
-			Identifier identifier = Identifier.fromCommandInput(stringReader);
-			StatusEffect type = MVRegistry.STATUS_EFFECT.getOrEmpty(identifier).orElseThrow(() -> {
+			Identifier identifier = Identifier.read(stringReader);
+			MobEffect type = MVRegistry.STATUS_EFFECT.getOrEmpty(identifier).orElseThrow(() -> {
 				return INVALID_EFFECT_EXCEPTION.create(identifier);
 			});
 			if (!stringReader.canRead()) {
-				effects.add(MVMisc.newStatusEffectInstance(type, 5 * 20));
+				effects.add(MVMisc.newMobEffectInstance(type, 5 * 20));
 				break;
 			}
 			if (stringReader.read() != ' ')
 				throw new SimpleCommandExceptionType(TextInst.translatable("nbteditor.effect_list_arg_type.expected.space")).createWithContext(stringReader);
 			
-			StatusEffectInstance effect = MVMisc.newStatusEffectInstance(type, 5 * 20);
+			MobEffectInstance effect = MVMisc.newMobEffectInstance(type, 5 * 20);
 			
 			while (stringReader.canRead() && stringReader.peek() == '-') {
 				StringBuilder arg = new StringBuilder();
@@ -146,7 +146,7 @@ public class EffectListArgumentType implements ArgumentType<Collection<StatusEff
 				}
 			}
 		}
-		return CommandSource.suggestIdentifiers(MVRegistry.STATUS_EFFECT.getIds(), builder);
+		return SharedSuggestionProvider.suggestResource(MVRegistry.STATUS_EFFECT.getIds(), builder);
 	}
 
 	public Collection<String> getExamples() {

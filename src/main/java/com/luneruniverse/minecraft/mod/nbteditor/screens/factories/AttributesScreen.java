@@ -31,19 +31,19 @@ import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.specific.data.Att
 import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.specific.data.AttributeData.AttributeModifierData;
 import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.specific.data.AttributeData.AttributeModifierData.AttributeModifierId;
 
-import net.minecraft.entity.attribute.ClampedEntityAttribute;
-import net.minecraft.entity.attribute.EntityAttribute;
+import net.minecraft.world.entity.ai.attributes.RangedAttribute;
+import net.minecraft.world.entity.ai.attributes.Attribute;
 
 public class AttributesScreen<L extends LocalNBT> extends LocalEditorScreen<L> {
 	
 	private static ConfigButton createExtremeAmountBtn(String key, boolean mostPositive, boolean infinity) {
 		return new ConfigButton(30, TextInst.translatable(key), btn -> {
 			ConfigCategory attribute = (ConfigCategory) btn.getParent().getParent();
-			EntityAttribute type = ATTRIBUTES.get(getConfigAttribute(attribute).getValidValue());
+			Attribute type = ATTRIBUTES.get(getConfigAttribute(attribute).getValidValue());
 			
 			double min = Double.MIN_VALUE;
 			double max = Double.MAX_VALUE;
-			if (type instanceof ClampedEntityAttribute clamped) {
+			if (type instanceof RangedAttribute clamped) {
 				min = clamped.getMinValue();
 				max = clamped.getMaxValue();
 			}
@@ -64,7 +64,7 @@ public class AttributesScreen<L extends LocalNBT> extends LocalEditorScreen<L> {
 		}, new MVTooltip(key + ".desc"));
 	}
 	
-	private static final Map<String, EntityAttribute> ATTRIBUTES;
+	private static final Map<String, Attribute> ATTRIBUTES;
 	private static final ConfigHiddenDataNamed<ConfigCategory, AttributeModifierId> BASE_ATTRIBUTE_ENTRY;
 	private static final ConfigHiddenDataNamed<ConfigCategory, AttributeModifierId> ATTRIBUTE_ENTRY;
 	static {
@@ -157,7 +157,7 @@ public class AttributesScreen<L extends LocalNBT> extends LocalEditorScreen<L> {
 						(ConfigHiddenDataNamed<ConfigCategory, AttributeModifierId>) path;
 				ConfigCategory attributeConfig = hiddenAttributeConfig.getVisible();
 				
-				EntityAttribute attribute = ATTRIBUTES.get(getConfigAttribute(attributeConfig).getValidValue());
+				Attribute attribute = ATTRIBUTES.get(getConfigAttribute(attributeConfig).getValidValue());
 				double amount = getConfigAmount(attributeConfig).getValidValue();
 				
 				if (modifiers) {
@@ -179,7 +179,7 @@ public class AttributesScreen<L extends LocalNBT> extends LocalEditorScreen<L> {
 	
 	@Override
 	protected void initEditor() {
-		ConfigPanel newPanel = addDrawableChild(new ConfigPanel(16, 64, width - 32, height - 80, attributes));
+		ConfigPanel newPanel = addRenderableWidget(new ConfigPanel(16, 64, width - 32, height - 80, attributes));
 		if (panel != null)
 			newPanel.setScroll(panel.getScroll());
 		panel = newPanel;

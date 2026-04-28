@@ -10,7 +10,8 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
-import net.minecraft.client.input.KeyInput;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.core.component.DataComponents;
 import org.lwjgl.glfw.GLFW;
 
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.TextInst;
@@ -20,11 +21,11 @@ import com.luneruniverse.minecraft.mod.nbteditor.screens.widgets.StringInput;
 import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.ItemTagReferences;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 
-import net.minecraft.inventory.Inventory;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.screen.slot.SlotActionType;
+import net.minecraft.world.Container;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.inventory.ContainerInput;
 import tsp.headdb.ported.HeadAPI;
 import tsp.headdb.ported.Utils;
 
@@ -133,52 +134,52 @@ public class PagedPane extends ClientHandledScreen {
      * Renders the inventory again
      */
     public void reRender() {
-        this.handler.getInventory().clear();
-        pages.get(currentIndex).render(this.handler.getInventory());
+        this.menu.getContainer().clearContent();
+        pages.get(currentIndex).render(this.menu.getContainer());
         
         controlBack = null;
         controlNext = null;
         controlMain = null;
-        createControls(this.handler.getInventory());
+        createControls(this.menu.getContainer());
     }
     
     private boolean shiftKey;
     @Override
-    public boolean keyPressed(KeyInput keyInput) {
+    public boolean keyPressed(KeyEvent keyInput) {
     	if (keyInput.key() == GLFW.GLFW_KEY_LEFT_SHIFT || keyInput.key()  == GLFW.GLFW_KEY_RIGHT_SHIFT)
     		shiftKey = true;
     	return super.keyPressed(keyInput);
     }
     @Override
-    public boolean keyReleased(KeyInput keyInput) {
+    public boolean keyReleased(KeyEvent keyInput) {
     	if (keyInput.key()  == GLFW.GLFW_KEY_LEFT_SHIFT || keyInput.key()  == GLFW.GLFW_KEY_RIGHT_SHIFT)
     		shiftKey = false;
     	return super.keyReleased(keyInput);
     }
     
     @Override
-    protected void onMouseClick(Slot slot, int slotId, int button, SlotActionType actionType) {
+    protected void slotClicked(Slot slot, int slotId, int button, ContainerInput actionType) {
     	if (slot == null)
     		return;
-    	slotId = slot.id;
+    	slotId = slot.index;
     	
     	InventoryClickEvent event = new InventoryClickEvent(slot, slotId, button, actionType, ClickTypeMod.get(button == 1, shiftKey));
     	
     	// back item
-        if (event.getSlotId() == getInventory().size() - 8) {
+        if (event.getSlotId() == getInventory().getContainerSize() - 8) {
             if (controlBack != null) {
                 controlBack.onClick(event);
             }
             return;
         }
         // next item
-        else if (event.getSlotId() == getInventory().size() - 2) {
+        else if (event.getSlotId() == getInventory().getContainerSize() - 2) {
             if (controlNext != null) {
                 controlNext.onClick(event);
             }
             return;
         }
-        else if (event.getSlotId() == getInventory().size() - 5) {
+        else if (event.getSlotId() == getInventory().getContainerSize() - 5) {
             if (controlMain != null){
                 controlMain.onClick(event);
             }
@@ -189,8 +190,8 @@ public class PagedPane extends ClientHandledScreen {
     }
     
     @Override
-    public void close() {
-    	MainUtil.client.player.closeHandledScreen();
+    public void onClose() {
+    	MainUtil.client.player.closeContainer();
     }
 
     /**
@@ -198,8 +199,8 @@ public class PagedPane extends ClientHandledScreen {
      *
      * @return The inventory.
      */
-    public Inventory getInventory() {
-        return this.handler.getInventory();
+    public Container getInventory() {
+        return this.menu.getContainer();
     }
 
     /**
@@ -207,10 +208,10 @@ public class PagedPane extends ClientHandledScreen {
      *
      * @param inventory The inventory
      */
-    protected void createControls(Inventory inventory) {
+    protected void createControls(Container inventory) {
         // create separator
         fillRow(
-                inventory.size() / 9 - 2,
+                inventory.getContainerSize() / 9 - 2,
                 new ItemStack(Items.BLACK_STAINED_GLASS_PANE),
                 inventory
         );
@@ -228,7 +229,7 @@ public class PagedPane extends ClientHandledScreen {
             );
             ItemStack itemStack = setMeta(HeadAPI.getHeadByValue("eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvODY1MmUyYjkzNmNhODAyNmJkMjg2NTFkN2M5ZjI4MTlkMmU5MjM2OTc3MzRkMThkZmRiMTM1NTBmOGZkYWQ1ZiJ9fX0=").getItemStack(), name, lore);
             controlBack = new Button(itemStack, event -> selectPage(currentIndex - 1));
-            inventory.setStack(inventory.size() - 8, itemStack);
+            inventory.setItem(inventory.getContainerSize() - 8, itemStack);
         }
 
         if (getCurrentPage() < getPageAmount()) {
@@ -244,7 +245,7 @@ public class PagedPane extends ClientHandledScreen {
             );
             ItemStack itemStack = setMeta(HeadAPI.getHeadByValue("eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMmEzYjhmNjgxZGFhZDhiZjQzNmNhZThkYTNmZTgxMzFmNjJhMTYyYWI4MWFmNjM5YzNlMDY0NGFhNmFiYWMyZiJ9fX0=").getItemStack(), name, lore);
             controlNext = new Button(itemStack, event -> selectPage(getCurrentPage()));
-            inventory.setStack(inventory.size() - 2, itemStack);
+            inventory.setItem(inventory.getContainerSize() - 2, itemStack);
         }
 
         {
@@ -258,7 +259,7 @@ public class PagedPane extends ClientHandledScreen {
                     "&7Left-Click to go to the &cMain Menu",
                     "&7Right-Click to go to a &6Specific Page");
             controlMain = new Button(itemStack, event -> {
-                if (event.getClickType() == ClickTypeMod.RIGHT) {
+                if (event.getContainerInput() == ClickTypeMod.RIGHT) {
                 	InputOverlay.show(
                 			TextInst.of("Go to a Specific Page"),
                 			StringInput.builder()
@@ -270,26 +271,26 @@ public class PagedPane extends ClientHandledScreen {
                     InventoryUtils.openDatabase();
                 }
             });
-            inventory.setStack(inventory.size() - 5, itemStack);
+            inventory.setItem(inventory.getContainerSize() - 5, itemStack);
         }
     }
 
-    private void fillRow(int rowIndex, ItemStack itemStack, Inventory inventory) {
+    private void fillRow(int rowIndex, ItemStack itemStack, Container inventory) {
         int yMod = rowIndex * 9;
         for (int i = 0; i < 9; i++) {
             int slot = yMod + i;
-            inventory.setStack(slot, setMeta(itemStack, ""));
+            inventory.setItem(slot, setMeta(itemStack, ""));
         }
     }
 
     protected ItemStack setMeta(ItemStack itemStack, String name, String... lore) {
-        itemStack.nbte$setCustomName(TextInst.of(Utils.colorize(name)));
+        itemStack.set(DataComponents.CUSTOM_NAME,TextInst.of(Utils.colorize(name)));
         ItemTagReferences.LORE.set(itemStack, Arrays.stream(lore).map(MainUtil::colorize).map(TextInst::of).collect(Collectors.toList()));
         return itemStack;
     }
 
     /**
-     * @param player The {@link Player} to open it for
+     * //@param player The {//@link Player} to open it for
      */
     public void open() {
         reRender();
@@ -309,7 +310,7 @@ public class PagedPane extends ClientHandledScreen {
          */
         void handleClick(InventoryClickEvent event) {
             // user clicked in his own inventory. Silently drop it
-            if (event.getSlotId() > event.getSlot().inventory.size()) {
+            if (event.getSlotId() > event.getSlot().container.getContainerSize()) {
                 return;
             }
             if (event.getSlotId() >= buttons.size()) {
@@ -352,11 +353,11 @@ public class PagedPane extends ClientHandledScreen {
         /**
          * @param inventory The inventory to render in
          */
-        void render(Inventory inventory) {
+        void render(Container inventory) {
             for (int i = 0; i < buttons.size(); i++) {
                 Button button = buttons.get(i);
 
-                inventory.setStack(i, button.getItemStack());
+                inventory.setItem(i, button.getItemStack());
             }
         }
 

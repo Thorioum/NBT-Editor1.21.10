@@ -11,9 +11,9 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 
-import net.minecraft.entity.effect.StatusEffect;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 public class GetSoupCommand extends ClientCommand {
 	
@@ -33,7 +33,7 @@ public class GetSoupCommand extends ClientCommand {
 			int duration = getDefaultArg(context, "duration", 5, Integer.class);
 			
 			ItemStack item = new ItemStack(Items.SUSPICIOUS_STEW, 1);
-			MVMisc.addEffectToStew(item, context.getArgument("effect", StatusEffect.class), duration * 20);
+			MVMisc.addEffectToStew(item, context.getArgument("effect", MobEffect.class), duration * 20);
 			MainUtil.getWithMessage(item);
 			return Command.SINGLE_SUCCESS;
 		};

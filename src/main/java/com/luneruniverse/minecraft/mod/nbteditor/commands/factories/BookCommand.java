@@ -27,10 +27,11 @@ import com.luneruniverse.minecraft.mod.nbteditor.util.TextUtil;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 
-import net.minecraft.block.Blocks;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.text.Text;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.network.chat.Component;
 
 public class BookCommand extends ClientCommand {
 	
@@ -52,18 +53,18 @@ public class BookCommand extends ClientCommand {
 	public static boolean convertBookToWritable(ItemReference ref) {
 		ItemStack item = MainUtil.setType(Items.WRITABLE_BOOK, ref.getItem(), 1);
 		boolean formatted = false;
-		List<Text> pages = WrittenBookTagReferences.PAGES.get(item);
+		List<Component> pages = WrittenBookTagReferences.PAGES.get(item);
 		List<String> convertedPages = new ArrayList<>();
-		for (Text page : pages) {
+		for (Component page : pages) {
 			if (!formatted && TextUtil.isTextFormatted(page, StyleUtil.BOOK_STYLE))
 				formatted = true;
 			convertedPages.add(page.getString());
 		}
 		ItemTagReferences.WRITABLE_BOOK_PAGES.set(item, convertedPages);
 		if (NBTManagers.COMPONENTS_EXIST)
-			item.remove(MVComponentType.WRITTEN_BOOK_CONTENT);
+			item.remove(DataComponents.WRITTEN_BOOK_CONTENT);
 		if (formatted) {
-			MainUtil.client.player.sendMessage(TextInst.translatable("nbteditor.book.convert.formatting_saved"), false);
+			MainUtil.client.player.sendSystemMessage(TextInst.translatable("nbteditor.book.convert.formatting_saved"));
 			MainUtil.get(item, true);
 		} else
 			ref.saveItem(item, TextInst.translatable("nbteditor.book.convert.success"));

@@ -24,7 +24,7 @@ import com.luneruniverse.minecraft.mod.nbteditor.async.ItemSize;
 import com.luneruniverse.minecraft.mod.nbteditor.commands.get.GetLostItemCommand;
 import com.luneruniverse.minecraft.mod.nbteditor.containers.ContainerIOs;
 import com.luneruniverse.minecraft.mod.nbteditor.mixin.ChatScreenAccessor;
-import com.luneruniverse.minecraft.mod.nbteditor.mixin.HandledScreenAccessor;
+import com.luneruniverse.minecraft.mod.nbteditor.mixin.AbstractContainerScreenAccessor;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVDrawableHelper;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVMisc;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVTextEvents;
@@ -39,27 +39,27 @@ import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.screen.ChatScreen;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.ingame.BookScreen;
-import net.minecraft.client.gui.screen.ingame.CreativeInventoryScreen;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.client.gui.screen.ingame.InventoryScreen;
-import net.minecraft.client.gui.tooltip.Tooltip;
-import net.minecraft.client.gui.tooltip.TooltipComponent;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.component.ComponentChanges;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.screen.slot.SlotActionType;
-import net.minecraft.text.Style;
-import net.minecraft.text.Text;
-import net.minecraft.text.TextColor;
-import net.minecraft.util.Formatting;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.BookViewScreen;
+import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
+import net.minecraft.client.gui.components.EditBox;
+import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.core.component.DataComponentPatch;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.nbt.Tag;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.inventory.ContainerInput;
+import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.TextColor;
+import net.minecraft.ChatFormatting;
 
 // Non-mixin classes in the mixin package doesn't work well
 public class MixinLink {
@@ -86,11 +86,11 @@ public class MixinLink {
 	public static File screenshotTarget;
 	
 	
-	public static int[] getTooltipSize(List<TooltipComponent> tooltip) {
+	public static int[] getTooltipSize(List<ClientTooltipComponent> tooltip) {
 		int width = 0;
 		int height = (tooltip.size() == 1 ? -2 : 0);
-		for (TooltipComponent line : tooltip) {
-			width = Math.max(width, line.getWidth(MainUtil.client.textRenderer));
+		for (ClientTooltipComponent line : tooltip) {
+			width = Math.max(width, line.getWidth(MainUtil.client.font));
 			height += MVMisc.getTooltipComponentHeight(line);
 		}
 		return new int[] {width, height};
@@ -156,18 +156,18 @@ public class MixinLink {
 		if (!ConfigScreen.isChatLimitExtended())
 			return;
 		
-		TextFieldWidget chatField = ((ChatScreenAccessor) source).getChatField();
-		if (chatField.getText().length() > 256) {
+		EditBox chatField = ((ChatScreenAccessor) source).getInput();
+		if (chatField.getValue().length() > 256) {
 			MVDrawableHelper.fill(matrices, source.width - 202, source.height - 40, source.width - 2, source.height - 14, 0xAAFFAA00);
-			TextRenderer textRenderer = MainUtil.client.textRenderer;
-			MVDrawableHelper.drawCenteredTextWithShadow(matrices, textRenderer, TextInst.translatable("nbteditor.chat_length_warning_1"), source.width - 102, source.height - 40 + textRenderer.fontHeight / 2, 0xFFAA5500);
-			MVDrawableHelper.drawCenteredTextWithShadow(matrices, textRenderer, TextInst.translatable("nbteditor.chat_length_warning_2"), source.width - 102, source.height - 28 + textRenderer.fontHeight / 2, 0xFFAA5500);
+			Font textRenderer = MainUtil.client.font;
+			MVDrawableHelper.drawCenteredTextWithShadow(matrices, textRenderer, TextInst.translatable("nbteditor.chat_length_warning_1"), source.width - 102, source.height - 40 + textRenderer.lineHeight / 2, 0xFFAA5500);
+			MVDrawableHelper.drawCenteredTextWithShadow(matrices, textRenderer, TextInst.translatable("nbteditor.chat_length_warning_2"), source.width - 102, source.height - 28 + textRenderer.lineHeight / 2, 0xFFAA5500);
 		}
 	}
 	
 	
 	public static final Set<Thread> specialNumbers = Collections.synchronizedSet(new HashSet<>());
-	public static NbtElement parseSpecialElement(StringReader reader) throws CommandSyntaxException {
+	public static Tag parseSpecialElement(StringReader reader) throws CommandSyntaxException {
 		specialNumbers.add(Thread.currentThread());
 		try {
 			return MVMisc.parseNbt(reader);
@@ -177,23 +177,23 @@ public class MixinLink {
 	}
 	
 	
-	public static void onMouseClick(HandledScreen<?> source, Slot slot, int slotId, int button, SlotActionType actionType, CallbackInfo info) {
-		if (!source.getScreenHandler().getCursorStack().isEmpty())
-			GetLostItemCommand.addToHistory(source.getScreenHandler().getCursorStack());
+	public static void onMouseClick(AbstractContainerScreen<?> source, Slot slot, int slotId, int button, ContainerInput actionType, CallbackInfo info) {
+		if (!source.getMenu().getCarried().isEmpty())
+			GetLostItemCommand.addToHistory(source.getMenu().getCarried());
 		
-		boolean creativeInv = (source instanceof CreativeInventoryScreen);
+		boolean creativeInv = (source instanceof CreativeModeInventoryScreen);
 		
 		if (!creativeInv && !NBTEditorClient.SERVER_CONN.isScreenEditable())
 			return;
 		
-		if (slot instanceof CreativeInventoryScreen.CreativeSlot creativeSlot)
-			slot = creativeSlot.slot;
+		if (slot instanceof CreativeModeInventoryScreen.SlotWrapper creativeSlot)
+			slot = creativeSlot.target;
 		
-		if (actionType == SlotActionType.PICKUP && slot != null &&
-				(slot.inventory == MainUtil.client.player.getInventory() || !creativeInv) &&
-				(!(source instanceof InventoryScreen) || slot.id > 4)) {
-			ItemStack cursor = source.getScreenHandler().getCursorStack();
-			ItemStack item = slot.getStack();
+		if (actionType == ContainerInput.PICKUP && slot != null &&
+				(slot.container == MainUtil.client.player.getInventory() || !creativeInv) &&
+				(!(source instanceof InventoryScreen) || slot.index > 4)) {
+			ItemStack cursor = source.getMenu().getCarried();
+			ItemStack item = slot.getItem();
 			if (cursor == null || cursor.isEmpty() || item == null || item.isEmpty())
 				return;
 			if (cursor.getItem() == Items.ENCHANTED_BOOK || item.getItem() == Items.ENCHANTED_BOOK) {
@@ -215,20 +215,20 @@ public class MixinLink {
 		}
 	}
 	
-	public static void keyPressed(HandledScreen<?> source, int keyCode, int scanCode, int modifiers, CallbackInfoReturnable<Boolean> info) {
-		boolean creativeInv = (source instanceof CreativeInventoryScreen);
+	public static void keyPressed(AbstractContainerScreen<?> source, int keyCode, int scanCode, int modifiers, CallbackInfoReturnable<Boolean> info) {
+		boolean creativeInv = (source instanceof CreativeModeInventoryScreen);
 		
-		Slot hoveredSlot = ((HandledScreenAccessor) source).getFocusedSlot();
+		Slot hoveredSlot = ((AbstractContainerScreenAccessor) source).getHoveredSlot();
 		
-		if (hoveredSlot instanceof CreativeInventoryScreen.CreativeSlot creativeSlot)
-			hoveredSlot = creativeSlot.slot;
+		if (hoveredSlot instanceof CreativeModeInventoryScreen.SlotWrapper creativeSlot)
+			hoveredSlot = creativeSlot.target;
 		
 		if (hoveredSlot != null &&
-				((creativeInv && hoveredSlot.inventory == MainUtil.client.player.getInventory()) ||
+				((creativeInv && hoveredSlot.container == MainUtil.client.player.getInventory()) ||
 						(!creativeInv && NBTEditorClient.SERVER_CONN.isScreenEditable())) &&
-				(!(source instanceof InventoryScreen) || hoveredSlot.id > 4) &&
-				(ConfigScreen.isAirEditable() || hoveredSlot.getStack() != null && !hoveredSlot.getStack().isEmpty())) {
-			if (ClientHandledScreen.handleKeybind(keyCode, hoveredSlot.getStack(),
+				(!(source instanceof InventoryScreen) || hoveredSlot.index > 4) &&
+				(ConfigScreen.isAirEditable() || hoveredSlot.getItem() != null && !hoveredSlot.getItem().isEmpty())) {
+			if (ClientHandledScreen.handleKeybind(keyCode, hoveredSlot.getItem(),
 					ItemReference.getContainerItem(source, hoveredSlot))) {
 				info.setReturnValue(true);
 			}
@@ -242,13 +242,13 @@ public class MixinLink {
 	/**
 	 * Only in 1.20.5 or higher
 	 */
-	public static final Cache<BookScreen.Contents, Boolean> WRITTEN_BOOK_CONTENTS = CacheBuilder.newBuilder().weakKeys().build();
+	public static final Cache<BookViewScreen.BookAccess, Boolean> WRITTEN_BOOK_CONTENTS = CacheBuilder.newBuilder().weakKeys().build();
 	
 	
-	public static void modifyTooltip(ItemStack source, List<Text> tooltip) {
+	public static void modifyTooltip(ItemStack source, List<Component> tooltip) {
 		// Tooltips are requested for all items when GameJoinS2CPacket is received to setup the creative inventory's search
 		// The world doesn't exist yet, so this causes the game to freeze when an exception from this mixin breaks everything
-		if (MainUtil.client.world == null)
+		if (MainUtil.client.level == null)
 			return;
 		
 		if (HideFlag.TOOLTIP != null && ItemTagReferences.HIDE_FLAGS.get(source).get(HideFlag.TOOLTIP))
@@ -258,10 +258,10 @@ public class MixinLink {
 		if (sizeConfig != ConfigScreen.ItemSizeFormat.HIDDEN) {
 			OptionalLong loadingSize = ItemSize.getItemSize(source, sizeConfig.isCompressed());
 			String displaySize;
-			Formatting sizeFormat;
+			ChatFormatting sizeFormat;
 			if (loadingSize.isEmpty()) {
 				displaySize = "...";
-				sizeFormat = Formatting.GRAY;
+				sizeFormat = ChatFormatting.GRAY;
 			} else {
 				long size = loadingSize.getAsLong();
 				int magnitude = sizeConfig.getMagnitude();
@@ -282,15 +282,15 @@ public class MixinLink {
 				switch (magnitude) {
 					case 1 -> {
 						displaySize += "B";
-						sizeFormat = Formatting.GREEN;
+						sizeFormat = ChatFormatting.GREEN;
 					}
 					case 1000 -> {
 						displaySize += "KB";
-						sizeFormat = Formatting.YELLOW;
+						sizeFormat = ChatFormatting.YELLOW;
 					}
 					case 1000000 -> {
 						displaySize += "MB";
-						sizeFormat = Formatting.RED;
+						sizeFormat = ChatFormatting.RED;
 					}
 					case 1000000000 -> {
 						displaySize += "GB";
@@ -299,7 +299,7 @@ public class MixinLink {
 					default -> throw new IllegalStateException("Invalid magnitude!");
 				}
 			}
-			TextColor sizeColor = (sizeFormat != null ? TextColor.fromFormatting(sizeFormat) :
+			TextColor sizeColor = (sizeFormat != null ? TextColor.fromLegacyFormat(sizeFormat) :
 				TextColor.fromRgb(Color.HSBtoRGB((System.currentTimeMillis() % 1000) / 1000.0f, 1, 1)));
 			tooltip.add(TextInst.translatable("nbteditor.item_size." + (sizeConfig.isCompressed() ? "compressed" : "uncompressed"),
 					TextInst.literal(displaySize).styled(style -> style.withColor(sizeColor))));
@@ -309,7 +309,7 @@ public class MixinLink {
 			// Checking slots in your hotbar vs item selection is difficult, so the lore is just disabled in non-inventory tabs
 			boolean creativeInv = MVMisc.isCreativeInventoryTabSelected();
 			
-			if (creativeInv || (!(MainUtil.client.currentScreen instanceof CreativeInventoryScreen) &&
+			if (creativeInv || (!(MainUtil.client.screen instanceof CreativeModeInventoryScreen) &&
 					NBTEditorClient.SERVER_CONN.isScreenEditable())) {
 				tooltip.add(TextInst.translatable("nbteditor.keybind.edit"));
 				tooltip.add(TextInst.translatable("nbteditor.keybind.factory"));
@@ -344,10 +344,10 @@ public class MixinLink {
 	
 	
 	public static final Set<Thread> SET_CHANGES = Collections.synchronizedSet(new HashSet<>());
-	public static void setChanges(ItemStack item, ComponentChanges changes) {
+	public static void setChanges(ItemStack item, DataComponentPatch changes) {
 		try {
 			SET_CHANGES.add(Thread.currentThread());
-			item.applyChanges(changes);
+			item.applyComponentsAndValidate(changes);
 		} finally {
 			SET_CHANGES.remove(Thread.currentThread());
 		}

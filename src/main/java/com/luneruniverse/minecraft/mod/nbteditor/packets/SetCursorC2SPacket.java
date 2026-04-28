@@ -3,9 +3,10 @@ package com.luneruniverse.minecraft.mod.nbteditor.packets;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.IdentifierInst;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.networking.MVPacket;
 
-import net.minecraft.item.ItemStack;
-import net.minecraft.network.PacketByteBuf;
-import net.minecraft.util.Identifier;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.resources.Identifier;
 
 public class SetCursorC2SPacket implements MVPacket {
 	
@@ -16,8 +17,8 @@ public class SetCursorC2SPacket implements MVPacket {
 	public SetCursorC2SPacket(ItemStack item) {
 		this.item = item;
 	}
-	public SetCursorC2SPacket(PacketByteBuf payload) {
-		this.item = payload.readItemStack();
+	public SetCursorC2SPacket(FriendlyByteBuf payload) {
+		this.item = ItemStack.validatedStreamCodec(ItemStack.OPTIONAL_UNTRUSTED_STREAM_CODEC).decode((RegistryFriendlyByteBuf) payload);
 	}
 	
 	public ItemStack getItem() {
@@ -25,8 +26,8 @@ public class SetCursorC2SPacket implements MVPacket {
 	}
 	
 	@Override
-	public void write(PacketByteBuf payload) {
-		payload.writeItemStack(item);
+	public void write(FriendlyByteBuf payload) {
+		ItemStack.validatedStreamCodec(ItemStack.OPTIONAL_UNTRUSTED_STREAM_CODEC).encode((RegistryFriendlyByteBuf) payload,item);
 	}
 	
 	@Override

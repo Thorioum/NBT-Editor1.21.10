@@ -6,12 +6,12 @@ import java.util.Map;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVRegistry;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.TextInst;
 
-import net.minecraft.component.ComponentType;
-import net.minecraft.text.Text;
+import net.minecraft.core.component.DataComponentType;
+import net.minecraft.network.chat.Component;
 
 public class TooltipDisplayComponentHideFlag extends HideFlag {
 	
-	public static final Map<ComponentType<?>, HideFlag> FLAGS = new LinkedHashMap<>();
+	public static final Map<DataComponentType<?>, HideFlag> FLAGS = new LinkedHashMap<>();
 	static {
 		MVRegistry.getComponentsRegistry().getEntrySet().stream()
 				.map(component -> Map.entry(component.getKey().toString(), component.getValue()))
@@ -22,20 +22,20 @@ public class TooltipDisplayComponentHideFlag extends HideFlag {
 				});
 	}
 	
-	private final Text name;
-	private final ComponentType<?> component;
+	private final Component name;
+	private final DataComponentType<?> component;
 	
-	private TooltipDisplayComponentHideFlag(Text name, ComponentType<?> component) {
+	private TooltipDisplayComponentHideFlag(Component name, DataComponentType<?> component) {
 		this.name = name;
 		this.component = component;
 	}
 	
 	@Override
-	public Text getName() {
+	public Component getName() {
 		return name;
 	}
 	
-	public ComponentType<?> getComponent() {
+	public DataComponentType<?> getComponent() {
 		return component;
 	}
 	

@@ -1,9 +1,9 @@
 package com.luneruniverse.minecraft.mod.nbteditor.multiversion;
 
-import net.minecraft.network.packet.s2c.play.CloseScreenS2CPacket;
+import net.minecraft.network.protocol.game.ClientboundContainerClosePacket;
 
 /**
- * Prevents {@link CloseScreenS2CPacket} from closing the screen
+ * Prevents {@link ClientboundContainerClosePacket} from closing the screen
  */
 public interface IgnoreCloseScreenPacket {
 	

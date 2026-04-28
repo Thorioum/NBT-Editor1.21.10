@@ -3,7 +3,7 @@ package com.luneruniverse.minecraft.mod.nbteditor.screens.widgets;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-import net.minecraft.client.input.KeyInput;
+import net.minecraft.client.input.KeyEvent;
 import org.joml.Matrix3x2fStack;
 import org.lwjgl.glfw.GLFW;
 
@@ -15,10 +15,9 @@ import com.luneruniverse.minecraft.mod.nbteditor.screens.OverlayScreen;
 import com.luneruniverse.minecraft.mod.nbteditor.screens.OverlaySupportingScreen;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.core.BlockPos;
 
 public class ImportPosWidget extends GroupWidget implements InitializableOverlay<Screen> {
 	
@@ -33,7 +32,7 @@ public class ImportPosWidget extends GroupWidget implements InitializableOverlay
 	
 	private final BlockPos defaultPos;
 	private final Consumer<Optional<BlockPos>> posConsumer;
-	private final TextRenderer textRenderer;
+	private final Font textRenderer;
 	private int width;
 	private int height;
 	private NamedTextFieldWidget x;
@@ -43,7 +42,7 @@ public class ImportPosWidget extends GroupWidget implements InitializableOverlay
 	public ImportPosWidget(BlockPos defaultPos, Consumer<Optional<BlockPos>> posConsumer) {
 		this.defaultPos = defaultPos;
 		this.posConsumer = posConsumer;
-		this.textRenderer = MainUtil.client.textRenderer;
+		this.textRenderer = MainUtil.client.font;
 	}
 	
 	@Override
@@ -62,14 +61,14 @@ public class ImportPosWidget extends GroupWidget implements InitializableOverlay
 		z = addWidget(new NamedTextFieldWidget(width / 2 + 36, height / 2 - 18, 66, 16, z)
 				.name(TextInst.translatable("nbteditor.nbt.import.pos.z")));
 		
-		x.setTextPredicate(MainUtil.intPredicate());
-		y.setTextPredicate(MainUtil.intPredicate());
-		z.setTextPredicate(MainUtil.intPredicate());
+		//x.setFilter(MainUtil.intPredicate());
+		//y.setFilter(MainUtil.intPredicate());
+		//z.setFilter(MainUtil.intPredicate());
 		
 		if (firstInit) {
-			x.setText("" + defaultPos.getX());
-			y.setText("" + defaultPos.getY());
-			z.setText("" + defaultPos.getZ());
+			x.setValue("" + defaultPos.getX());
+			y.setValue("" + defaultPos.getY());
+			z.setValue("" + defaultPos.getZ());
 		}
 		
 		addWidget(MVMisc.newButton(width / 2 - 102, height / 2 + 2, 100, 20, ScreenTexts.DONE, btn -> done()));
@@ -77,16 +76,16 @@ public class ImportPosWidget extends GroupWidget implements InitializableOverlay
 	}
 	
 	@Override
-	public void render(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
-		MainUtil.client.currentScreen.renderBackground(matrices);
-		super.render(matrices, mouseX, mouseY, delta);
+	public void extractRenderState(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
+		MainUtil.client.screen.extractBackground(MVDrawableHelper.getDrawContext(matrices),mouseX, mouseY, delta);
+		super.extractRenderState(matrices, mouseX, mouseY, delta);
 		MVDrawableHelper.drawCenteredTextWithShadow(matrices, textRenderer, TextInst.translatable("nbteditor.nbt.import.pos"),
-				width / 2, height / 2 - textRenderer.fontHeight - 22, -1);
+				width / 2, height / 2 - textRenderer.lineHeight - 22, -1);
 		MainUtil.renderLogo(matrices);
 	}
 	
 	@Override
-	public boolean keyPressed(KeyInput keyInput) {
+	public boolean keyPressed(KeyEvent keyInput) {
 		int keyCode = keyInput.key();
 		if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
 			OverlaySupportingScreen.setOverlayStatic(null);
@@ -101,9 +100,9 @@ public class ImportPosWidget extends GroupWidget implements InitializableOverlay
 	}
 	
 	private void done() {
-		int xValue = MainUtil.parseDefaultInt(x.getText(), defaultPos.getX());
-		int yValue = MainUtil.parseDefaultInt(y.getText(), defaultPos.getY());
-		int zValue = MainUtil.parseDefaultInt(z.getText(), defaultPos.getZ());
+		int xValue = MainUtil.parseDefaultInt(x.getValue(), defaultPos.getX());
+		int yValue = MainUtil.parseDefaultInt(y.getValue(), defaultPos.getY());
+		int zValue = MainUtil.parseDefaultInt(z.getValue(), defaultPos.getZ());
 		posConsumer.accept(Optional.of(new BlockPos(xValue, yValue, zValue)));
 	}
 	

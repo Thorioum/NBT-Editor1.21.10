@@ -10,8 +10,8 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 
-import net.minecraft.command.argument.ItemStackArgument;
-import net.minecraft.item.ItemStack;
+import net.minecraft.commands.arguments.item.ItemInput;
+import net.minecraft.world.item.ItemStack;
 
 public class GetItemCommand extends ClientCommand {
 	
@@ -29,7 +29,7 @@ public class GetItemCommand extends ClientCommand {
 	public void register(LiteralArgumentBuilder<FabricClientCommandSource> builder, String path) {
 		Command<FabricClientCommandSource> getItem = context -> {
 			int count = getDefaultArg(context, "count", 1, Integer.class);
-			ItemStack item = context.getArgument("item", ItemStackArgument.class).createStack(count, false);
+			ItemStack item = context.getArgument("item", ItemInput.class).createItemStack(count);
 			MainUtil.getWithMessage(item);
 			return Command.SINGLE_SUCCESS;
 		};

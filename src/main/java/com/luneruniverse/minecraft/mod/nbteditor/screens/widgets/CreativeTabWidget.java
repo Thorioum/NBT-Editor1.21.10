@@ -13,11 +13,10 @@ import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVTooltip;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.Version;
 import com.luneruniverse.minecraft.mod.nbteditor.screens.ConfigScreen;
 
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.resources.Identifier;
 import org.joml.Matrix3x2fStack;
 
 public class CreativeTabWidget implements MVDrawable, MVElement {
@@ -30,9 +29,9 @@ public class CreativeTabWidget implements MVDrawable, MVElement {
 		if (!tabs.isEmpty()) {
 			GroupWidget group = new GroupWidget() {
 				@Override
-				public void render(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
+				public void extractRenderState(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
 					MVTooltip.setOneTooltip(true, false);
-					super.render(matrices, mouseX, mouseY, delta);
+					super.extractRenderState(matrices, mouseX, mouseY, delta);
 					MVTooltip.renderOneTooltip(matrices, mouseX, mouseY);
 				}
 			};
@@ -41,7 +40,7 @@ public class CreativeTabWidget implements MVDrawable, MVElement {
 				Point pos = ConfigScreen.getCreativeTabsPos().position(i, tabs.size(), screen.width, screen.height);
 				group.addWidget(new CreativeTabWidget(ConfigScreen.getCreativeTabsPos().isTop(), pos.x, pos.y, tab.item(), tab.onClick()));
 			}
-			screen.addDrawableChild(group);
+			screen.addRenderableWidget(group);
 		}
 	}
 	
@@ -85,11 +84,11 @@ public class CreativeTabWidget implements MVDrawable, MVElement {
 		this.y = y;
 		this.item = item;
 		this.onClick = onClick;
-		this.tooltip = new MVTooltip(item.getName());
+		this.tooltip = new MVTooltip(item.getHoverName());
 	}
 	
 	@Override
-	public void render(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
+	public void extractRenderState(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
 		MVDrawableHelper.drawTexture(matrices, bottom ? TEXTURE_BOTTOM : TEXTURE_TOP, x, y + (bottom ? 0 : 2), 0, bottom ? V_BOTTOM : V_TOP, WIDTH, 32);
 		
 		int xOffset = Version.<Integer>newSwitch()
@@ -107,7 +106,7 @@ public class CreativeTabWidget implements MVDrawable, MVElement {
 		return x <= mouseX && mouseX < x + WIDTH && y <= mouseY && mouseY < y + HEIGHT;
 	}
 	
-	public boolean mouseClicked(Click click, boolean doubled) {
+	public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
 		if (isMouseOver(click.x(), click.y())) {
 			onClick.run();
 			return true;

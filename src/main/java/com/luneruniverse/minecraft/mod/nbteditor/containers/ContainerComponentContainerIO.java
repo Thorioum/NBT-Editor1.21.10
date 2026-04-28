@@ -2,10 +2,10 @@ package com.luneruniverse.minecraft.mod.nbteditor.containers;
 
 import java.util.Arrays;
 
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.ContainerComponent;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.Identifier;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.component.ItemContainerContents;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.resources.Identifier;
 
 public class ContainerComponentContainerIO implements ContainerIO<ItemStack> {
 	
@@ -19,8 +19,8 @@ public class ContainerComponentContainerIO implements ContainerIO<ItemStack> {
 	
 	@Override
 	public boolean isSupported(ItemStack container) {
-		ContainerComponent component = container.get(DataComponentTypes.CONTAINER);
-		return component == null || component.stream().count() <= numSlots;
+		ItemContainerContents component = container.get(DataComponents.CONTAINER);
+		return component == null || component.allItemsCopyStream().count() <= numSlots;
 	}
 	
 	@Override
@@ -35,12 +35,12 @@ public class ContainerComponentContainerIO implements ContainerIO<ItemStack> {
 	
 	@Override
 	public ItemStack[] read(ItemStack container) {
-		return container.get(DataComponentTypes.CONTAINER).stream().toArray(ItemStack[]::new);
+		return container.get(DataComponents.CONTAINER).allItemsCopyStream().toArray(ItemStack[]::new);
 	}
 	
 	@Override
 	public int write(ItemStack container, ItemStack[] contents) {
-		container.set(DataComponentTypes.CONTAINER, ContainerComponent.fromStacks(Arrays.asList(contents)));
+		container.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(Arrays.asList(contents)));
 		return numSlots;
 	}
 	

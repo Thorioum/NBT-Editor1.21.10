@@ -2,8 +2,8 @@ package com.luneruniverse.minecraft.mod.nbteditor.localnbt;
 
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 
 public abstract class LocalItem implements LocalNBT {
 	public abstract LocalItemStack toStack();
@@ -38,7 +38,7 @@ public abstract class LocalItem implements LocalNBT {
 	@Override
 	public boolean equals(Object nbt) {
 		if (nbt instanceof LocalItem item)
-			return ItemStack.areEqual(this.getReadableItem(), item.getReadableItem());
+			return ItemStack.matches(this.getReadableItem(), item.getReadableItem());
 		return false;
 	}
 }

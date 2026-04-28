@@ -10,21 +10,21 @@ import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.specific.data.hid
 import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.specific.data.hideflags.TooltipDisplayComponentHideFlag;
 import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.specific.data.hideflags.TooltipHideFlag;
 
-import net.minecraft.component.ComponentType;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.TooltipDisplayComponent;
-import net.minecraft.item.ItemStack;
+import net.minecraft.core.component.DataComponentType;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.component.TooltipDisplay;
+import net.minecraft.world.item.ItemStack;
 
 public class HideFlagsTooltipDisplayComponentTagReference implements TagReference<Map<HideFlag, Boolean>, ItemStack> {
 	
 	@Override
 	public Map<HideFlag, Boolean> get(ItemStack object) {
-		TooltipDisplayComponent display = object.get(DataComponentTypes.TOOLTIP_DISPLAY);
+		TooltipDisplay display = object.get(DataComponents.TOOLTIP_DISPLAY);
 		Map<HideFlag, Boolean> output = new HashMap<>();
 		
 		output.put(TooltipHideFlag.INSTANCE, display.hideTooltip());
 		
-		for (Map.Entry<ComponentType<?>, HideFlag> component : TooltipDisplayComponentHideFlag.FLAGS.entrySet())
+		for (Map.Entry<DataComponentType<?>, HideFlag> component : TooltipDisplayComponentHideFlag.FLAGS.entrySet())
 			output.put(component.getValue(), MVMisc.hiddenComponents(display).contains(component.getKey()));
 		
 		return output;
@@ -35,9 +35,9 @@ public class HideFlagsTooltipDisplayComponentTagReference implements TagReferenc
 		if (value.isEmpty())
 			return;
 		
-		TooltipDisplayComponent display = object.get(DataComponentTypes.TOOLTIP_DISPLAY);
+		TooltipDisplay display = object.get(DataComponents.TOOLTIP_DISPLAY);
 		boolean hideTooltip = display.hideTooltip();
-		LinkedHashSet<ComponentType<?>> hiddenComponents = new LinkedHashSet<>(MVMisc.hiddenComponents(display));
+		LinkedHashSet<DataComponentType<?>> hiddenComponents = new LinkedHashSet<>(MVMisc.hiddenComponents(display));
 		
 		for (Map.Entry<HideFlag, Boolean> flag : value.entrySet()) {
 			if (flag.getKey() == TooltipHideFlag.INSTANCE) {
@@ -45,15 +45,15 @@ public class HideFlagsTooltipDisplayComponentTagReference implements TagReferenc
 				continue;
 			}
 			
-			ComponentType<?> component = ((TooltipDisplayComponentHideFlag) flag.getKey()).getComponent();
+			DataComponentType<?> component = ((TooltipDisplayComponentHideFlag) flag.getKey()).getComponent();
 			if (flag.getValue())
 				hiddenComponents.add(component);
 			else
 				hiddenComponents.remove(component);
 		}
 		
-		object.set(DataComponentTypes.TOOLTIP_DISPLAY,
-				(TooltipDisplayComponent) MVMisc.newTooltipDisplayComponent(hideTooltip, hiddenComponents));
+		object.set(DataComponents.TOOLTIP_DISPLAY,
+				(TooltipDisplay) MVMisc.newTooltipDisplay(hideTooltip, hiddenComponents));
 	}
 	
 }

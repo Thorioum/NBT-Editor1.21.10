@@ -3,7 +3,7 @@ package tsp.headdb.ported.inventory;
 import java.util.Objects;
 import java.util.function.Consumer;
 
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.item.ItemStack;
 
 /**
  * A button

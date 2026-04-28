@@ -8,10 +8,7 @@ import java.util.Map;
 import com.luneruniverse.minecraft.mod.nbteditor.commands.ClientCommand;
 import com.luneruniverse.minecraft.mod.nbteditor.commands.ClientCommandGroup;
 import com.luneruniverse.minecraft.mod.nbteditor.commands.CommandHandler;
-import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVMisc;
-import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVTooltip;
-import com.luneruniverse.minecraft.mod.nbteditor.multiversion.ScreenTexts;
-import com.luneruniverse.minecraft.mod.nbteditor.multiversion.TextInst;
+import com.luneruniverse.minecraft.mod.nbteditor.multiversion.*;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.commands.ClientCommandManager;
 import com.luneruniverse.minecraft.mod.nbteditor.screens.ConfigScreen.Alias;
 import com.luneruniverse.minecraft.mod.nbteditor.screens.configurable.ConfigBar;
@@ -21,8 +18,8 @@ import com.luneruniverse.minecraft.mod.nbteditor.screens.configurable.ConfigPane
 import com.luneruniverse.minecraft.mod.nbteditor.screens.configurable.ConfigPath;
 import com.luneruniverse.minecraft.mod.nbteditor.screens.configurable.ConfigValueText;
 
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.client.gui.screens.Screen;
+import com.mojang.blaze3d.vertex.PoseStack;
 import org.joml.Matrix3x2fStack;
 
 public class AliasesScreen extends TickableSupportingScreen {
@@ -76,28 +73,28 @@ public class AliasesScreen extends TickableSupportingScreen {
 	
 	@Override
 	protected void init() {
-		ConfigPanel newPanel = addDrawableChild(new ConfigPanel(16, 16, width - 32, height - 32, config));
+		ConfigPanel newPanel = addRenderableWidget(new ConfigPanel(16, 16, width - 32, height - 32, config));
 		if (panel != null)
 			newPanel.setScroll(panel.getScroll());
 		panel = newPanel;
 		
-		this.addDrawableChild(MVMisc.newButton(this.width - 134, this.height - 36, 100, 20, ScreenTexts.DONE, btn -> close()));
-		this.addDrawableChild(MVMisc.newButton(this.width - 134, this.height - 36 - 24, 100, 20, ScreenTexts.CANCEL, btn -> {
+		this.addRenderableWidget(MVMisc.newButton(this.width - 134, this.height - 36, 100, 20, ScreenTexts.DONE, btn -> onClose()));
+		this.addRenderableWidget(MVMisc.newButton(this.width - 134, this.height - 36 - 24, 100, 20, ScreenTexts.CANCEL, btn -> {
 			cancel = true;
-			close();
+			onClose();
 		}));
-		this.addDrawableChild(MVMisc.newButton(this.width - 134, this.height - 36 - 24 * 2, 100, 20,
+		this.addRenderableWidget(MVMisc.newButton(this.width - 134, this.height - 36 - 24 * 2, 100, 20,
 				TextInst.translatable("nbteditor.config.aliases.extreme"), btn -> addExtremeAliases(CommandHandler.COMMANDS.values(), ""),
 				new MVTooltip("nbteditor.config.aliases.extreme.desc")));
 	}
 	
 	public void render(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
-		this.renderBackground(matrices);
+		this.extractRenderState(MVDrawableHelper.getDrawContext(matrices),mouseX,mouseY,delta);
 		super.render(matrices, mouseX, mouseY, delta);
 	}
 	
-	public void close() {
-		client.setScreen(this.parent);
+	public void onClose() {
+		minecraft.setScreen(this.parent);
 	}
 	
 	@Override

@@ -12,30 +12,30 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import com.luneruniverse.minecraft.mod.nbteditor.misc.MixinLink;
 
-import net.minecraft.component.ComponentChanges;
-import net.minecraft.component.MergedComponentMap;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.tooltip.TooltipType;
-import net.minecraft.text.Text;
+import net.minecraft.core.component.DataComponentPatch;
+import net.minecraft.core.component.PatchedDataComponentMap;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.network.chat.Component;
 
 @Mixin(ItemStack.class)
 public class ItemStackMixin {
 	
-	@Inject(method = "getTooltip", at = @At("RETURN"))
-	private void getTooltip(Item.TooltipContext context, PlayerEntity player, TooltipType type, CallbackInfoReturnable<List<Text>> info) {
+	@Inject(method = "getTooltipLines", at = @At("RETURN"))
+	private void getTooltip(Item.TooltipContext context, Player player, TooltipFlag type, CallbackInfoReturnable<List<Component>> info) {
 		MixinLink.modifyTooltip((ItemStack) (Object) this, info.getReturnValue());
 	}
 	
 	@Shadow
-	private @Final MergedComponentMap components;
+	private @Final PatchedDataComponentMap components;
 	
-	@Inject(method = "applyChanges", at = @At(value = "INVOKE", target = "Lnet/minecraft/component/MergedComponentMap;applyChanges(Lnet/minecraft/component/ComponentChanges;)V"))
-	private void applyChanges(ComponentChanges changes, CallbackInfo info) {
+	@Inject(method = "applyComponentsAndValidate", at = @At(value = "INVOKE", target = "Lnet/minecraft/core/component/PatchedDataComponentMap;applyPatch(Lnet/minecraft/core/component/DataComponentPatch;)V"))
+	private void applyChanges(DataComponentPatch changes, CallbackInfo info) {
 		if (MixinLink.SET_CHANGES.contains(Thread.currentThread())) {
 			MixinLink.SET_CHANGES.remove(Thread.currentThread());
-			components.setChanges(ComponentChanges.EMPTY);
+			components.restorePatch(DataComponentPatch.EMPTY);
 		}
 	}
 	

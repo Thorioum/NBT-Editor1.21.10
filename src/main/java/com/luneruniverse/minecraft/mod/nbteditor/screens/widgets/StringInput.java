@@ -7,15 +7,15 @@ import java.util.function.Predicate;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 import com.mojang.brigadier.suggestion.Suggestions;
 
-import net.minecraft.client.gui.Click;
-import net.minecraft.text.Text;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.network.chat.Component;
 
 public class StringInput extends GroupWidget implements InputOverlay.Input<String> {
 	
 	public static class Builder {
 		
 		private String defaultValue;
-		private Text placeholder;
+		private Component placeholder;
 		private Predicate<String> valueValidator;
 		private BiFunction<String, Integer, CompletableFuture<Suggestions>> suggestions;
 		
@@ -30,7 +30,7 @@ public class StringInput extends GroupWidget implements InputOverlay.Input<Strin
 			this.defaultValue = defaultValue;
 			return this;
 		}
-		public Builder withPlaceholder(Text placeholder) {
+		public Builder withPlaceholder(Component placeholder) {
 			this.placeholder = placeholder;
 			return this;
 		}
@@ -54,13 +54,13 @@ public class StringInput extends GroupWidget implements InputOverlay.Input<Strin
 	}
 	
 	private final String defaultValue;
-	private final Text placeholder;
+	private final Component placeholder;
 	private final Predicate<String> valueValidator;
 	private final BiFunction<String, Integer, CompletableFuture<Suggestions>> suggestions;
 	private SuggestingTextFieldWidget value;
 	private boolean valid;
 	
-	public StringInput(String defaultValue, Text placeholder, Predicate<String> valueValidator, BiFunction<String, Integer, CompletableFuture<Suggestions>> suggestions) {
+	public StringInput(String defaultValue, Component placeholder, Predicate<String> valueValidator, BiFunction<String, Integer, CompletableFuture<Suggestions>> suggestions) {
 		this.defaultValue = defaultValue;
 		this.placeholder = placeholder;
 		this.valueValidator = valueValidator;
@@ -71,10 +71,10 @@ public class StringInput extends GroupWidget implements InputOverlay.Input<Strin
 	public void init(int x, int y) {
 		clearWidgets();
 		
-		String prevValue = (value == null ? defaultValue : value.getText());
-		value = new SuggestingTextFieldWidget(MainUtil.client.currentScreen, x, y, getWidth(), getHeight());
+		String prevValue = (value == null ? defaultValue : value.getValue());
+		value = new SuggestingTextFieldWidget(MainUtil.client.screen, x, y, getWidth(), getHeight());
 		value.setMaxLength(Integer.MAX_VALUE);
-		value.setText(prevValue);
+		value.setValue(prevValue);
 		if (placeholder != null)
 			value.name(placeholder);
 		if (suggestions != null)
@@ -82,12 +82,12 @@ public class StringInput extends GroupWidget implements InputOverlay.Input<Strin
 		addWidget(value);
 		setFocused(value);
 		
-		value.setChangedListener(str -> valid = valueValidator.test(str));
-		valid = valueValidator.test(value.getText());
+		value.setResponder(str -> valid = valueValidator.test(str));
+		valid = valueValidator.test(value.getValue());
 	}
 	
 	@Override
-	public boolean mouseClicked(Click click, boolean doubled) {
+	public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
 		boolean output = super.mouseClicked(click, doubled);
 		if (!output)
 			setFocused(null);
@@ -96,7 +96,7 @@ public class StringInput extends GroupWidget implements InputOverlay.Input<Strin
 	
 	@Override
 	public String getValue() {
-		return value.getText();
+		return value.getValue();
 	}
 	
 	@Override

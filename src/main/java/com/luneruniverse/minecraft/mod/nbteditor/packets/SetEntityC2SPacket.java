@@ -6,38 +6,39 @@ import com.luneruniverse.minecraft.mod.nbteditor.multiversion.IdentifierInst;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVRegistryKeys;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.networking.MVPacket;
 
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.network.PacketByteBuf;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.util.Identifier;
-import net.minecraft.world.World;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.level.Level;
 
 public class SetEntityC2SPacket implements MVPacket {
 	
 	public static final Identifier ID = IdentifierInst.of("nbteditor", "set_entity");
 	
-	private final RegistryKey<World> world;
+	private final ResourceKey<Level> world;
 	private final UUID uuid;
 	private final Identifier id;
-	private final NbtCompound nbt;
+	private final CompoundTag nbt;
 	private final boolean recreate;
 	
-	public SetEntityC2SPacket(RegistryKey<World> world, UUID uuid, Identifier id, NbtCompound nbt, boolean recreate) {
+	public SetEntityC2SPacket(ResourceKey<Level> world, UUID uuid, Identifier id, CompoundTag nbt, boolean recreate) {
 		this.world = world;
 		this.uuid = uuid;
 		this.id = id;
 		this.nbt = nbt;
 		this.recreate = recreate;
 	}
-	public SetEntityC2SPacket(PacketByteBuf payload) {
-		this.world = payload.readRegistryKey(MVRegistryKeys.WORLD);
-		this.uuid = payload.readUuid();
+	public SetEntityC2SPacket(FriendlyByteBuf payload) {
+		this.world = payload.readResourceKey(Registries.DIMENSION);
+		this.uuid = payload.readUUID();
 		this.id = payload.readIdentifier();
 		this.nbt = payload.readNbt();
 		this.recreate = payload.readBoolean();
 	}
 	
-	public RegistryKey<World> getWorld() {
+	public ResourceKey<Level> getWorld() {
 		return world;
 	}
 	public UUID getUUID() {
@@ -46,7 +47,7 @@ public class SetEntityC2SPacket implements MVPacket {
 	public Identifier getId() {
 		return id;
 	}
-	public NbtCompound getNbt() {
+	public CompoundTag getNbt() {
 		return nbt;
 	}
 	public boolean isRecreate() {
@@ -54,11 +55,11 @@ public class SetEntityC2SPacket implements MVPacket {
 	}
 	
 	@Override
-	public void write(PacketByteBuf payload) {
-		payload.writeRegistryKey(world);
-		payload.writeUuid(uuid);
+	public void write(FriendlyByteBuf payload) {
+		payload.writeResourceKey(world);
+		payload.writeUUID(uuid);
 		payload.writeIdentifier(id);
-		payload.writeNbtCompound(nbt);
+		payload.writeNbt(nbt);
 		payload.writeBoolean(recreate);
 	}
 	

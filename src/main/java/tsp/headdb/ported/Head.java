@@ -5,6 +5,7 @@ import java.util.*;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 import com.mojang.authlib.properties.PropertyMap;
+import net.minecraft.core.component.DataComponents;
 import org.apache.commons.lang3.Validate;
 
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.TextInst;
@@ -13,8 +14,8 @@ import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.ItemTagReferences
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
 
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 public class Head {
 
@@ -37,7 +38,7 @@ public class Head {
         Validate.notNull(value, "value must not be null!");
 
         ItemStack item = new ItemStack(Items.PLAYER_HEAD);
-        item.nbte$setCustomName(TextInst.of(Utils.colorize(category != null ? category.getColor() + name : "&8" + name)));
+        item.set(DataComponents.CUSTOM_NAME,TextInst.of(Utils.colorize(category != null ? category.getColor() + name : "&8" + name)));
         // set skull owner
         GameProfile profile = new GameProfile(uuid, NBTManagers.COMPONENTS_EXIST ? "HDB_Head" : name);
 

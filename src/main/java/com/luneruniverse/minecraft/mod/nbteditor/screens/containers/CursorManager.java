@@ -6,32 +6,32 @@ import com.luneruniverse.minecraft.mod.nbteditor.multiversion.networking.MVClien
 import com.luneruniverse.minecraft.mod.nbteditor.packets.SetCursorC2SPacket;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 
-import net.minecraft.client.gui.screen.ingame.CreativeInventoryScreen;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.client.gui.screen.ingame.InventoryScreen;
-import net.minecraft.item.ItemStack;
-import net.minecraft.screen.ScreenHandler;
+import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.inventory.AbstractContainerMenu;
 
 public class CursorManager {
 	
-	private HandledScreen<?> currentRoot;
+	private AbstractContainerScreen<?> currentRoot;
 	private boolean currentRootIsInventory;
 	private boolean currentRootHasServerCursor;
 	private boolean currentRootClosed;
-	private HandledScreen<?> currentBranch;
+	private AbstractContainerScreen<?> currentBranch;
 	
 	public CursorManager() {}
 	
 	public boolean isBranched() {
 		return currentRoot != null && currentRoot != currentBranch;
 	}
-	public HandledScreen<?> getCurrentRoot() {
+	public AbstractContainerScreen<?> getCurrentRoot() {
 		return currentRoot;
 	}
 	public boolean isCurrentRootClosed() {
 		return currentRootClosed;
 	}
-	public HandledScreen<?> getCurrentBranch() {
+	public AbstractContainerScreen<?> getCurrentBranch() {
 		return currentBranch;
 	}
 	
@@ -41,14 +41,14 @@ public class CursorManager {
 		currentBranch = null;
 	}
 	
-	public void onHandledScreenSet(HandledScreen<?> screen) {
+	public void onHandledScreenSet(AbstractContainerScreen<?> screen) {
 		if (screen == currentBranch)
 			return;
 		
 		currentRoot = screen;
-		currentRootIsInventory = (currentRoot.getScreenHandler() == MainUtil.client.player.playerScreenHandler ||
-				currentRoot instanceof CreativeInventoryScreen);
-		currentRootHasServerCursor = !(screen instanceof CreativeInventoryScreen);
+		currentRootIsInventory = (currentRoot.getMenu() == MainUtil.client.player.inventoryMenu ||
+				currentRoot instanceof CreativeModeInventoryScreen);
+		currentRootHasServerCursor = !(screen instanceof CreativeModeInventoryScreen);
 		currentRootClosed = false;
 		currentBranch = screen;
 	}
@@ -60,28 +60,28 @@ public class CursorManager {
 		currentRootClosed = true;
 	}
 	
-	private void transferCursorTo(HandledScreen<?> branch) {
+	private void transferCursorTo(AbstractContainerScreen<?> branch) {
 		if (currentBranch == branch)
 			return;
 		
-		ScreenHandler handler = branch.getScreenHandler();
-		ScreenHandler currentHandler = currentBranch.getScreenHandler();
+		AbstractContainerMenu handler = branch.getMenu();
+		AbstractContainerMenu currentHandler = currentBranch.getMenu();
 		
-		MainUtil.setCursorStackSilently(handler, currentHandler.getCursorStack());
+		MainUtil.setCursorStackSilently(handler, currentHandler.getCarried());
 		MainUtil.setCursorStackSilently(currentHandler, ItemStack.EMPTY);
 		
 		if (currentRootHasServerCursor) {
 			if (branch == currentRoot)
-				MVClientNetworking.send(new SetCursorC2SPacket(handler.getCursorStack().copy()));
+				MVClientNetworking.send(new SetCursorC2SPacket(handler.getCarried().copy()));
 			else if (currentBranch == currentRoot)
 				MVClientNetworking.send(new SetCursorC2SPacket(ItemStack.EMPTY));
 		}
 	}
 	
-	public void showBranch(HandledScreen<?> branch) {
+	public void showBranch(AbstractContainerScreen<?> branch) {
 		if (currentRoot == null) {
 			if (MVMisc.hasCreativeInventory()) {
-				currentRoot = MVMisc.newCreativeInventoryScreen(MainUtil.client.player);
+				currentRoot = MVMisc.newCreativeModeInventoryScreen(MainUtil.client.player);
 				currentRootHasServerCursor = false;
 			} else {
 				currentRoot = new InventoryScreen(MainUtil.client.player);
@@ -101,8 +101,8 @@ public class CursorManager {
 		
 		transferCursorTo(branch);
 		currentBranch = branch;
-		MainUtil.client.player.currentScreenHandler = branch.getScreenHandler();
-		branch.cancelNextRelease = true;
+		MainUtil.client.player.containerMenu = branch.getMenu();
+		branch.skipNextRelease = true;
 		MainUtil.client.setScreen(branch);
 	}
 	public void showRoot() {
@@ -117,7 +117,7 @@ public class CursorManager {
 		
 		if (currentRootClosed) {
 			if (currentBranch != currentRoot) {
-				ItemStack cursor = currentBranch.getScreenHandler().getCursorStack();
+				ItemStack cursor = currentBranch.getMenu().getCarried();
 				if (currentRootHasServerCursor) {
 					if (Version.<Boolean>newSwitch()
 							.range("1.17.1", null, true)
@@ -129,21 +129,21 @@ public class CursorManager {
 					}
 					cursor = ItemStack.EMPTY;
 				}
-				MainUtil.setCursorStackSilently(currentRoot.getScreenHandler(), cursor);
+				MainUtil.setCursorStackSilently(currentRoot.getMenu(), cursor);
 			}
-			MainUtil.client.player.closeScreen(); // will trigger #onNoScreenSet()
+			MainUtil.client.player.clientSideCloseContainer(); // will trigger #onNoScreenSet()
 			return;
 		}
 		
 		transferCursorTo(currentRoot);
-		MainUtil.client.player.closeHandledScreen(); // will trigger #onNoScreenSet()
+		MainUtil.client.player.closeContainer(); // will trigger #onNoScreenSet()
 	}
 	
 	public void setCursor(ItemStack item) {
 		if (currentRoot == null)
 			throw new IllegalStateException("There is no root to set the cursor of");
 		
-		MainUtil.setCursorStackSilently(currentBranch.getScreenHandler(), item);
+		MainUtil.setCursorStackSilently(currentBranch.getMenu(), item);
 		
 		if (currentRootHasServerCursor && currentBranch == currentRoot)
 			MVClientNetworking.send(new SetCursorC2SPacket(item.copy()));

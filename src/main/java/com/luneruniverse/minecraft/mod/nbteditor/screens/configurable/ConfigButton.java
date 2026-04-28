@@ -3,8 +3,8 @@ package com.luneruniverse.minecraft.mod.nbteditor.screens.configurable;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVButtonWidget;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVTooltip;
 
-import net.minecraft.client.input.KeyInput;
-import net.minecraft.text.Text;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.network.chat.Component;
 
 public class ConfigButton extends MVButtonWidget implements ConfigPath {
 	
@@ -16,12 +16,12 @@ public class ConfigButton extends MVButtonWidget implements ConfigPath {
 	private final PressAction onPress;
 	private final MVTooltip tooltip;
 	
-	public ConfigButton(int width, Text message, PressAction onPress, MVTooltip tooltip) {
+	public ConfigButton(int width, Component message, PressAction onPress, MVTooltip tooltip) {
 		super(0, 0, width, 20, message, btn -> onPress.onPress((ConfigButton) btn), tooltip);
 		this.onPress = onPress;
 		this.tooltip = tooltip;
 	}
-	public ConfigButton(int width, Text message, PressAction onPress) {
+	public ConfigButton(int width, Component message, PressAction onPress) {
 		this(width, message, onPress, MVTooltip.EMPTY);
 	}
 	
@@ -52,7 +52,7 @@ public class ConfigButton extends MVButtonWidget implements ConfigPath {
 	
 	
 	@Override
-	public boolean keyPressed(KeyInput keyInput) {
+	public boolean keyPressed(KeyEvent keyInput) {
 		return false; // Stop space from triggering the button
 	}
 	

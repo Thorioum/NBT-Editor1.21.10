@@ -12,10 +12,10 @@ import com.luneruniverse.minecraft.mod.nbteditor.server.ServerMVMisc;
 import io.netty.buffer.Unpooled;
 import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.EventFactory;
-import net.minecraft.network.PacketByteBuf;
-import net.minecraft.network.packet.s2c.common.CustomPayloadS2CPacket;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.Identifier;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.resources.Identifier;
 
 public class MVServerNetworking {
 	
@@ -25,35 +25,35 @@ public class MVServerNetworking {
 				for (Start listener : listeners)
 					listener.onPlayStart(player);
 			});
-			public void onPlayStart(ServerPlayerEntity player);
+			public void onPlayStart(ServerPlayer player);
 		}
 		public static interface Stop {
 			public static final Event<Stop> EVENT = EventFactory.createArrayBacked(Stop.class, listeners -> player -> {
 				for (Stop listener : listeners)
 					listener.onPlayStop(player);
 			});
-			public void onPlayStop(ServerPlayerEntity player);
+			public void onPlayStop(ServerPlayer player);
 		}
 	}
 	
-	public static void onPlayStart(ServerPlayerEntity player) {
+	public static void onPlayStart(ServerPlayer player) {
 		PlayNetworkStateEvents.Start.EVENT.invoker().onPlayStart(player);
 	}
-	public static void onPlayStop(ServerPlayerEntity player) {
+	public static void onPlayStop(ServerPlayer player) {
 		PlayNetworkStateEvents.Stop.EVENT.invoker().onPlayStop(player);
 	}
 	
-	private static final Map<Identifier, List<BiConsumer<MVPacket, ServerPlayerEntity>>> listeners = new HashMap<>();
+	private static final Map<Identifier, List<BiConsumer<MVPacket, ServerPlayer>>> listeners = new HashMap<>();
 	
 	@SuppressWarnings("deprecation")
-	public static void send(ServerPlayerEntity player, MVPacket packet) {
-		ServerMVMisc.sendS2CPacket(player, Version.<CustomPayloadS2CPacket>newSwitch()
+	public static void send(ServerPlayer player, MVPacket packet) {
+		ServerMVMisc.sendS2CPacket(player, Version.<ClientboundCustomPayloadPacket>newSwitch()
 				.range("1.20.2", null, () -> MVPacketCustomPayload.wrapS2C(packet))
 				.range(null, "1.20.1", () -> {
-					PacketByteBuf payload = new PacketByteBuf(Unpooled.buffer());
+					FriendlyByteBuf payload = new FriendlyByteBuf(Unpooled.buffer());
 					packet.write(payload);
 					try {
-						return CustomPayloadS2CPacket.class.getConstructor(Identifier.class, PacketByteBuf.class)
+						return ClientboundCustomPayloadPacket.class.getConstructor(Identifier.class, FriendlyByteBuf.class)
 								.newInstance(packet.getPacketId(), payload);
 					} catch (Exception e) {
 						throw new RuntimeException("Failed to create CustomPayloadS2CPacket", e);
@@ -63,16 +63,16 @@ public class MVServerNetworking {
 	}
 	
 	@SuppressWarnings("unchecked")
-	public static <T extends MVPacket> void registerListener(Identifier id, BiConsumer<T, ServerPlayerEntity> listener) {
+	public static <T extends MVPacket> void registerListener(Identifier id, BiConsumer<T, ServerPlayer> listener) {
 		listeners.computeIfAbsent(id, key -> new ArrayList<>()).add((packet, player) -> listener.accept((T) packet, player));
 	}
 	
-	public static void callListeners(MVPacket packet, ServerPlayerEntity player) {
-		if (!player.server.isOnThread()) {
+	public static void callListeners(MVPacket packet, ServerPlayer player) {
+		if (!player.server.isSameThread()) {
 			player.server.execute(() -> callListeners(packet, player));
 			return;
 		}
-		List<BiConsumer<MVPacket, ServerPlayerEntity>> specificListeners = listeners.get(packet.getPacketId());
+		List<BiConsumer<MVPacket, ServerPlayer>> specificListeners = listeners.get(packet.getPacketId());
 		if (specificListeners == null)
 			return;
 		specificListeners.forEach(listener -> listener.accept(packet, player));

@@ -15,28 +15,28 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 
-import net.minecraft.nbt.NbtByte;
-import net.minecraft.nbt.NbtByteArray;
-import net.minecraft.nbt.NbtInt;
-import net.minecraft.nbt.NbtIntArray;
-import net.minecraft.nbt.NbtLong;
-import net.minecraft.nbt.NbtLongArray;
-import net.minecraft.nbt.NbtType;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.nbt.ByteTag;
+import net.minecraft.nbt.ByteArrayTag;
+import net.minecraft.nbt.IntTag;
+import net.minecraft.nbt.IntArrayTag;
+import net.minecraft.nbt.LongTag;
+import net.minecraft.nbt.LongArrayTag;
+import net.minecraft.nbt.TagType;
+import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting;
 
 public class NbtFormatter {
 
-	public static record FormatterResult(Text text, boolean isSuccess) {}
+	public static record FormatterResult(Component text, boolean isSuccess) {}
 
 	@FunctionalInterface
 	public interface Impl {
-		Text format(String str) throws CommandSyntaxException;
+		Component format(String str) throws CommandSyntaxException;
 		default FormatterResult formatSafely(String str) {
 			try {
 				return new FormatterResult(format(str), true);
 			} catch (Exception e) {
-				return new FormatterResult(TextInst.literal(str).formatted(Formatting.RED), false);
+				return new FormatterResult(TextInst.literal(str).formatted(ChatFormatting.RED), false);
 			}
 		}
 	}
@@ -55,10 +55,10 @@ public class NbtFormatter {
 	private static final Pattern LONG_PATTERN = Pattern.compile("[-+]?(?:0|[1-9][0-9]*)l", 2);
 	private static final Pattern SHORT_PATTERN = Pattern.compile("[-+]?(?:0|[1-9][0-9]*)s", 2);
 	private static final Pattern INT_PATTERN = Pattern.compile("[-+]?(?:0|[1-9][0-9]*)");
-	private static final Formatting NAME_COLOR = Formatting.AQUA;
-	private static final Formatting STRING_COLOR = Formatting.GREEN;
-	private static final Formatting NUMBER_COLOR = Formatting.GOLD;
-	private static final Formatting TYPE_SUFFIX_COLOR = Formatting.RED;
+	private static final ChatFormatting NAME_COLOR = ChatFormatting.AQUA;
+	private static final ChatFormatting STRING_COLOR = ChatFormatting.GREEN;
+	private static final ChatFormatting NUMBER_COLOR = ChatFormatting.GOLD;
+	private static final ChatFormatting TYPE_SUFFIX_COLOR = ChatFormatting.RED;
 
 	public static final Map<String, Number> SPECIAL_NUMS = Map.of(
 			"NaNd", Double.NaN,
@@ -70,7 +70,7 @@ public class NbtFormatter {
 
 
 
-	public static Text formatElement(StringReader reader) throws CommandSyntaxException {
+	public static Component formatElement(StringReader reader) throws CommandSyntaxException {
 		// Check list types
 		int cursor = reader.getCursor();
 		MixinLink.parseSpecialElement(reader);
@@ -84,7 +84,7 @@ public class NbtFormatter {
 			throw TRAILING_DATA.createWithContext(reader);
 		return output;
 	}
-	public static Text formatElement(String str) throws CommandSyntaxException {
+	public static Component formatElement(String str) throws CommandSyntaxException {
 		return formatElement(new StringReader(str));
 	}
 
@@ -137,7 +137,7 @@ public class NbtFormatter {
 		return reader.readUnquotedString();
 	}
 
-	private EditableText readString(Formatting color) throws CommandSyntaxException {
+	private EditableText readString(ChatFormatting color) throws CommandSyntaxException {
 		EditableText output = TextInst.literal("");
 		output.append(this.skipWhitespace());
 		if (!this.reader.canRead()) {
@@ -177,7 +177,7 @@ public class NbtFormatter {
 			return Map.entry(false, output);
 	}
 
-	private EditableText readArray(NbtType<?> arrayTypeReader, NbtType<?> typeReader) throws CommandSyntaxException {
+	private EditableText readArray(TagType<?> arrayTypeReader, TagType<?> typeReader) throws CommandSyntaxException {
 		EditableText output = TextInst.literal("");
 		while (this.reader.peek() != ']') {
 			output.append(this.parseElement());
@@ -256,15 +256,15 @@ public class NbtFormatter {
 			throw EXPECTED_VALUE.createWithContext(this.reader);
 		}
 		if (c == 'B') {
-			output.append(this.readArray(NbtByteArray.TYPE, NbtByte.TYPE));
+			output.append(this.readArray(ByteArrayTag.TYPE, ByteTag.TYPE));
 			return output;
 		}
 		if (c == 'L') {
-			output.append(this.readArray(NbtLongArray.TYPE, NbtLong.TYPE));
+			output.append(this.readArray(LongArrayTag.TYPE, LongTag.TYPE));
 			return output;
 		}
 		if (c == 'I') {
-			output.append(this.readArray(NbtIntArray.TYPE, NbtInt.TYPE));
+			output.append(this.readArray(IntArrayTag.TYPE, IntTag.TYPE));
 			return output;
 		}
 		this.reader.setCursor(i);

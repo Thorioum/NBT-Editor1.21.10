@@ -10,8 +10,12 @@ import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 
 import com.luneruniverse.minecraft.mod.nbteditor.NBTEditor;
-import net.minecraft.client.input.KeyInput;
-import net.minecraft.text.*;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.FontDescription;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.Style;
 import org.joml.Matrix3x2fStack;
 import org.lwjgl.glfw.GLFW;
 
@@ -31,11 +35,10 @@ import com.luneruniverse.minecraft.mod.nbteditor.util.TextUtil;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.ChatFormatting;
+import net.minecraft.resources.Identifier;
 
 public class FormattedTextFieldWidget extends GroupWidget {
 	
@@ -109,8 +112,8 @@ public class FormattedTextFieldWidget extends GroupWidget {
 			private final ConfigValueDropdown<HoverAction> hoverActionDropdown;
 			private final TranslatedGroupWidget hoverActionField;
 			private final NamedTextFieldWidget hoverValueField;
-			private final ButtonWidget ok;
-			private final ButtonWidget cancel;
+			private final Button ok;
+			private final Button cancel;
 			
 			public EventEditorWidget(ClickEvent clickEvent, HoverEvent hoverEvent, EventPairCallback onDone) {
 				MVTextEvents.ClickAction<?> clickAction = (clickEvent == null ? null : MVTextEvents.ClickAction.getAction(clickEvent));
@@ -124,7 +127,7 @@ public class FormattedTextFieldWidget extends GroupWidget {
 				clickValueField = addWidget(new NamedTextFieldWidget(0, 0, 150, 16))
 						.name(TextInst.translatable("nbteditor.formatted_text.click_event_value"));
 				clickValueField.setMaxLength(Integer.MAX_VALUE);
-				clickValueField.setText(clickValue);
+				clickValueField.setValue(clickValue);
 				
 				hoverActionDropdown = ConfigValueDropdown.forEnum(HoverAction.get(hoverAction), HoverAction.NONE, HoverAction.class);
 				hoverActionDropdown.setWidth(150);
@@ -133,15 +136,15 @@ public class FormattedTextFieldWidget extends GroupWidget {
 				hoverValueField = addWidget(new NamedTextFieldWidget(0, 0, 150, 16))
 						.name(TextInst.translatable("nbteditor.formatted_text.hover_event_value"));
 				hoverValueField.setMaxLength(Integer.MAX_VALUE);
-				hoverValueField.setText(hoverValue);
-				hoverValueField.setChangedListener(str -> updateOk());
+				hoverValueField.setValue(hoverValue);
+				hoverValueField.setResponder(str -> updateOk());
 				
 				ok = addWidget(MVMisc.newButton(0, 0, 150, 20, TextInst.translatable("nbteditor.ok"), btn -> {
 					onDone.onEventChange(
 							clickActionDropdown.getValidValue() == ClickAction.NONE ? null :
-								clickActionDropdown.getValidValue().value.newEventParse(clickValueField.getText()).get(),
+								clickActionDropdown.getValidValue().value.newEventParse(clickValueField.getValue()).get(),
 							hoverActionDropdown.getValidValue() == HoverAction.NONE ? null :
-								hoverActionDropdown.getValidValue().value.newEventParse(hoverValueField.getText()).get());
+								hoverActionDropdown.getValidValue().value.newEventParse(hoverValueField.getValue()).get());
 					OverlaySupportingScreen.setOverlayStatic(null);
 				}));
 				cancel = addWidget(MVMisc.newButton(0, 0, 150, 20, TextInst.translatable("nbteditor.cancel"), btn -> {
@@ -174,22 +177,21 @@ public class FormattedTextFieldWidget extends GroupWidget {
 			
 			private void updateOk() {
 				ok.active = (clickActionDropdown.getValidValue() == ClickAction.NONE ||
-						clickActionDropdown.getValidValue().value.newEventParse(clickValueField.getText()).isPresent()) &&
+						clickActionDropdown.getValidValue().value.newEventParse(clickValueField.getValue()).isPresent()) &&
 						(hoverActionDropdown.getValidValue() == HoverAction.NONE ||
-						hoverActionDropdown.getValidValue().value.newEventParse(hoverValueField.getText()).isPresent());
+						hoverActionDropdown.getValidValue().value.newEventParse(hoverValueField.getValue()).isPresent());
 			}
 			
 			@Override
-			public void render(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
-				MainUtil.client.currentScreen.renderBackground(matrices);
-				MVDrawableHelper.drawCenteredTextWithShadow(matrices, MainUtil.client.textRenderer,
+			public void extractRenderState(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
+				MVDrawableHelper.drawCenteredTextWithShadow(matrices, MainUtil.client.font,
 						TextInst.translatable("nbteditor.formatted_text.events"),
-						x, y - 38 - MainUtil.client.textRenderer.fontHeight, -1);
-				super.render(matrices, mouseX, mouseY, delta);
+						x, y - 38 - MainUtil.client.font.lineHeight, -1);
+				super.extractRenderState(matrices, mouseX, mouseY, delta);
 			}
 			
 			@Override
-			public boolean keyPressed(KeyInput keyInput) {
+			public boolean keyPressed(KeyEvent keyInput) {
 				if (keyInput.key() == GLFW.GLFW_KEY_ESCAPE) {
 					OverlaySupportingScreen.setOverlayStatic(null);
 					return true;
@@ -205,7 +207,7 @@ public class FormattedTextFieldWidget extends GroupWidget {
 		}
 		
 		public static InternalTextFieldWidget create(InternalTextFieldWidget prev, int x, int y, int width, int height,
-				Text text, boolean newLines, Style base, Consumer<Text> onChange) {
+                                                     Component text, boolean newLines, Style base, Consumer<Component> onChange) {
 			if (prev == null)
 				return new InternalTextFieldWidget(x, y, width, height, text, newLines, base, onChange);
 			if (prev.allowsNewLines() != newLines)
@@ -220,18 +222,18 @@ public class FormattedTextFieldWidget extends GroupWidget {
 			return prev;
 		}
 		
-		private Consumer<Text> onChange;
+		private Consumer<Component> onChange;
 		private final Style base;
 		private final Style baseReset;
 		private final List<Style> styles;
 		private Style cursorStyle;
-		private Text text;
+		private Component text;
 		private boolean ignoreNextEditStyles;
 		private boolean ignoreNextSetText;
-		private final List<Text> undo;
+		private final List<Component> undo;
 		private int undoPos;
 		
-		protected InternalTextFieldWidget(int x, int y, int width, int height, Text text, boolean newLines, Style base, Consumer<Text> onChange) {
+		protected InternalTextFieldWidget(int x, int y, int width, int height, Component text, boolean newLines, Style base, Consumer<Component> onChange) {
 			super(x, y, width, height, text.getString(), newLines, null);
 			this.onChange = onChange;
 			this.base = base;
@@ -248,19 +250,19 @@ public class FormattedTextFieldWidget extends GroupWidget {
 			generateLines();
 		}
 		
-		public InternalTextFieldWidget setTextChangeListener(Consumer<Text> onChange) {
+		public InternalTextFieldWidget setTextChangeListener(Consumer<Component> onChange) {
 			this.onChange = onChange;
 			return this;
 		}
 		
-		private void genStyles(Text text, Style parent, int index) {
+		private void genStyles(Component text, Style parent, int index) {
 			int len = MVMisc.getContent(text).length();
-			Style style = text.getStyle().withParent(parent);
+			Style style = text.getStyle().applyTo(parent);
 			if (len > 0) {
 				setStyle(index, style);
 				index += len;
 			}
-			for (Text child : text.getSiblings()) {
+			for (Component child : text.getSiblings()) {
 				genStyles(child, style, index);
 				index += MVMisc.stripInvalidChars(child.getString(), allowsNewLines()).length();
 			}
@@ -282,7 +284,7 @@ public class FormattedTextFieldWidget extends GroupWidget {
 			return output;
 		}
 		
-		private void applyFormatting(Formatting formatting) {
+		private void applyFormatting(ChatFormatting formatting) {
 			int start = getSelStart();
 			int end = getSelEnd();
 			
@@ -324,12 +326,12 @@ public class FormattedTextFieldWidget extends GroupWidget {
 			generateLines();
 			onChange.accept(text);
 		}
-		private Style withFormatting(Style style, Formatting formatting) {
-			if (formatting == Formatting.RESET)
+		private Style withFormatting(Style style, ChatFormatting formatting) {
+			if (formatting == ChatFormatting.RESET)
 				return baseReset;
-			return style.withFormatting(formatting);
+			return style.applyFormat(formatting);
 		}
-		private Style withoutFormatting(Style style, Formatting formatting) {
+		private Style withoutFormatting(Style style, ChatFormatting formatting) {
 			return StyleUtil.minusFormatting(style, StyleUtil.RESET_STYLE.withColor(base.getColor()), formatting);
 		}
 		
@@ -362,22 +364,22 @@ public class FormattedTextFieldWidget extends GroupWidget {
 			onChange.accept(text);
 		}
 		
-		private void applyColor(Formatting color, boolean shadow) {
+		private void applyColor(ChatFormatting color, boolean shadow) {
 			if (shadow) {
-				int shadowColor = (MVMisc.scaleRgb(color.getColorValue(), 0.25) | 0xFF000000);
+				int shadowColor = (MVMisc.scaleRgb(color.getColor(), 0.25) | 0xFF000000);
 				applyStyleChange(style -> style.withShadowColor(shadowColor), true);
 			} else
 				applyFormatting(color);
 		}
 		
-		public void setFormattedText(Text text) {
+		public void setFormattedText(Component text) {
 			styles.clear();
 			genStyles(text, base, 0);
 			ignoreNextEditStyles = true;
 			setText(text.getString());
 			ignoreNextEditStyles = false; // If onEdit doesn't get called since text is the same
 		}
-		public Text getFormattedText() {
+		public Component getFormattedText() {
 			return text;
 		}
 		@Override
@@ -397,7 +399,7 @@ public class FormattedTextFieldWidget extends GroupWidget {
 		private void showCustomColor(boolean shadow) {
 			Style initialStyle = getInitialCustomStyle();
 			int initialColor = (initialStyle.getColor() == null ?
-					(base.getColor() == null ? -1 : base.getColor().getRgb()) : initialStyle.getColor().getRgb());
+					(base.getColor() == null ? -1 : base.getColor().getValue()) : initialStyle.getColor().getValue());
 			if (shadow) {
 				int initialShadow = (initialStyle.getShadowColor() == null ?
 						(base.getShadowColor() == null ? MVMisc.scaleRgb(initialColor, 0.25) : base.getShadowColor()) : initialStyle.getShadowColor());
@@ -431,9 +433,9 @@ public class FormattedTextFieldWidget extends GroupWidget {
 		}
 		private String getFontString(Style s) {
 			if(s == null) return "";
-			StyleSpriteSource font = s.getFont();
-			if(font instanceof StyleSpriteSource.Font f) return f.id().toString();
-			if(font instanceof StyleSpriteSource.Sprite f) return f.spriteId().toString();
+			FontDescription font = s.getFont();
+			if(font instanceof FontDescription.Resource f) return f.id().toString();
+			if(font instanceof FontDescription.AtlasSprite f) return f.spriteId().toString();
 			return "";
 		}
 		private void showFont() {
@@ -445,7 +447,7 @@ public class FormattedTextFieldWidget extends GroupWidget {
 							.withValidator(font -> font.isEmpty() || IdentifierInst.isValid(font))
 							.withSuggestions((str, cursor) -> {
 								SuggestionsBuilder builder = new SuggestionsBuilder(str, 0);
-								for (Identifier font : MainUtil.client.fontManager.fontStorages.keySet()) {
+								for (Identifier font : MainUtil.client.fontManager.fontSets.keySet()) {
 									String fontStr = font.toString();
 									if (fontStr.startsWith(str))
 										builder.suggest(fontStr);
@@ -453,7 +455,7 @@ public class FormattedTextFieldWidget extends GroupWidget {
 								return builder.buildFuture();
 							})
 							.build(),
-					font -> applyStyleChange(style -> style.withFont(font.isEmpty() ? null : new StyleSpriteSource.Font(IdentifierInst.of(font))), true));
+					font -> applyStyleChange(style -> style.withFont(font.isEmpty() ? null : new FontDescription.Resource(IdentifierInst.of(font))), true));
 		}
 		
 		@Override
@@ -477,18 +479,18 @@ public class FormattedTextFieldWidget extends GroupWidget {
 		}
 		
 		@Override
-		public boolean keyPressed(KeyInput keyInput) {
+		public boolean keyPressed(KeyEvent keyInput) {
 			if (super.keyPressed(keyInput))
 				return true;
 			
 			if (NBTEditor.hasControlDown() && !NBTEditor.hasShiftDown()) {
-				Formatting formatting = switch (keyInput.key()) {
-					case GLFW.GLFW_KEY_B -> Formatting.BOLD;
-					case GLFW.GLFW_KEY_I -> Formatting.ITALIC;
-					case GLFW.GLFW_KEY_U -> Formatting.UNDERLINE;
-					case GLFW.GLFW_KEY_D -> Formatting.STRIKETHROUGH;
-					case GLFW.GLFW_KEY_K -> Formatting.OBFUSCATED;
-					case GLFW.GLFW_KEY_BACKSLASH -> Formatting.RESET;
+				ChatFormatting formatting = switch (keyInput.key()) {
+					case GLFW.GLFW_KEY_B -> ChatFormatting.BOLD;
+					case GLFW.GLFW_KEY_I -> ChatFormatting.ITALIC;
+					case GLFW.GLFW_KEY_U -> ChatFormatting.UNDERLINE;
+					case GLFW.GLFW_KEY_D -> ChatFormatting.STRIKETHROUGH;
+					case GLFW.GLFW_KEY_K -> ChatFormatting.OBFUSCATED;
+					case GLFW.GLFW_KEY_BACKSLASH -> ChatFormatting.RESET;
 					default -> null;
 				};
 				if (formatting != null) {
@@ -613,7 +615,7 @@ public class FormattedTextFieldWidget extends GroupWidget {
 		@Override
 		protected String onPaste(String text, int pos, int overwrittenLen) {
 			try {
-				Text textValue = pasteFilter(TextUtil.fromStringSafely(text, true));
+				Component textValue = pasteFilter(TextUtil.fromStringSafely(text, true));
 				String textValueStr = textValue.getString();
 				int textLen = textValueStr.length();
 				
@@ -638,7 +640,7 @@ public class FormattedTextFieldWidget extends GroupWidget {
 				return text;
 			}
 		}
-		private Text pasteFilter(Text toPaste) {
+		private Component pasteFilter(Component toPaste) {
 			toPaste = TextUtil.stripInvalidChars(toPaste, allowsNewLines());
 			int numNewLines = getNumNewLines(getText());
 			int toPasteNewLines = getNumNewLines(toPaste);
@@ -651,7 +653,7 @@ public class FormattedTextFieldWidget extends GroupWidget {
 			}
 			return toPaste;
 		}
-		private int getNumNewLines(Text text) {
+		private int getNumNewLines(Component text) {
 			AtomicInteger output = new AtomicInteger(0);
 			text.visit(str -> {
 				int numNewLines = getNumNewLines(str);
@@ -664,7 +666,7 @@ public class FormattedTextFieldWidget extends GroupWidget {
 	}
 	
 	public static FormattedTextFieldWidget create(FormattedTextFieldWidget prev, int x, int y, int width, int height,
-			Text text, boolean newLines, Style base, Consumer<Text> onChange) {
+                                                  Component text, boolean newLines, Style base, Consumer<Component> onChange) {
 		if (prev == null)
 			return new FormattedTextFieldWidget(x, y, width, height, text, newLines, base, onChange);
 		prev.x = x;
@@ -683,7 +685,7 @@ public class FormattedTextFieldWidget extends GroupWidget {
 		return prev;
 	}
 	public static FormattedTextFieldWidget create(FormattedTextFieldWidget prev, int x, int y, int width, int height,
-			List<Text> lines, Style base, Consumer<List<Text>> onChange) {
+                                                  List<Component> lines, Style base, Consumer<List<Component>> onChange) {
 		return create(prev, x, y, width, height, TextUtil.joinLines(lines), true, base, text -> onChange.accept(TextUtil.splitText(text)));
 	}
 	
@@ -697,11 +699,11 @@ public class FormattedTextFieldWidget extends GroupWidget {
 	private int height;
 	private InternalTextFieldWidget field;
 	private ButtonDropdownWidget colors;
-	private ButtonWidget font;
+	private Button font;
 	private int lastFont;
 	private long lastFontChange;
 	
-	protected FormattedTextFieldWidget(int x, int y, int width, int height, Text text, boolean newLines, Style base, Consumer<Text> onChange) {
+	protected FormattedTextFieldWidget(int x, int y, int width, int height, Component text, boolean newLines, Style base, Consumer<Component> onChange) {
 		this.x = x;
 		this.y = y;
 		this.width = width;
@@ -713,8 +715,8 @@ public class FormattedTextFieldWidget extends GroupWidget {
 	}
 	private void init() {
 		if (width < 16 * 20 + (ConfigScreen.isHideFormatButtons() ? 0 : 20 + 4 + 5 * 20 + (4 + 20) * 2)) {
-			colors = addElement(new ButtonDropdownWidget(x, y, 20, 20, TextInst.literal("⬛").formatted(Formatting.AQUA), 20, 20));
-			for (Formatting formatting : Formatting.values()) {
+			colors = addElement(new ButtonDropdownWidget(x, y, 20, 20, TextInst.literal("⬛").formatted(ChatFormatting.AQUA), 20, 20));
+			for (ChatFormatting formatting : ChatFormatting.values()) {
 				if (!formatting.isColor())
 					break;
 				colors.addButton(TextInst.literal("⬛").formatted(formatting), btn -> {
@@ -726,7 +728,7 @@ public class FormattedTextFieldWidget extends GroupWidget {
 		} else {
 			colors = null;
 			int i = 0;
-			for (Formatting formatting : Formatting.values()) {
+			for (ChatFormatting formatting : ChatFormatting.values()) {
 				if (!formatting.isColor())
 					break;
 				addWidget(MVMisc.newButton(x + i * 20, y, 20, 20, TextInst.literal("⬛").formatted(formatting),
@@ -739,11 +741,11 @@ public class FormattedTextFieldWidget extends GroupWidget {
 			int afterColorsX = x + (colors == null ? 16 * 20 : 20);
 			
 			int i = 0;
-			for (Formatting formatting : new Formatting[] {Formatting.BOLD, Formatting.ITALIC, Formatting.UNDERLINE,
-					Formatting.STRIKETHROUGH, Formatting.OBFUSCATED, Formatting.RESET}) {
-				Text btnText;
+			for (ChatFormatting formatting : new ChatFormatting[] {ChatFormatting.BOLD, ChatFormatting.ITALIC, ChatFormatting.UNDERLINE,
+					ChatFormatting.STRIKETHROUGH, ChatFormatting.OBFUSCATED, ChatFormatting.RESET}) {
+				Component btnText;
 				MVTooltip btnTooltip;
-				if (formatting == Formatting.RESET) {
+				if (formatting == ChatFormatting.RESET) {
 					btnText = TextInst.of("");
 					if (ConfigScreen.isKeybindsHidden())
 						btnTooltip = new MVTooltip(TextInst.of(formatting.getName()));
@@ -757,13 +759,13 @@ public class FormattedTextFieldWidget extends GroupWidget {
 					btnTooltip = new MVTooltip(TextInst.of(formatting.getName()));
 				}
 				addWidget(MVMisc.newButton(
-						afterColorsX + 24 + i * 20 + (formatting == Formatting.RESET ? 4 + 20 * 3 + 4 : 0), y, 20, 20,
+						afterColorsX + 24 + i * 20 + (formatting == ChatFormatting.RESET ? 4 + 20 * 3 + 4 : 0), y, 20, 20,
 						btnText, btn -> field.applyFormatting(formatting), btnTooltip));
 				i++;
 			}
 			
 			addWidget(MVMisc.newButton(afterColorsX, y, 20, 20,
-					TextInst.literal("⬛").setStyle(Style.EMPTY.withColor(0x9999C0).withFormatting(Formatting.ITALIC)),
+					TextInst.literal("⬛").setStyle(Style.EMPTY.withColor(0x9999C0).applyFormat(ChatFormatting.ITALIC)),
 					btn -> field.showCustomColor(hasShadowKeyDown()),
 					createFormatButtonTooltip("custom_color", true)));
 			
@@ -781,8 +783,8 @@ public class FormattedTextFieldWidget extends GroupWidget {
 					createFormatButtonTooltip("font", false)));
 		}
 	}
-	private MVTooltip createColorButtonTooltip(Formatting color) {
-		Text name = TextInst.of(color.getName());
+	private MVTooltip createColorButtonTooltip(ChatFormatting color) {
+		Component name = TextInst.of(color.getName());
 		if (ConfigScreen.isKeybindsHidden() || !StyleUtil.SHADOW_COLOR_EXISTS)
 			return new MVTooltip(name);
 		return new MVTooltip(name, TextInst.translatable("nbteditor.keybind.formatted_text.shadow"));
@@ -797,7 +799,7 @@ public class FormattedTextFieldWidget extends GroupWidget {
 		return new MVTooltip(nameKey, keybindKey);
 	}
 	
-	public FormattedTextFieldWidget setChangeListener(Consumer<Text> onChange) {
+	public FormattedTextFieldWidget setChangeListener(Consumer<Component> onChange) {
 		field.setTextChangeListener(onChange);
 		return this;
 	}
@@ -844,29 +846,29 @@ public class FormattedTextFieldWidget extends GroupWidget {
 		return height;
 	}
 	
-	public void setText(Text text) {
+	public void setText(Component text) {
 		field.setFormattedText(text);
 	}
-	public void setText(List<Text> lines) {
+	public void setText(List<Component> lines) {
 		setText(TextUtil.joinLines(lines));
 	}
-	public Text getText() {
+	public Component getText() {
 		return field.getFormattedText();
 	}
 	
-	public List<Text> getTextLines() {
+	public List<Component> getTextLines() {
 		return TextUtil.splitText(getText());
 	}
 	
 	@Override
-	public void render(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
+	public void extractRenderState(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
 		setFocused(isMultiFocused() ? field : null);
-		field.render(matrices, mouseX, mouseY, delta);
+		field.extractRenderState(matrices, mouseX, mouseY, delta);
 		
 		if (colors != null) {
 			matrices.pushMatrix();
 			matrices.translate(0.0f, 0.0f);
-			colors.render(matrices, mouseX, mouseY, delta);
+			colors.extractRenderState(matrices, mouseX, mouseY, delta);
 			matrices.popMatrix();
 		}
 		
@@ -876,11 +878,11 @@ public class FormattedTextFieldWidget extends GroupWidget {
 				lastFontChange = time;
 				lastFont += (int) (Math.floor(Math.random() * 2) + 1);
 				font.setMessage(TextInst.literal(lastFont % 3 + "")
-						.styled(style -> style.withFont(new StyleSpriteSource.Font(IdentifierInst.of("nbteditor", "fancy_f")))));
+						.styled(style -> style.withFont(new FontDescription.Resource(IdentifierInst.of("nbteditor", "fancy_f")))));
 			}
 		}
 		
-		super.render(matrices, mouseX, mouseY, delta);
+		super.extractRenderState(matrices, mouseX, mouseY, delta);
 	}
 	
 	@Override

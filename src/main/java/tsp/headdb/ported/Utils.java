@@ -5,7 +5,7 @@ import java.util.regex.Pattern;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.TextInst;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
 
 public class Utils {
 
@@ -23,11 +23,11 @@ public class Utils {
     }
 
     public static void sendMessage(String message) {
-        MainUtil.client.player.sendMessage(TextInst.of(colorize(message)), false);
+        MainUtil.client.player.sendSystemMessage(TextInst.of(colorize(message)));
     }
 
     public static String colorize(String string) {
-        return MainUtil.colorize(Formatting.GRAY + string);
+        return MainUtil.colorize(ChatFormatting.GRAY + string);
     }
 
 }

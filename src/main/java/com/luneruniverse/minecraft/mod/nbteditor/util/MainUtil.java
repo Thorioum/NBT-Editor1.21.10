@@ -37,31 +37,32 @@ import com.mojang.serialization.Dynamic;
 
 import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.EventFactory;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.client.render.VertexConsumer;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.entity.EquipmentSlot;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.AbstractNbtNumber;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.components.EditBox;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.nbt.NumericTag;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.nbt.NbtOps;
-import net.minecraft.network.packet.c2s.play.CreativeInventoryActionC2SPacket;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.text.Text;
-import net.minecraft.util.DyeColor;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.Hand;
-import net.minecraft.util.Identifier;
+import net.minecraft.network.protocol.game.ServerboundSetCreativeModeSlotPacket;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.DyeColor;
+import net.minecraft.ChatFormatting;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.resources.Identifier;
 import org.joml.Matrix3x2fStack;
 
 public class MainUtil {
 	
-	public static final MinecraftClient client = MinecraftClient.getInstance();
+	public static final Minecraft client = Minecraft.getInstance();
 	
 	// Same as ClientPlayerInteractionManager#clickCreativeSlot, but without a feature flag check
 	// Also includes survival bypass
@@ -71,23 +72,23 @@ public class MainUtil {
 	 */
 	public static void clickCreativeStack(ItemStack item, int slot) {
 		if (NBTEditorClient.SERVER_CONN.isEditingAllowed())
-			MVMisc.sendC2SPacket(new CreativeInventoryActionC2SPacket(slot, item.copy()));
+			MVMisc.sendC2SPacket(new ServerboundSetCreativeModeSlotPacket(slot, item.copy()));
 	}
 	public static void dropCreativeStack(ItemStack item) {
 		if (NBTEditorClient.SERVER_CONN.isEditingAllowed() && !item.isEmpty())
-			MVMisc.sendC2SPacket(new CreativeInventoryActionC2SPacket(-1, item.copy()));
+			MVMisc.sendC2SPacket(new ServerboundSetCreativeModeSlotPacket(-1, item.copy()));
 	}
 	
-	public static void saveItem(Hand hand, ItemStack item) {
-		client.player.setStackInHand(hand, item.copy());
-		clickCreativeStack(item, hand == Hand.OFF_HAND ? SlotUtil.createOffHandInContainer() :
-			SlotUtil.createHotbarInContainer(client.player.getInventory().selectedSlot));
+	public static void saveItem(InteractionHand hand, ItemStack item) {
+		client.player.setItemInHand(hand, item.copy());
+		clickCreativeStack(item, hand == InteractionHand.OFF_HAND ? SlotUtil.createOffHandInContainer() :
+			SlotUtil.createHotbarInContainer(client.player.getInventory().selected));
 	}
 	public static void saveItem(EquipmentSlot slot, ItemStack item) {
 		if (slot == EquipmentSlot.MAINHAND)
-			saveItem(Hand.MAIN_HAND, item);
+			saveItem(InteractionHand.MAIN_HAND, item);
 		else if (slot == EquipmentSlot.OFFHAND)
-			saveItem(Hand.OFF_HAND, item);
+			saveItem(InteractionHand.OFF_HAND, item);
 		else {
 			MVMisc.setArmor(slot, item.copy());
 			clickCreativeStack(item, SlotUtil.createArmorInContainer(slot));
@@ -99,29 +100,29 @@ public class MainUtil {
 	 * @param item
 	 */
 	public static void saveItem(int slot, ItemStack item) {
-		client.player.getInventory().setStack(slot, item.copy());
+		client.player.getInventory().setItem(slot, item.copy());
 		clickCreativeStack(item, SlotUtil.invToContainer(slot));
 	}
 	
 	public static void get(ItemStack item, boolean dropIfNoSpace) {
-		PlayerInventory inv = client.player.getInventory();
+		Inventory inv = client.player.getInventory();
 		item = item.copy();
 		
-		int slot = inv.getOccupiedSlotWithRoomForStack(item);
+		int slot = inv.getSlotWithRemainingSpace(item);
 		if (slot == -1)
-			slot = inv.getEmptySlot();
+			slot = inv.getFreeSlot();
 		if (slot == -1) {
 			if (dropIfNoSpace) {
-				if (item.getCount() > item.getMaxCount())
-					item.setCount(item.getMaxCount());
+				if (item.getCount() > item.getMaxStackSize())
+					item.setCount(item.getMaxStackSize());
 				dropCreativeStack(item);
 			}
 		} else {
-			item.setCount(item.getCount() + inv.getStack(slot).getCount());
+			item.setCount(item.getCount() + inv.getItem(slot).getCount());
 			int overflow = 0;
-			if (item.getCount() > item.getMaxCount()) {
-				overflow = item.getCount() - item.getMaxCount();
-				item.setCount(item.getMaxCount());
+			if (item.getCount() > item.getMaxStackSize()) {
+				overflow = item.getCount() - item.getMaxStackSize();
+				item.setCount(item.getMaxStackSize());
 			}
 			saveItem(slot, item);
 			if (overflow != 0) {
@@ -133,7 +134,7 @@ public class MainUtil {
 	}
 	public static void getWithMessage(ItemStack item) {
 		get(item, true);
-		client.player.sendMessage(TextInst.translatable("nbteditor.get.item").append(item.toHoverableText()), false);
+		client.player.sendSystemMessage(TextInst.translatable("nbteditor.get.item").append(item.getDisplayName()));
 	}
 	
 	
@@ -147,8 +148,8 @@ public class MainUtil {
 	
 	
 	
-	public static void drawWrappingString(Matrix3x2fStack matrices, TextRenderer renderer, String text, int x, int y, int maxWidth, int color, boolean centerHorizontal, boolean centerVertical) {
-		maxWidth = Math.max(maxWidth, renderer.getWidth("ww"));
+	public static void drawWrappingString(Matrix3x2fStack matrices, Font renderer, String text, int x, int y, int maxWidth, int color, boolean centerHorizontal, boolean centerVertical) {
+		maxWidth = Math.max(maxWidth, renderer.width("ww"));
 		
 		// Split into breaking spots
 		List<String> parts = new ArrayList<>();
@@ -186,21 +187,21 @@ public class MainUtil {
 		int i = 0;
 		for (String part : parts) {
 			String partAddition = (!line.isEmpty() && spaces.contains(i) ? " " : "") + part;
-			if (renderer.getWidth(line + partAddition) > maxWidth) {
+			if (renderer.width(line + partAddition) > maxWidth) {
 				if (!line.isEmpty()) {
 					lines.add(line);
 					line = "";
 				}
 				
-				if (renderer.getWidth(part) > maxWidth) {
+				if (renderer.width(part) > maxWidth) {
 					while (true) {
 						int numChars = 1;
-						while (renderer.getWidth(part.substring(0, numChars)) < maxWidth)
+						while (renderer.width(part.substring(0, numChars)) < maxWidth)
 							numChars++;
 						numChars--;
 						lines.add(part.substring(0, numChars));
 						part = part.substring(numChars);
-						if (renderer.getWidth(part) < maxWidth) {
+						if (renderer.width(part) < maxWidth) {
 							line = part;
 							break;
 						}
@@ -218,7 +219,7 @@ public class MainUtil {
 		// Draw the lines
 		for (i = 0; i < lines.size(); i++) {
 			line = lines.get(i);
-			int offsetY = i * renderer.fontHeight + (centerVertical ? -renderer.fontHeight * lines.size() / 2 : 0);
+			int offsetY = i * renderer.lineHeight + (centerVertical ? -renderer.lineHeight * lines.size() / 2 : 0);
 			if (centerHorizontal)
 				MVDrawableHelper.drawCenteredTextWithShadow(matrices, renderer, TextInst.of(line), x, y + offsetY, color);
 			else
@@ -254,28 +255,25 @@ public class MainUtil {
 	}
 	
 	
-	public static Text getBaseItemNameSafely(ItemStack item) {
+	public static Component getBaseItemNameSafely(ItemStack item) {
 		if (NBTManagers.COMPONENTS_EXIST) {
-			Text name = item.get(MVComponentType.ITEM_NAME);
+			Component name = item.get(DataComponents.ITEM_NAME);
 			if (name != null)
 				return name;
 		}
-		return MVMisc.getName(item.getItem());
+		return MVMisc.getName(item);
 	}
-	public static Text getCustomItemNameSafely(ItemStack item) {
+	public static Component getCustomItemNameSafely(ItemStack item) {
 		if (NBTManagers.COMPONENTS_EXIST)
-			return item.getName();
-		NbtCompound nbt = item.nbte$getNbt();
-		if (nbt != null)
-			nbt = nbt.nbte$getCompoundOrDefault("display");
-		return getNbtNameSafely(nbt, "Name", () -> item.getItem().getName(item));
+			return item.getHoverName();
+		return null;
 	}
-	public static Text getNbtNameSafely(NbtCompound nbt, String key, Supplier<Text> defaultName) {
+	public static Component getNbtNameSafely(CompoundTag nbt, String key, Supplier<Component> defaultName) {
 		if (nbt != null) {
-			NbtElement textNbt = nbt.get(key);
+			Tag textNbt = nbt.get(key);
 			if (textNbt != null) {
 				try {
-					Text text = TextInst.fromMinecraft(textNbt);
+					Component text = TextInst.fromMinecraft(textNbt);
 					if (text != null)
 						return text;
 				} catch (IllegalArgumentException e) {}
@@ -285,7 +283,7 @@ public class MainUtil {
 	}
 	
 	
-	public static DyeColor getDyeColor(Formatting color) {
+	public static DyeColor getDyeColor(ChatFormatting color) {
 		switch (color) {
 			case AQUA:
 				return DyeColor.LIGHT_BLUE;
@@ -327,24 +325,24 @@ public class MainUtil {
 	
 	public static ItemStack copyAirable(ItemStack item) {
 		if (NBTManagers.COMPONENTS_EXIST) {
-			ItemStack output = item.copyComponentsToNewStack(item.getItem(), item.getCount());
-			output.setBobbingAnimationTime(item.getBobbingAnimationTime());
+			ItemStack output = item.transmuteCopy(item.getItem(), item.getCount());
+			output.setPopTime(item.getPopTime());
 			return output;
 		}
 		
 		ItemStack output = new ItemStack(item.getItem(), item.getCount());
-		output.setBobbingAnimationTime(item.getBobbingAnimationTime());
-		if (item.nbte$hasNbt())
-			output.nbte$setNbt(item.nbte$getNbt());
+		output.setPopTime(item.getPopTime());
+		if (!item.getComponentsPatch().isEmpty())
+			output.applyComponents(item.getComponentsPatch());
 		return output;
 	}
 	
 	
 	public static ItemStack setType(Item type, ItemStack item, int count) {
 		if (NBTManagers.COMPONENTS_EXIST)
-			return item.copyComponentsToNewStack(type, count);
+			return item.transmuteCopy(type, count);
 		
-		NbtCompound fullData = item.nbte$serialize(true);
+		CompoundTag fullData = NBTManagers.ITEM.serialize(item,true);
 		fullData.putString("id", MVRegistry.ITEM.getId(type).toString());
 		fullData.putInt("Count", count);
 		return NBTManagers.ITEM.deserialize(fullData, true);
@@ -369,7 +367,7 @@ public class MainUtil {
 	}
 	
 	
-	public static NbtCompound readNBT(InputStream in) throws IOException {
+	public static CompoundTag readNBT(InputStream in) throws IOException {
 		byte[] data = in.readAllBytes();
 		try {
 			return MVMisc.readCompressedNbt(new ByteArrayInputStream(data));
@@ -404,9 +402,9 @@ public class MainUtil {
 	
 	
 	public static int[] getMousePos() {
-		double scale = client.getWindow().getScaleFactor();
-		int x = (int) (client.mouse.getX() / scale);
-		int y = (int) (client.mouse.getY() / scale);
+		double scale = client.getWindow().getGuiScale();
+		int x = (int) (client.mouseHandler.xpos() / scale);
+		int y = (int) (client.mouseHandler.ypos() / scale);
 		return new int[] {x, y};
 	}
 	
@@ -486,16 +484,16 @@ public class MainUtil {
 	
 	// Based on DataFixTypes
 	@SuppressWarnings("unchecked")
-	public static <T extends NbtElement> T update(TypeReference typeRef, T nbt, int oldVersion) {
-		return (T) client.getDataFixer().update(typeRef, new Dynamic<>(NbtOps.INSTANCE, nbt), oldVersion, Version.getDataVersion()).getValue();
+	public static <T extends Tag> T update(TypeReference typeRef, T nbt, int oldVersion) {
+		return (T) client.getFixerUpper().update(typeRef, new Dynamic<>(NbtOps.INSTANCE, nbt), oldVersion, Version.getDataVersion()).getValue();
 	}
 	/**
 	 * If dataVersionTag is not null and a number, this updates from that - otherwise, this updates from defaultOldVersion
 	 */
-	public static <T extends NbtElement> T updateDynamic(TypeReference typeRef, T nbt, NbtElement dataVersionTag, int defaultOldVersion) {
+	public static <T extends Tag> T updateDynamic(TypeReference typeRef, T nbt, Tag dataVersionTag, int defaultOldVersion) {
 		int dataVersion = defaultOldVersion;
-		if (dataVersionTag != null && dataVersionTag instanceof AbstractNbtNumber num)
-			dataVersion = num.nbte$intValue();
+		if (dataVersionTag != null && dataVersionTag instanceof NumericTag num)
+			dataVersion = num.intValue();
 		else if (dataVersion == -1)
 			return nbt;
 		return update(typeRef, nbt, dataVersion);
@@ -503,20 +501,20 @@ public class MainUtil {
 	/**
 	 * If a DataVersion tag exists, this updates from that - otherwise, this updates from defaultOldVersion
 	 */
-	public static NbtCompound updateDynamic(TypeReference typeRef, NbtCompound nbt, int defaultOldVersion) {
+	public static CompoundTag updateDynamic(TypeReference typeRef, CompoundTag nbt, int defaultOldVersion) {
 		return updateDynamic(typeRef, nbt, nbt.get("DataVersion"), defaultOldVersion);
 	}
 	/**
 	 * If a DataVersion tag exists, this updates from that - otherwise, nbt is returned
 	 */
-	public static NbtCompound updateDynamic(TypeReference typeRef, NbtCompound nbt) {
+	public static CompoundTag updateDynamic(TypeReference typeRef, CompoundTag nbt) {
 		return updateDynamic(typeRef, nbt, -1);
 	}
 	
-	public static NbtCompound fillId(NbtCompound nbt, String id) {
+	public static CompoundTag fillId(CompoundTag nbt, String id) {
 		if (!NBTManagers.COMPONENTS_EXIST)
 			return nbt;
-		if (!nbt.nbte$contains("id", NbtElement.STRING_TYPE))
+		if (!nbt.contains("id"))
 			nbt.putString("id", id);
 		return nbt;
 	}
@@ -539,15 +537,15 @@ public class MainUtil {
 		return output;
 	}
 	
-	public static void setTextFieldValueSilently(TextFieldWidget widget, String text, boolean scrollToEnd) {
-		widget.text = text;
+	public static void setTextFieldValueSilently(EditBox widget, String text, boolean scrollToEnd) {
+		widget.value = text;
 		int cursor = (scrollToEnd ? text.length() : 0);
-		widget.setSelectionStart(cursor);
-		widget.setSelectionEnd(cursor);
+		widget.setCursorPosition(cursor);
+		widget.setHighlightPos(cursor);
 	}
 	
-	public static void setCursorStackSilently(ScreenHandler handler, ItemStack item) {
-		handler.setCursorStack(item);
+	public static void setCursorStackSilently(AbstractContainerMenu handler, ItemStack item) {
+		handler.setCarried(item);
 		MVMisc.setPreviousCursorStack(handler, item);
 	}
 	

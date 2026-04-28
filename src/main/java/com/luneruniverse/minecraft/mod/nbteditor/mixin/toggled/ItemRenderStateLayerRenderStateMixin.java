@@ -5,17 +5,14 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 
-import com.luneruniverse.minecraft.mod.nbteditor.MC_1_17_Link.ConfigScreen;
-import com.luneruniverse.minecraft.mod.nbteditor.MC_1_17_Link.MixinLink;
 
-import net.minecraft.client.render.VertexConsumerProvider;
-import net.minecraft.client.render.item.ItemRenderState;
-import net.minecraft.client.render.item.ItemRenderState.Glint;
-import net.minecraft.client.render.item.ItemRenderer;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.ItemStack;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.item.ItemStackRenderState;
+import net.minecraft.client.renderer.item.ItemStackRenderState.FoilType;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.ItemStack;
 
-@Mixin(ItemRenderState.LayerRenderState.class)
+@Mixin(ItemStackRenderState.LayerRenderState.class)
 public class ItemRenderStateLayerRenderStateMixin {
 
 	

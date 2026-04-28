@@ -5,34 +5,33 @@ import java.util.ArrayList;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVDrawableHelper;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.text.Text;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.network.chat.Component;
 import org.joml.Matrix3x2fStack;
 
 public abstract class ConfigGroupingHorizontal<K, T extends ConfigGroupingHorizontal<K, T>> extends ConfigGrouping<K, T> {
 	
-	protected ConfigGroupingHorizontal(Text name, Constructor<K, T> cloneImpl) {
+	protected ConfigGroupingHorizontal(Component name, Constructor<K, T> cloneImpl) {
 		super(name, cloneImpl);
 	}
 	
 	protected int getNameWidth() {
-		return name == null ? 0 : MainUtil.client.textRenderer.getWidth(name) + PADDING;
+		return name == null ? 0 : MainUtil.client.font.width(name) + PADDING;
 	}
 	
 	@Override
-	public void render(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
+	public void extractRenderState(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
 		int xOffset = 0;
-		Text fullName = getFullName();
+		Component fullName = getFullName();
 		if (fullName != null) {
-			MVDrawableHelper.drawTextWithShadow(matrices, MainUtil.client.textRenderer, fullName, PADDING * 2, 0, 0xFFFFFFFF);
+			MVDrawableHelper.drawTextWithShadow(matrices, MainUtil.client.font, fullName, PADDING * 2, 0, 0xFFFFFFFF);
 			xOffset += getNameWidth();
 		}
 		
 		for (ConfigPath path : new ArrayList<>(paths.values())) {
 			matrices.pushMatrix();
 			matrices.translate((float) xOffset, 0.0f);
-			path.render(matrices, mouseX - xOffset, mouseY, delta);
+			path.extractRenderState(matrices, mouseX - xOffset, mouseY, delta);
 			matrices.popMatrix();
 			
 			xOffset += path.getSpacingWidth() + PADDING;
@@ -80,22 +79,22 @@ public abstract class ConfigGroupingHorizontal<K, T extends ConfigGroupingHorizo
 	}
 	
 	@Override
-	public boolean mouseClicked(Click click, boolean doubled) {
+	public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
 		int xOffset = getNameWidth();
 		
 		for (ConfigPath path : new ArrayList<>(paths.values())) {
-			if (path.mouseClicked(new Click(click.x() - xOffset, click.y(), click.buttonInfo()),doubled))
+			if (path.mouseClicked(new MouseButtonEvent(click.x() - xOffset, click.y(), click.buttonInfo()),doubled))
 				return true;
 			xOffset += path.getSpacingWidth() + PADDING;
 		}
 		return false;
 	}
 	@Override
-	public boolean mouseReleased(Click click) {
+	public boolean mouseReleased(MouseButtonEvent click) {
 		int xOffset = getNameWidth();
 		
 		for (ConfigPath path : new ArrayList<>(paths.values())) {
-			if (path.mouseReleased(new Click(click.x() - xOffset, click.y(), click.buttonInfo())))
+			if (path.mouseReleased(new MouseButtonEvent(click.x() - xOffset, click.y(), click.buttonInfo())))
 				return true;
 			xOffset += path.getSpacingWidth() + PADDING;
 		}
@@ -111,11 +110,11 @@ public abstract class ConfigGroupingHorizontal<K, T extends ConfigGroupingHorizo
 		}
 	}
 	@Override
-	public boolean mouseDragged(Click click, double deltaX, double deltaY) {
+	public boolean mouseDragged(MouseButtonEvent click, double deltaX, double deltaY) {
 		int xOffset = getNameWidth();
 		
 		for (ConfigPath path : new ArrayList<>(paths.values())) {
-			if (path.mouseDragged(new Click(click.x() - xOffset, click.y(), click.buttonInfo()), deltaX, deltaY))
+			if (path.mouseDragged(new MouseButtonEvent(click.x() - xOffset, click.y(), click.buttonInfo()), deltaX, deltaY))
 				return true;
 			xOffset += path.getSpacingWidth() + PADDING;
 		}

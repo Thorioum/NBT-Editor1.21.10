@@ -1,5 +1,6 @@
 package com.luneruniverse.minecraft.mod.nbteditor.async;
 
+import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 import tsp.headdb.ported.HeadAPI;
 
 public class HeadRefreshThread extends Thread {
@@ -12,7 +13,8 @@ public class HeadRefreshThread extends Thread {
 	@Override
 	public void run() {
 		while (true) {
-			HeadAPI.updateDatabase();
+			if(MainUtil.client.level != null)
+				HeadAPI.updateDatabase();
 			
 			try {
 				long sleepTime = HeadAPI.getDatabase().getTimeUntilLastUpdateOld() * 1000;

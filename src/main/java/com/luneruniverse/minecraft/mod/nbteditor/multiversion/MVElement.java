@@ -2,9 +2,9 @@ package com.luneruniverse.minecraft.mod.nbteditor.multiversion;
 
 import java.util.WeakHashMap;
 
-import net.minecraft.client.gui.Element;
+import net.minecraft.client.gui.components.events.GuiEventListener;
 
-public interface MVElement extends Element {
+public interface MVElement extends GuiEventListener {
 	
 	static final WeakHashMap<MVElement, Boolean> _focused = new WeakHashMap<>();
 	static final WeakHashMap<MVElement, Boolean> _multiFocused = new WeakHashMap<>();

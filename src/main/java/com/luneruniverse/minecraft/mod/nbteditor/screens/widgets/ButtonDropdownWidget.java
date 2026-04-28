@@ -7,15 +7,15 @@ import java.util.function.Consumer;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVMisc;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVTooltip;
 
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.text.Text;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.network.chat.Component;
 
 public class ButtonDropdownWidget extends GroupWidget {
 	
 	private static class ButtonGrid extends GroupWidget {
 		
-		private static record QueuedButton(Text msg, ButtonWidget.PressAction onPress, MVTooltip tooltip) {}
+		private static record QueuedButton(Component msg, Button.OnPress onPress, MVTooltip tooltip) {}
 		
 		private final int x;
 		private final int y;
@@ -33,7 +33,7 @@ public class ButtonDropdownWidget extends GroupWidget {
 			this.buttons = new ArrayList<>();
 		}
 		
-		public void addButton(Text msg, ButtonWidget.PressAction onPress, MVTooltip tooltip) {
+		public void addButton(Component msg, Button.OnPress onPress, MVTooltip tooltip) {
 			buttons.add(new QueuedButton(msg, onPress, tooltip));
 		}
 		
@@ -51,7 +51,7 @@ public class ButtonDropdownWidget extends GroupWidget {
 		}
 		
 		@Override
-		public boolean mouseClicked(Click click, boolean doubled) {
+		public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
 			boolean output = super.mouseClicked(click, doubled);
 			if (!output)
 				close.accept(this);
@@ -63,20 +63,20 @@ public class ButtonDropdownWidget extends GroupWidget {
 	private final ButtonGrid grid;
 	private boolean open;
 	
-	public ButtonDropdownWidget(int x, int y, int btnWidth, int btnHeight, Text msg, MVTooltip tooltip, int gridWidth, int gridHeight) {
+	public ButtonDropdownWidget(int x, int y, int btnWidth, int btnHeight, Component msg, MVTooltip tooltip, int gridWidth, int gridHeight) {
 		grid = new ButtonGrid(x, y + (msg == null ? 0 : btnHeight), gridWidth, gridHeight, grid2 -> setOpen(false));
 		if (msg != null)
 			addWidget(MVMisc.newButton(x, y, btnWidth, btnHeight, msg, btn -> setOpen(!open), tooltip));
 	}
-	public ButtonDropdownWidget(int x, int y, int btnWidth, int btnHeight, Text msg, int gridWidth, int gridHeight) {
+	public ButtonDropdownWidget(int x, int y, int btnWidth, int btnHeight, Component msg, int gridWidth, int gridHeight) {
 		this(x, y, btnWidth, btnHeight, msg, null, gridWidth, gridHeight);
 	}
 	
-	public ButtonDropdownWidget addButton(Text msg, ButtonWidget.PressAction onPress, MVTooltip tooltip) {
+	public ButtonDropdownWidget addButton(Component msg, Button.OnPress onPress, MVTooltip tooltip) {
 		grid.addButton(msg, onPress, tooltip);
 		return this;
 	}
-	public ButtonDropdownWidget addButton(Text msg, ButtonWidget.PressAction onPress) {
+	public ButtonDropdownWidget addButton(Component msg, Button.OnPress onPress) {
 		return addButton(msg, onPress, null);
 	}
 	

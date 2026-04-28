@@ -4,46 +4,46 @@ import java.util.ArrayList;
 import java.util.Collections;
 
 import com.google.common.collect.Lists;
-import com.luneruniverse.minecraft.mod.nbteditor.mixin.StringNbtWriterAccessor;
+import com.luneruniverse.minecraft.mod.nbteditor.mixin.StringTagVisitorAccessor;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVMisc;
 import com.luneruniverse.minecraft.mod.nbteditor.screens.ConfigScreen;
 
-import net.minecraft.nbt.NbtByte;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtList;
-import net.minecraft.nbt.NbtString;
-import net.minecraft.nbt.visitor.StringNbtWriter;
+import net.minecraft.nbt.ByteTag;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.StringTag;
+import net.minecraft.nbt.StringTagVisitor;
 
-public class StringJsonWriterQuoted extends StringNbtWriter {
+public class StringJsonWriterQuoted extends StringTagVisitor {
 	
 	// From StringNbtWriter.apply in <= 1.21.4
-	public String apply(NbtElement element) {
+	public String apply(Tag element) {
 		element.accept(this);
-		return ((StringNbtWriterAccessor) this).getResult().toString();
+		return ((StringTagVisitorAccessor) this).getBuilder().toString();
 	}
 	
 	@Override
-	public void visitByte(NbtByte element) {
-		if (element.nbte$byteValue() == 0)
-			((StringNbtWriterAccessor) this).getResult().append(false);
-		else if (element.nbte$byteValue() == 1)
-			((StringNbtWriterAccessor) this).getResult().append(true);
+	public void visitByte(ByteTag element) {
+		if (element.byteValue() == 0)
+			((StringTagVisitorAccessor) this).getBuilder().append(false);
+		else if (element.byteValue() == 1)
+			((StringTagVisitorAccessor) this).getBuilder().append(true);
 		else
 			super.visitByte(element);
 	}
 	
 	@Override
-	public void visitString(NbtString element) {
-		((StringNbtWriterAccessor) this).getResult().append(escape(MVMisc.value(element)));
+	public void visitString(StringTag element) {
+		((StringTagVisitorAccessor) this).getBuilder().append(escape(MVMisc.value(element)));
 	}
 	
     @Override
-    public void visitList(NbtList element) {
-		StringBuilder result = ((StringNbtWriterAccessor) this).getResult();
+    public void visitList(ListTag element) {
+		StringBuilder result = ((StringTagVisitorAccessor) this).getBuilder();
 		
         result.append('[');
-        for (int i = 0; i < element.nbte$size(); ++i) {
+        for (int i = 0; i < element.size(); ++i) {
             if (i != 0) {
                 result.append(',');
             }
@@ -53,11 +53,11 @@ public class StringJsonWriterQuoted extends StringNbtWriter {
     }
 	
 	@Override
-	public void visitCompound(NbtCompound compound) {
-		StringBuilder result = ((StringNbtWriterAccessor) this).getResult();
+	public void visitCompound(CompoundTag compound) {
+		StringBuilder result = ((StringTagVisitorAccessor) this).getBuilder();
 		
 		result.append('{');
-        ArrayList<String> list = Lists.newArrayList(compound.getKeys());
+        ArrayList<String> list = Lists.newArrayList(compound.keySet());
         Collections.sort(list);
         for (String string : list) {
             if (result.length() != 1) {

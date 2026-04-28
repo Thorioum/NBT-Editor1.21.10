@@ -5,20 +5,20 @@ import com.luneruniverse.minecraft.mod.nbteditor.multiversion.networking.MVClien
 import com.luneruniverse.minecraft.mod.nbteditor.packets.SetSlotC2SPacket;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.item.ItemStack;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.world.item.ItemStack;
 
 public class ServerItemReference implements ItemReference {
 	
-	private final HandledScreen<?> screen;
+	private final AbstractContainerScreen<?> screen;
 	private final int slot;
 	
 	/**
 	 * @param screen
 	 * @param slot Format: generic container
 	 */
-	public ServerItemReference(HandledScreen<?> screen, int slot) {
-		if (screen.getScreenHandler().getSlot(slot).inventory == MainUtil.client.player.getInventory())
+	public ServerItemReference(AbstractContainerScreen<?> screen, int slot) {
+		if (screen.getMenu().getSlot(slot).container == MainUtil.client.player.getInventory())
 			throw new IllegalArgumentException("The slot cannot be in the player's inventory!");
 		
 		this.screen = screen;
@@ -37,12 +37,12 @@ public class ServerItemReference implements ItemReference {
 	
 	@Override
 	public ItemStack getItem() {
-		return screen.getScreenHandler().getSlot(slot).getStack();
+		return screen.getMenu().getSlot(slot).getItem();
 	}
 	
 	@Override
 	public void saveItem(ItemStack toSave, Runnable onFinished) {
-		screen.getScreenHandler().getSlot(slot).setStackNoCallbacks(toSave);
+		screen.getMenu().getSlot(slot).set(toSave);
 		if (NBTEditorClient.SERVER_CONN.isContainerScreen())
 			MVClientNetworking.send(new SetSlotC2SPacket(slot, toSave.copy()));
 		onFinished.run();

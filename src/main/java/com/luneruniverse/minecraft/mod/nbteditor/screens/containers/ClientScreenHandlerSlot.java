@@ -4,10 +4,10 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.util.Identifier;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.resources.Identifier;
 
 public class ClientScreenHandlerSlot extends Slot {
 	
@@ -25,8 +25,8 @@ public class ClientScreenHandlerSlot extends Slot {
 	private Identifier texture;
 	
 	public ClientScreenHandlerSlot(Slot slot) {
-		super(slot.inventory, slot.getIndex(), slot.x, slot.y);
-		this.id = slot.id;
+		super(slot.container, slot.getContainerSlot(), slot.x, slot.y);
+		this.index = slot.index;
 	}
 	
 	public void setScreen(ClientHandledScreen screen) {
@@ -45,29 +45,29 @@ public class ClientScreenHandlerSlot extends Slot {
 	}
 	
 	@Override
-	public boolean canInsert(ItemStack stack) {
+	public boolean mayPlace(ItemStack stack) {
 		if (isBlocked())
 			return false;
-		return super.canInsert(stack);
+		return super.mayPlace(stack);
 	}
 	
 	@Override
-	public boolean canTakeItems(PlayerEntity playerEntity) {
+	public boolean mayPickup(Player playerEntity) {
 		if (isBlocked())
 			return false;
-		return super.canTakeItems(playerEntity);
+		return super.mayPickup(playerEntity);
 	}
 	
 	// Prevent quick moving identical items into slot
 	@Override
-	public int getMaxItemCount() {
+	public int getMaxStackSize() {
 		if (isBlocked())
-			return getStack().getCount();
-		return super.getMaxItemCount();
+			return getItem().getCount();
+		return super.getMaxStackSize();
 	}
 	
 	@Override
-	public Identifier getBackgroundSprite() {
+	public Identifier getNoItemIcon() {
 		return texture;
 	}
 	

@@ -17,14 +17,14 @@ import com.luneruniverse.minecraft.mod.nbteditor.screens.ConfigScreen;
 import com.luneruniverse.minecraft.mod.nbteditor.util.BlockStateProperties;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.Level;
 
 public class BlockReference implements NBTReference<LocalBlock> {
 	
@@ -35,25 +35,25 @@ public class BlockReference implements NBTReference<LocalBlock> {
 						.map(packet -> new BlockReference(packet.getWorld(), packet.getPos(),
 								MVRegistry.BLOCK.get(packet.getId()), packet.getState(), packet.getNbt())));
 	}
-	public static CompletableFuture<Optional<BlockReference>> getBlock(RegistryKey<World> world, BlockPos pos) {
+	public static CompletableFuture<Optional<BlockReference>> getBlock(ResourceKey<Level> world, BlockPos pos) {
 		return getBlock(requestId -> new GetBlockC2SPacket(requestId, world, pos));
 	}
 	public static CompletableFuture<Optional<BlockReference>> getLecternBlock() {
 		return getBlock(GetLecternBlockC2SPacket::new);
 	}
 	public static BlockReference getBlockWithoutNBT(BlockPos pos) {
-		BlockState state = MainUtil.client.world.getBlockState(pos);
-		return new BlockReference(MainUtil.client.world.getRegistryKey(), pos,
-				state.getBlock(), new BlockStateProperties(state), new NbtCompound());
+		BlockState state = MainUtil.client.level.getBlockState(pos);
+		return new BlockReference(MainUtil.client.level.dimension(), pos,
+				state.getBlock(), new BlockStateProperties(state), new CompoundTag());
 	}
 	
-	private final RegistryKey<World> world;
+	private final ResourceKey<Level> world;
 	private final BlockPos pos;
 	private Block block;
 	private BlockStateProperties state;
-	private NbtCompound nbt;
+	private CompoundTag nbt;
 	
-	public BlockReference(RegistryKey<World> world, BlockPos pos, Block block, BlockStateProperties state, NbtCompound nbt) {
+	public BlockReference(ResourceKey<Level> world, BlockPos pos, Block block, BlockStateProperties state, CompoundTag nbt) {
 		this.world = world;
 		this.pos = pos;
 		this.block = block;
@@ -61,7 +61,7 @@ public class BlockReference implements NBTReference<LocalBlock> {
 		this.nbt = nbt;
 	}
 	
-	public RegistryKey<World> getWorld() {
+	public ResourceKey<Level> getWorld() {
 		return world;
 	}
 	public BlockPos getPos() {
@@ -92,11 +92,11 @@ public class BlockReference implements NBTReference<LocalBlock> {
 		return MVRegistry.BLOCK.getId(block);
 	}
 	@Override
-	public NbtCompound getNBT() {
+	public CompoundTag getNBT() {
 		return nbt;
 	}
 	@Override
-	public void saveNBT(Identifier id, NbtCompound toSave, Runnable onFinished) {
+	public void saveNBT(Identifier id, CompoundTag toSave, Runnable onFinished) {
 		this.block = MVRegistry.BLOCK.get(id);
 		this.nbt = toSave;
 		MVClientNetworking.send(new SetBlockC2SPacket(world, pos, id, state.copy(), toSave.copy(),
@@ -117,8 +117,8 @@ public class BlockReference implements NBTReference<LocalBlock> {
 				ConfigScreen.isRecreateBlocksAndEntities(), ConfigScreen.isTriggerBlockUpdates()));
 		onFinished.run();
 	}
-	public void saveState(BlockStateProperties state, Text msg) {
-		saveState(state, () -> MainUtil.client.player.sendMessage(msg, false));
+	public void saveState(BlockStateProperties state, Component msg) {
+		saveState(state, () -> MainUtil.client.player.sendSystemMessage(msg));
 	}
 	public void saveState(BlockStateProperties state) {
 		saveState(state, () -> {});

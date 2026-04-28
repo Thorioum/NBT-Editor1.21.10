@@ -11,26 +11,26 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 
-import net.minecraft.text.MutableText;
-import net.minecraft.text.OrderedText;
-import net.minecraft.text.StringVisitable;
-import net.minecraft.text.Style;
-import net.minecraft.text.Text;
-import net.minecraft.text.TextContent;
-import net.minecraft.util.Formatting;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.network.chat.FormattedText;
+import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.ComponentContents;
+import net.minecraft.ChatFormatting;
 
 /**
  * A wrapper for MutableText, since it is changed from an interface (1.18) to a class (1.19)
  */
-public class EditableText implements Text {
+public class EditableText implements Component {
 	
-	private MutableText value;
+	private MutableComponent value;
 	
-	public EditableText(MutableText value) {
+	public EditableText(MutableComponent value) {
 		this.value = value;
 	}
 	
-	public MutableText getInternalValue() {
+	public MutableComponent getInternalValue() {
 		return value;
 	}
 	
@@ -38,8 +38,8 @@ public class EditableText implements Text {
 	@SuppressWarnings("unchecked")
 	private <R> R call(boolean mutable, String method, Supplier<MethodType> type, Object... args) {
 		try {
-			Object output = methodCache.get(method, () -> Reflection.getMethod(mutable ? MutableText.class : Text.class, method, type.get())).invoke(value, args);
-			if (output instanceof MutableText && mutable) {
+			Object output = methodCache.get(method, () -> Reflection.getMethod(mutable ? MutableComponent.class : Component.class, method, type.get())).invoke(value, args);
+			if (output instanceof MutableComponent && mutable) {
 				if (output == value)
 					output = this;
 				else
@@ -53,23 +53,23 @@ public class EditableText implements Text {
 	
 	// Text
 	@Override
-	public OrderedText asOrderedText() {
-		return call(false, "method_30937", () -> MethodType.methodType(OrderedText.class));
+	public FormattedCharSequence getVisualOrderText() {
+		return call(false, "getVisualOrderText", () -> MethodType.methodType(FormattedCharSequence.class));
 	}
 	
 	@Override
-	public TextContent getContent() {
-		return call(false, "method_10851", () -> MethodType.methodType(TextContent.class));
+	public ComponentContents getContents() {
+		return call(false, "getContents", () -> MethodType.methodType(ComponentContents.class));
 	}
 	
 	@Override
-	public List<Text> getSiblings() {
-		return call(false, "method_10855", () -> MethodType.methodType(List.class));
+	public List<Component> getSiblings() {
+		return call(false, "getSiblings", () -> MethodType.methodType(List.class));
 	}
 	
 	@Override
 	public Style getStyle() {
-		return call(false, "method_10866", () -> MethodType.methodType(Style.class));
+		return call(false, "getStyle", () -> MethodType.methodType(Style.class));
 	}
 	
 	// 1.18 Text
@@ -77,45 +77,51 @@ public class EditableText implements Text {
 		return call(false, "method_10851", () -> MethodType.methodType(String.class));
 	}
 	
-	public MutableText method_27662() { // copy
-		return call(false, "method_27662", () -> MethodType.methodType(MutableText.class));
+	public MutableComponent method_27662() { // copy
+		return call(false, "method_27662", () -> MethodType.methodType(MutableComponent.class));
 	}
 	
-	public MutableText method_27661() { // shallowCopy
-		return call(false, "method_27661", () -> MethodType.methodType(MutableText.class));
+	public MutableComponent method_27661() { // shallowCopy
+		return call(false, "method_27661", () -> MethodType.methodType(MutableComponent.class));
 	}
 	
-	public <T> Optional<T> method_27660(StringVisitable.StyledVisitor<T> visitor, Style style) { // visitSelf
-		return call(false, "method_27660", () -> MethodType.methodType(Optional.class, StringVisitable.StyledVisitor.class, Style.class), visitor, style);
+	public <T> Optional<T> method_27660(FormattedText.StyledContentConsumer<T> visitor, Style style) { // visitSelf
+		return call(false, "method_27660", () -> MethodType.methodType(Optional.class, FormattedText.StyledContentConsumer.class, Style.class), visitor, style);
 	}
 	
-	public <T> Optional<T> method_27659(StringVisitable.Visitor<T> visitor) { // visitSelf
-		return call(false, "method_27659", () -> MethodType.methodType(Optional.class, StringVisitable.Visitor.class), visitor);
+	public <T> Optional<T> method_27659(FormattedText.ContentConsumer<T> visitor) { // visitSelf
+		return call(false, "method_27659", () -> MethodType.methodType(Optional.class, FormattedText.ContentConsumer.class), visitor);
 	}
 	
 	// Mutable Text
 	public EditableText setStyle(Style style) {
-		return call(true, "method_10862", () -> MethodType.methodType(MutableText.class, Style.class), style);
+		value.setStyle(style);
+		return this;
 	}
 	
 	public EditableText append(String text) {
-		return call(true, "method_27693", () -> MethodType.methodType(MutableText.class, String.class), text);
+		value.append(text);
+		return this;
 	}
 	
-	public EditableText append(Text text) {
-		return call(true, "method_10852", () -> MethodType.methodType(MutableText.class, Text.class), text);
+	public EditableText append(Component text) {
+		value.append(text);
+		return this;
 	}
 	
 	public EditableText styled(UnaryOperator<Style> styleUpdater) {
-		return call(true, "method_27694", () -> MethodType.methodType(MutableText.class, UnaryOperator.class), styleUpdater);
+		value.withStyle(styleUpdater);
+		return this;
 	}
 	
 	public EditableText fillStyle(Style styleOverride) {
-		return call(true, "method_27696", () -> MethodType.methodType(MutableText.class, Style.class), styleOverride);
+		value.withStyle(styleOverride);
+		return this;
 	}
 	
-	public EditableText formatted(Formatting... formattings) {
-		return call(true, "method_27695", () -> MethodType.methodType(MutableText.class, Formatting[].class), (Object) formattings);
+	public EditableText formatted(ChatFormatting... formattings) {
+		value.withStyle(formattings);
+		return this;
 	}
 	
 	// Other

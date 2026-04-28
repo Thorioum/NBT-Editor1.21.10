@@ -23,11 +23,11 @@ import com.luneruniverse.minecraft.mod.nbteditor.server.NBTEditorServer;
 import com.luneruniverse.minecraft.mod.nbteditor.server.ServerMVMisc;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.ingame.CreativeInventoryScreen;
-import net.minecraft.client.gui.screen.ingame.InventoryScreen;
-import net.minecraft.client.network.ClientPlayNetworkHandler;
-import net.minecraft.world.GameMode;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+import net.minecraft.client.multiplayer.ClientPacketListener;
+import net.minecraft.world.level.GameType;
 
 public class NBTEditorServerConn implements MVClientNetworking.PlayNetworkStateEvents.Start, MVClientNetworking.PlayNetworkStateEvents.Stop {
 	
@@ -64,16 +64,16 @@ public class NBTEditorServerConn implements MVClientNetworking.PlayNetworkStateE
 	public boolean isEditingExpanded() {
 		if (status != Status.BOTH)
 			return false;
-		GameMode gameMode = MainUtil.client.interactionManager.getCurrentGameMode();
-		return (gameMode.isCreative() || gameMode.isSurvivalLike()) && ServerMVMisc.hasPermissionLevel(MainUtil.client.player, 2);
+		GameType gameMode = MainUtil.client.gameMode.getPlayerMode();
+		return (gameMode.isCreative() || gameMode.isSurvival()) && ServerMVMisc.hasPermissionLevel(MainUtil.client.player, 2);
 	}
 	public boolean isEditingAllowed() {
-		return MainUtil.client.interactionManager.getCurrentGameMode().isCreative() || isEditingExpanded();
+		return MainUtil.client.gameMode.getPlayerMode().isCreative() || isEditingExpanded();
 	}
 	
 	public boolean isScreenEditable() {
-		Screen screen = MainUtil.client.currentScreen;
-		return screen instanceof CreativeInventoryScreen ||
+		Screen screen = MainUtil.client.screen;
+		return screen instanceof CreativeModeInventoryScreen ||
 				screen instanceof ClientChestScreen ||
 				screen instanceof ContainerScreen ||
 				isEditingExpanded() && (screen instanceof InventoryScreen || containerScreen);
@@ -108,7 +108,7 @@ public class NBTEditorServerConn implements MVClientNetworking.PlayNetworkStateE
 	}
 	
 	@Override
-	public void onPlayStart(ClientPlayNetworkHandler networkHandler) {
+	public void onPlayStart(ClientPacketListener networkHandler) {
 		status = Status.CLIENT_ONLY;
 	}
 	

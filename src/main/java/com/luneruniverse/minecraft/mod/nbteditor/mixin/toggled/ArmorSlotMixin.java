@@ -1,5 +1,6 @@
 package com.luneruniverse.minecraft.mod.nbteditor.mixin.toggled;
 
+import net.minecraft.world.entity.animal.equine.AbstractHorse;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -9,29 +10,28 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import com.luneruniverse.minecraft.mod.nbteditor.server.ServerMixinLink;
 
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.passive.AbstractHorseEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.screen.slot.Slot;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.inventory.Slot;
 
-@Mixin(targets = "net.minecraft.screen.slot.ArmorSlot")
+@Mixin(targets = "net.minecraft.world.inventory.ArmorSlot")
 public class ArmorSlotMixin {
 	@Shadow
-	private @Final LivingEntity entity;
+	private @Final LivingEntity owner;
 	
-	@Inject(method = "canInsert", at = @At("HEAD"), cancellable = true)
+	@Inject(method = "mayPlace", at = @At("HEAD"), cancellable = true)
 	private void canInsert(ItemStack stack, CallbackInfoReturnable<Boolean> info) {
-		if (entity instanceof PlayerEntity)
+		if (owner instanceof Player)
 			ServerMixinLink.slotCanInsertOrTake((Slot) (Object) this, info, true);
-		else if (entity instanceof AbstractHorseEntity)
+		else if (owner instanceof AbstractHorse)
 			ServerMixinLink.slotCanInsertOrTake((Slot) (Object) this, info, false);
 	}
-	@Inject(method = "canTakeItems", at = @At("HEAD"), cancellable = true)
-	private void canTakeItems(PlayerEntity player, CallbackInfoReturnable<Boolean> info) {
-		if (entity instanceof PlayerEntity)
+	@Inject(method = "mayPickup", at = @At("HEAD"), cancellable = true)
+	private void canTakeItems(Player player, CallbackInfoReturnable<Boolean> info) {
+		if (owner instanceof Player)
 			ServerMixinLink.slotCanInsertOrTake((Slot) (Object) this, info, true);
-		else if (entity instanceof AbstractHorseEntity)
+		else if (owner instanceof AbstractHorse)
 			ServerMixinLink.slotCanInsertOrTake((Slot) (Object) this, info, false);
 	}
 }

@@ -7,14 +7,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import com.luneruniverse.minecraft.mod.nbteditor.screens.ConfigScreen;
 
-import net.minecraft.enchantment.Enchantment;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.text.Text;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.core.Holder;
+import net.minecraft.network.chat.Component;
 
 @Mixin(Enchantment.class)
 public class EnchantmentMixin {
-	@Inject(method = "getName(Lnet/minecraft/registry/entry/RegistryEntry;I)Lnet/minecraft/text/Text;", at = @At("HEAD"), cancellable = true)
-	private static void getName(RegistryEntry<Enchantment> enchantment, int level, CallbackInfoReturnable<Text> info) {
+	@Inject(method = "getFullname(Lnet/minecraft/core/Holder;I)Lnet/minecraft/network/chat/Component;", at = @At("HEAD"), cancellable = true)
+	private static void getName(Holder<Enchantment> enchantment, int level, CallbackInfoReturnable<Component> info) {
 		info.setReturnValue(ConfigScreen.getEnchantNameWithMax(enchantment.value(), level));
 	}
 }

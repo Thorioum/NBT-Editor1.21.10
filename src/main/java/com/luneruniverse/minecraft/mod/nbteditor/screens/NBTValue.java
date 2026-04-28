@@ -1,5 +1,6 @@
 package com.luneruniverse.minecraft.mod.nbteditor.screens;
 
+import java.util.Optional;
 import java.util.function.Consumer;
 
 import com.luneruniverse.minecraft.mod.nbteditor.localnbt.LocalItem;
@@ -17,12 +18,13 @@ import com.luneruniverse.minecraft.mod.nbteditor.util.StringJsonWriterQuoted;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.nbt.AbstractNbtList;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.input.MouseButtonEvent;
+import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.nbt.CollectionTag;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.ItemStack;
 import org.joml.Matrix3x2fStack;
 
 public class NBTValue extends List2D.List2DValue {
@@ -44,43 +46,43 @@ public class NBTValue extends List2D.List2DValue {
 	
 	private final NBTEditorScreen<?> screen;
 	private final String key;
-	private NbtElement value;
-	private AbstractNbtList parentList;
+	private Tag value;
+	private CollectionTag parentList;
 	
 	private boolean selected;
 	private boolean unsafe;
 	private boolean invalidComponent;
 	
-	public NBTValue(NBTEditorScreen<?> screen, String key, NbtElement value, AbstractNbtList parentList) {
+	public NBTValue(NBTEditorScreen<?> screen, String key, Tag value, CollectionTag parentList) {
 		this.screen = screen;
 		this.key = key;
 		this.value = value;
 		this.parentList = parentList;
 	}
-	public NBTValue(NBTEditorScreen<?> screen, String key, NbtElement value) {
+	public NBTValue(NBTEditorScreen<?> screen, String key, Tag value) {
 		this(screen, key, value, null);
 	}
 	
 	@Override
-	public void render(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
+	public void extractRenderState(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
 		Identifier icon;
 		if (key == null) {
 			icon = BACK;
 		} else {
-			icon = switch (value.getType()) {
-				case NbtElement.BYTE_TYPE -> BYTE;
-				case NbtElement.SHORT_TYPE -> SHORT;
-				case NbtElement.INT_TYPE -> INT;
-				case NbtElement.LONG_TYPE -> LONG;
-				case NbtElement.FLOAT_TYPE -> FLOAT;
-				case NbtElement.DOUBLE_TYPE -> DOUBLE;
+			icon = switch (value.getId()) {
+				case Tag.TAG_BYTE -> BYTE;
+				case Tag.TAG_SHORT -> SHORT;
+				case Tag.TAG_INT -> INT;
+				case Tag.TAG_LONG -> LONG;
+				case Tag.TAG_FLOAT -> FLOAT;
+				case Tag.TAG_DOUBLE -> DOUBLE;
 				case MVNbtCompoundParent.NUMBER_TYPE -> NUMBER;
-				case NbtElement.STRING_TYPE -> STRING;
-				case NbtElement.LIST_TYPE -> LIST;
-				case NbtElement.BYTE_ARRAY_TYPE -> BYTE_ARRAY;
-				case NbtElement.INT_ARRAY_TYPE -> INT_ARRAY;
-				case NbtElement.LONG_ARRAY_TYPE -> LONG_ARRAY;
-				case NbtElement.COMPOUND_TYPE -> COMPOUND;
+				case Tag.TAG_STRING -> STRING;
+				case Tag.TAG_LIST -> LIST;
+				case Tag.TAG_BYTE_ARRAY -> BYTE_ARRAY;
+				case Tag.TAG_INT_ARRAY -> INT_ARRAY;
+				case Tag.TAG_LONG_ARRAY -> LONG_ARRAY;
+				case Tag.TAG_COMPOUND -> COMPOUND;
 				default -> null;
 			};
 		}
@@ -89,8 +91,23 @@ public class NBTValue extends List2D.List2DValue {
 		
 		int color = -1;
 		String tooltip = null;
+
+		byte heldType = (byte) 0;
+		for (Tag element : parentList) {
+			if (heldType == 0)
+				heldType = element.getId();
+			else if (heldType != element.getId()){}
+		}
+
+		byte ht = (byte) 0;
+		for (Tag element : parentList) {
+			if (ht == 0)
+				ht = element.getId();
+			else if (ht != element.getId()){}
+		}
+
 		if (unsafe && selected || parentList != null &&
-				!MVNbtCompoundParent.NBT_CODE_REFACTORED && parentList.nbte$getHeldType().get() != value.getType()) {
+				!MVNbtCompoundParent.NBT_CODE_REFACTORED && ht != value.getId()) {
 			color = 0xFFFFAA33;
 			tooltip = "nbteditor.nbt.marker.unsafe";
 		} else if (invalidComponent) {
@@ -120,7 +137,7 @@ public class NBTValue extends List2D.List2DValue {
 	}
 	
 	@Override
-	public boolean mouseClicked(Click click, boolean d) {
+	public boolean mouseClicked(MouseButtonEvent click, boolean d) {
 		if (isHovering((int) click.x(), (int) click.y())) {
 			if (key == null) {
 				screen.selectNbt(null, true);
@@ -141,7 +158,7 @@ public class NBTValue extends List2D.List2DValue {
 		return isInsideList() && mouseX >= 0 && mouseY >= 0 && mouseX <= 32 && mouseY <= 32;
 	}
 	
-	public void valueChanged(String str, Consumer<NbtElement> onChange) {
+	public void valueChanged(String str, Consumer<Tag> onChange) {
 		try {
 			value = MixinLink.parseSpecialElement(new StringReader(str));
 			onChange.accept(value);
@@ -172,7 +189,7 @@ public class NBTValue extends List2D.List2DValue {
 		if (!NBTManagers.COMPONENTS_EXIST)
 			return;
 		if (localNBT instanceof LocalItem localItem) {
-			NbtCompound nbtOutput = localItem.getReadableItem().nbte$getNbt();
+			CompoundTag nbtOutput = NBTManagers.ITEM.getNbt(localItem.getReadableItem());
 			if (component == null)
 				component = this.key;
 			this.invalidComponent = (nbtOutput == null || !nbtOutput.contains(MainUtil.addNamespace(component)));

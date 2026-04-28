@@ -23,22 +23,25 @@ import com.luneruniverse.minecraft.mod.nbteditor.server.ServerMVMisc;
 import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.ItemTagReferences;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 
-import net.minecraft.block.Block;
-import net.minecraft.block.ShulkerBoxBlock;
-import net.minecraft.block.entity.BlockEntityType;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.mob.MobEntity;
-import net.minecraft.entity.vehicle.ChestBoatEntity;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.BoatItem;
-import net.minecraft.item.BundleItem;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.item.SpawnEggItem;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.util.Identifier;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.entity.vehicle.boat.ChestBoat;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.ShulkerBoxBlock;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.item.component.TypedEntityData;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.BoatItem;
+import net.minecraft.world.item.BundleItem;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.SpawnEggItem;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
 
 public class ContainerIOs {
 	
@@ -84,7 +87,6 @@ public class ContainerIOs {
 			entityId -> ItemEntityContainerIO.forKeys(entityId, "Item");
 	private static final ContainerIO<ItemStack> BUNDLE_IO = Version.<ContainerIO<ItemStack>>newSwitch()
 			.range("1.20.5", null, () -> new BundleContentsComponentContainerIO(27))
-			.range(null, "1.20.4", () -> ContainerIO.forItemStack(new OrderNbtListContainerIO(27).forNbtCompoundItems()))
 			.get();
 	private static final ItemBlockContainerIO CHISELED_BOOKSHELF_IO = Version.<ItemBlockContainerIO>newSwitch()
 			.range("1.20.0", null, () -> BlockStateUpdatingContainerIO.forItemBlock(
@@ -108,16 +110,16 @@ public class ContainerIOs {
 			.get();
 	private static final ContainerIO<ItemStack> SPAWN_EGG_IO = new DelegateContainerIO<>(
 			(item, entity) -> get(entity),
-			item -> new LocalEntity(MVMisc.getEntityType(item), ItemTagReferences.ENTITY_DATA.get(item)),
-			(item, entity) -> ItemTagReferences.ENTITY_DATA.set(item, MainUtil.fillId(entity.getNBT(), entity.getId().toString())));
+			item -> new LocalEntity(MVMisc.getEntityType(item), ItemTagReferences.ENTITY_DATA.get(item).getUnsafe()),
+			(item, entity) -> ItemTagReferences.ENTITY_DATA.set(item, TypedEntityData.of(BuiltInRegistries.ENTITY_TYPE.getValue(entity.getId()),MainUtil.fillId(entity.getNBT(), entity.getId().toString()))));
 	private static final Function<EntityType<?>, ItemEntityContainerIO> EQUIPMENT_IO =
-			entityId -> ItemEntityContainerIO.forEntityTagIO(Version.<ContainerIO<NbtCompound>>newSwitch()
+			entityId -> ItemEntityContainerIO.forEntityTagIO(Version.<ContainerIO<CompoundTag>>newSwitch()
 					.range("1.20.5", null, () -> new EquipmentContainerIO(false).forNbtCompoundEquipment())
 					.range(null, "1.20.4", ArmorHandsContainerIO::new)
 					.get(),
 					entityId);
 	private static final ContainerIO<LocalEntity> HORSE_IO = ContainerIO.forLocalNBT(
-			Version.<ContainerIO<NbtCompound>>newSwitch()
+			Version.<ContainerIO<CompoundTag>>newSwitch()
 					.range("1.21.5", null, () -> new EquipmentContainerIO(false).forNbtCompoundEquipment())
 					.range("1.20.5", "1.21.4", () -> new ConcatContainerIO<>(
 							new ArmorHandsContainerIO(), new KeysContainerIO(false, "SaddleItem", "body_armor_item")))
@@ -125,20 +127,20 @@ public class ContainerIOs {
 							new ArmorHandsContainerIO(), new KeysContainerIO(false, "SaddleItem", "ArmorItem")))
 					.get());
 	private static final ContainerIO<LocalEntity> BASIC_HORSE_IO = ContainerIO.forLocalNBT(
-			Version.<ContainerIO<NbtCompound>>newSwitch()
+			Version.<ContainerIO<CompoundTag>>newSwitch()
 					.range("1.21.5", null, () -> new EquipmentContainerIO(false).forNbtCompoundEquipment())
 					.range(null, "1.21.4", () -> new ConcatContainerIO<>(
 							new ArmorHandsContainerIO(), new KeysContainerIO(false, "SaddleItem")))
 					.get());
 	private static final ContainerIO<LocalEntity> DONKEY_IO = ContainerIO.forLocalNBT(
-			Version.<ContainerIO<NbtCompound>>newSwitch()
+			Version.<ContainerIO<CompoundTag>>newSwitch()
 					.range("1.21.5", null, () -> new ConcatContainerIO<>(
 							new EquipmentContainerIO(false).forNbtCompoundEquipment(), new DonkeyChestContainerIO(false)))
 					.range(null, "1.21.4", () -> new ConcatContainerIO<>(
 							new ArmorHandsContainerIO(), new KeysContainerIO(false, "SaddleItem"), new DonkeyChestContainerIO(false)))
 					.get());
 	private static final ContainerIO<LocalEntity> LLAMA_IO = ContainerIO.forLocalNBT(
-			Version.<ContainerIO<NbtCompound>>newSwitch()
+			Version.<ContainerIO<CompoundTag>>newSwitch()
 					.range("1.21.5", null, () -> new ConcatContainerIO<>(
 							new EquipmentContainerIO(true).forNbtCompoundEquipment(), new DonkeyChestContainerIO(true)))
 					.range("1.20.5", "1.21.4", () -> new ConcatContainerIO<>(
@@ -245,21 +247,8 @@ public class ContainerIOs {
 				.range("1.21.2", null, () -> {
 					for (Item item : MVRegistry.ITEM) {
 						if (item instanceof BoatItem boat)
-							boatItems.put(boat.boatEntityType, boat);
+							boatItems.put(boat.entityType, boat);
 					}
-				})
-				.range("1.20.3", "1.21.1", () -> {
-					EntityType<?> chestBoat = Reflection.getField(EntityType.class, "field_38096", "Lnet/minecraft/class_1299;").get(null);
-					ContainerIO<ItemStack> io = CHEST_BOAT_IO.apply(chestBoat).item();
-					registerItemIO(Items.OAK_CHEST_BOAT, io);
-					registerItemIO(Items.SPRUCE_CHEST_BOAT, io);
-					registerItemIO(Items.BIRCH_CHEST_BOAT, io);
-					registerItemIO(Items.JUNGLE_CHEST_BOAT, io);
-					registerItemIO(Items.ACACIA_CHEST_BOAT, io);
-					registerItemIO(Items.CHERRY_CHEST_BOAT, io);
-					registerItemIO(Items.DARK_OAK_CHEST_BOAT, io);
-					registerItemIO(Items.MANGROVE_CHEST_BOAT, io);
-					registerItemIO(Items.BAMBOO_CHEST_RAFT, io);
 				})
 				.range(null, "1.20.2", () -> {})
 				.run();
@@ -271,12 +260,12 @@ public class ContainerIOs {
 			for (EntityType<?> entityType : MVRegistry.ENTITY_TYPE) {
 				if (ENTITY_IO.containsKey(entityType))
 					continue;
-				Entity entity = ServerMVMisc.createEntity(entityType, MainUtil.client.world);
-				if (entity instanceof MobEntity)
+				Entity entity = ServerMVMisc.createEntity(entityType, MainUtil.client.level);
+				if (entity instanceof Mob)
 					registerEntityIO(entityType, EQUIPMENT_IO.apply(entityType).entity());
 				Version.newSwitch()
 						.range("1.19.0", null, () -> {
-							if (entity instanceof ChestBoatEntity) {
+							if (entity instanceof ChestBoat) {
 								registerEntityIO(entityType, CHEST_BOAT_IO.apply(entityType).entity());
 								BoatItem item = boatItems.get(entityType);
 								if (item != null)
@@ -380,7 +369,7 @@ public class ContainerIOs {
 		}
 		
 		ItemStack[] sections = new ItemStack[maxSlots];
-		Arrays.fill(sections,ItemStack.EMPTY);
+		Arrays.fill(sections, ItemStack.EMPTY);
 
 		int sectionSize = maxSlots;
 		while (contents.size() / sectionSize > maxSlots)
@@ -391,7 +380,7 @@ public class ContainerIOs {
 			
 			ItemStack section = subContainers.get();
 			String subPath = (path == null ? i + "" : path + "." + i);
-			section.nbte$setCustomName(
+			section.set(DataComponents.CUSTOM_NAME,
 					TextInst.of(TextInst.translatable("nbteditor.hdb.section").getString() + ": " + subPath));
 			writeRecursively(new LocalItemStack(section), subContainers,
 					contents.subList(i * sectionSize, Math.min(contents.size(), (i + 1) * sectionSize)), subPath);

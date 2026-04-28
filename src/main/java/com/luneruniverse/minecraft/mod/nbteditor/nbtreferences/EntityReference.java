@@ -13,15 +13,15 @@ import com.luneruniverse.minecraft.mod.nbteditor.packets.SetEntityC2SPacket;
 import com.luneruniverse.minecraft.mod.nbteditor.packets.ViewEntityS2CPacket;
 import com.luneruniverse.minecraft.mod.nbteditor.screens.ConfigScreen;
 
-import net.minecraft.entity.EntityType;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.util.Identifier;
-import net.minecraft.world.World;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.level.Level;
 
 public class EntityReference implements NBTReference<LocalEntity> {
 	
-	public static CompletableFuture<Optional<EntityReference>> getEntity(RegistryKey<World> world, UUID uuid) {
+	public static CompletableFuture<Optional<EntityReference>> getEntity(ResourceKey<Level> world, UUID uuid) {
 		return NBTEditorClient.SERVER_CONN
 				.sendRequest(requestId -> new GetEntityC2SPacket(requestId, world, uuid), ViewEntityS2CPacket.class)
 				.thenApply(optional -> optional.filter(ViewEntityS2CPacket::foundEntity)
@@ -29,19 +29,19 @@ public class EntityReference implements NBTReference<LocalEntity> {
 								MVRegistry.ENTITY_TYPE.get(packet.getId()), packet.getNbt())));
 	}
 	
-	private final RegistryKey<World> world;
+	private final ResourceKey<Level> world;
 	private final UUID uuid;
 	private EntityType<?> entityType;
-	private NbtCompound nbt;
+	private CompoundTag nbt;
 	
-	public EntityReference(RegistryKey<World> world, UUID uuid, EntityType<?> entityType, NbtCompound nbt) {
+	public EntityReference(ResourceKey<Level> world, UUID uuid, EntityType<?> entityType, CompoundTag nbt) {
 		this.world = world;
 		this.uuid = uuid;
 		this.entityType = entityType;
 		this.nbt = nbt;
 	}
 	
-	public RegistryKey<World> getWorld() {
+	public ResourceKey<Level> getWorld() {
 		return world;
 	}
 	public UUID getUUID() {
@@ -60,14 +60,14 @@ public class EntityReference implements NBTReference<LocalEntity> {
 	
 	@Override
 	public Identifier getId() {
-		return EntityType.getId(entityType);
+		return EntityType.getKey(entityType);
 	}
 	@Override
-	public NbtCompound getNBT() {
+	public CompoundTag getNBT() {
 		return nbt;
 	}
 	@Override
-	public void saveNBT(Identifier id, NbtCompound toSave, Runnable onFinished) {
+	public void saveNBT(Identifier id, CompoundTag toSave, Runnable onFinished) {
 		this.entityType = MVRegistry.ENTITY_TYPE.get(id);
 		this.nbt = toSave;
 		MVClientNetworking.send(new SetEntityC2SPacket(world, uuid, id, toSave.copy(),

@@ -1,42 +1,45 @@
 package com.luneruniverse.minecraft.mod.nbteditor.screens;
 
+import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVDrawableHelper;
 import com.luneruniverse.minecraft.mod.nbteditor.screens.widgets.InitializableOverlay;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.gui.Drawable;
-import net.minecraft.client.gui.Element;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.input.CharInput;
-import net.minecraft.client.input.KeyInput;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.text.Text;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.gui.components.Renderable;
+import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
+import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.network.chat.Component;
 import org.joml.Matrix3x2fStack;
+
+import java.awt.*;
 
 public class OverlaySupportingScreen extends TickableSupportingScreen {
 	
-	public static <T extends Drawable & Element> T setOverlayStatic(T overlay, double z) {
-		return ((OverlaySupportingScreen) MainUtil.client.currentScreen).setOverlay(overlay, z);
+	public static <T extends Renderable & GuiEventListener> T setOverlayStatic(T overlay, double z) {
+		return ((OverlaySupportingScreen) MainUtil.client.screen).setOverlay(overlay, z);
 	}
-	public static <T extends Drawable & Element> T setOverlayStatic(T overlay) {
+	public static <T extends Renderable & GuiEventListener> T setOverlayStatic(T overlay) {
 		return setOverlayStatic(overlay, 0);
 	}
 	public static <T extends Screen> T setOverlayScreenStatic(T overlay, double z) {
-		return ((OverlaySupportingScreen) MainUtil.client.currentScreen).setOverlayScreen(overlay, z);
+		return ((OverlaySupportingScreen) MainUtil.client.screen).setOverlayScreen(overlay, z);
 	}
 	public static <T extends Screen> T setOverlayScreenStatic(T overlay) {
 		return setOverlayScreenStatic(overlay, 0);
 	}
 	
-	private Element overlay; // extends Drawable & Element
+	private GuiEventListener overlay; // extends Drawable & Element
 	private Screen overlayScreen;
 	private double overlayZ;
 	
-	protected OverlaySupportingScreen(Text title) {
+	protected OverlaySupportingScreen(Component title) {
 		super(title);
 	}
 	
-	public <T extends Drawable & Element> T setOverlay(T overlay, double z) {
+	public <T extends Renderable & GuiEventListener> T setOverlay(T overlay, double z) {
 		this.overlay = overlay;
 		this.overlayScreen = null;
 		this.overlayZ = z;
@@ -44,14 +47,14 @@ public class OverlaySupportingScreen extends TickableSupportingScreen {
 			initable.initUnchecked(this);
 		return overlay;
 	}
-	public <T extends Drawable & Element> T setOverlay(T overlay) {
+	public <T extends Renderable & GuiEventListener> T setOverlay(T overlay) {
 		return setOverlay(overlay, 0);
 	}
 	public <T extends Screen> T setOverlayScreen(T overlay, double z) {
 		this.overlay = overlay;
 		this.overlayScreen = overlay;
 		this.overlayZ = z;
-		overlay.init(client, width, height);
+		overlay.init(width, height);
 		if (overlay instanceof InitializableOverlay<?> initable)
 			initable.initUnchecked(this);
 		return overlay;
@@ -61,7 +64,7 @@ public class OverlaySupportingScreen extends TickableSupportingScreen {
 	}
 	
 	@SuppressWarnings("unchecked")
-	public <T extends Drawable & Element> T getOverlay() {
+	public <T extends Renderable & GuiEventListener> T getOverlay() {
 		return (T) overlay;
 	}
 	public Screen getOverlayScreen() {
@@ -74,7 +77,7 @@ public class OverlaySupportingScreen extends TickableSupportingScreen {
 	@Override
 	protected void init() {
 		if (overlayScreen != null)
-			overlayScreen.init(client, width, height);
+			overlayScreen.init(width, height);
 		if (overlay instanceof InitializableOverlay<?> initable)
 			initable.initUnchecked(this);
 	}
@@ -90,7 +93,9 @@ public class OverlaySupportingScreen extends TickableSupportingScreen {
 				matrices.pushMatrix();
 				matrices.translate(0.0f, 0.0f);
 			}
-			((Drawable) overlay).render(matrices, mouseX, mouseY, delta);
+			var c = MVDrawableHelper.getDrawContext(matrices);
+			c.fill(0,0,width,height,new Color(0,0,0,125).getRGB());
+			((Renderable) overlay).extractRenderState(c, mouseX, mouseY, delta);
 			if (translated)
 				matrices.popMatrix();
 		}
@@ -109,14 +114,14 @@ public class OverlaySupportingScreen extends TickableSupportingScreen {
 	}
 	
 	@Override
-	public boolean mouseClicked(Click click, boolean doubled) {
+	public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
 		if (overlay != null)
 			return overlay.mouseClicked(click, doubled);
 		return super.mouseClicked(click, doubled);
 	}
 	
 	@Override
-	public boolean mouseReleased(Click click) {
+	public boolean mouseReleased(MouseButtonEvent click) {
 		if (overlay != null)
 			return overlay.mouseReleased(click);
 		return super.mouseReleased(click);
@@ -131,7 +136,7 @@ public class OverlaySupportingScreen extends TickableSupportingScreen {
 	}
 	
 	@Override
-	public boolean mouseDragged(Click click, double deltaX, double deltaY) {
+	public boolean mouseDragged(MouseButtonEvent click, double deltaX, double deltaY) {
 		if (overlay != null)
 			return overlay.mouseDragged(click, deltaX, deltaY);
 		return super.mouseDragged(click, deltaX, deltaY);
@@ -145,21 +150,21 @@ public class OverlaySupportingScreen extends TickableSupportingScreen {
 	}
 	
 	@Override
-	public boolean keyPressed(KeyInput keyInput) {
+	public boolean keyPressed(KeyEvent keyInput) {
 		if (overlay != null)
 			return overlay.keyPressed(keyInput);
 		return super.keyPressed(keyInput);
 	}
 	
 	@Override
-	public boolean keyReleased(KeyInput keyInput) {
+	public boolean keyReleased(KeyEvent keyInput) {
 		if (overlay != null)
 			return overlay.keyReleased(keyInput);
 		return super.keyReleased(keyInput);
 	}
 	
 	@Override
-	public boolean charTyped(CharInput charInput) {
+	public boolean charTyped(CharacterEvent charInput) {
 		if (overlay != null)
 			return overlay.charTyped(charInput);
 		return super.charTyped(charInput);

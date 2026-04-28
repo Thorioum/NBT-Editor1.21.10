@@ -4,25 +4,26 @@ import com.luneruniverse.minecraft.mod.nbteditor.multiversion.IdentifierInst;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVRegistryKeys;
 import com.luneruniverse.minecraft.mod.nbteditor.util.BlockStateProperties;
 
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.network.PacketByteBuf;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.Identifier;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.Level;
 
 public class ViewBlockS2CPacket implements ResponsePacket {
 	
 	public static final Identifier ID = IdentifierInst.of("nbteditor", "view_block");
 	
 	private final int requestId;
-	private final RegistryKey<World> world;
+	private final ResourceKey<Level> world;
 	private final BlockPos pos;
 	private final Identifier id;
 	private final BlockStateProperties state;
-	private final NbtCompound nbt;
+	private final CompoundTag nbt;
 	
-	public ViewBlockS2CPacket(int requestId, RegistryKey<World> world, BlockPos pos, Identifier id, BlockStateProperties state, NbtCompound nbt) {
+	public ViewBlockS2CPacket(int requestId, ResourceKey<Level> world, BlockPos pos, Identifier id, BlockStateProperties state, CompoundTag nbt) {
 		if ((world == null) != (pos == null))
 			throw new IllegalArgumentException("world and pos have to be null together!");
 		if ((id == null) != (state == null) || (id == null) != (nbt == null))
@@ -35,10 +36,10 @@ public class ViewBlockS2CPacket implements ResponsePacket {
 		this.state = state;
 		this.nbt = nbt;
 	}
-	public ViewBlockS2CPacket(PacketByteBuf payload) {
+	public ViewBlockS2CPacket(FriendlyByteBuf payload) {
 		this.requestId = payload.readVarInt();
 		if (payload.readBoolean()) {
-			this.world = payload.readRegistryKey(MVRegistryKeys.WORLD);
+			this.world = payload.readResourceKey(Registries.DIMENSION);
 			this.pos = payload.readBlockPos();
 		} else {
 			this.world = null;
@@ -58,7 +59,7 @@ public class ViewBlockS2CPacket implements ResponsePacket {
 	public int getRequestId() {
 		return requestId;
 	}
-	public RegistryKey<World> getWorld() {
+	public ResourceKey<Level> getWorld() {
 		return world;
 	}
 	public BlockPos getPos() {
@@ -73,18 +74,18 @@ public class ViewBlockS2CPacket implements ResponsePacket {
 	public BlockStateProperties getState() {
 		return state;
 	}
-	public NbtCompound getNbt() {
+	public CompoundTag getNbt() {
 		return nbt;
 	}
 	
 	@Override
-	public void write(PacketByteBuf payload) {
+	public void write(FriendlyByteBuf payload) {
 		payload.writeVarInt(requestId);
 		if (world == null) {
 			payload.writeBoolean(false);
 		} else {
 			payload.writeBoolean(true);
-			payload.writeRegistryKey(world);
+			payload.writeResourceKey(world);
 			payload.writeBlockPos(pos);
 		}
 		if (id == null) {
@@ -93,7 +94,7 @@ public class ViewBlockS2CPacket implements ResponsePacket {
 			payload.writeBoolean(true);
 			payload.writeIdentifier(id);
 			state.writeToPayload(payload);
-			payload.writeNbtCompound(nbt);
+			payload.writeNbt(nbt);
 		}
 	}
 	

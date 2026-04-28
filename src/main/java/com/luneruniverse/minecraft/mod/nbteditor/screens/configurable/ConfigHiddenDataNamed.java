@@ -2,7 +2,7 @@ package com.luneruniverse.minecraft.mod.nbteditor.screens.configurable;
 
 import java.util.function.BiFunction;
 
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
 
 public class ConfigHiddenDataNamed<S extends ConfigPathNamed, D> extends ConfigHiddenData<S, D> implements ConfigPathNamed {
 	
@@ -11,22 +11,22 @@ public class ConfigHiddenDataNamed<S extends ConfigPathNamed, D> extends ConfigH
 	}
 	
 	@Override
-	public Text getName() {
+	public Component getName() {
 		return visible.getName();
 	}
 	
 	@Override
-	public void setNamePrefix(Text prefix) {
+	public void setNamePrefix(Component prefix) {
 		visible.setNamePrefix(prefix);
 	}
 	
 	@Override
-	public Text getNamePrefix() {
+	public Component getNamePrefix() {
 		return visible.getNamePrefix();
 	}
 	
 	@Override
-	public Text getFullName() {
+	public Component getFullName() {
 		return visible.getFullName();
 	}
 	

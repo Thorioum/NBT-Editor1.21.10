@@ -6,11 +6,11 @@
   "mixins": [
   ],
   "client": [
-    "CommandManagerMixin",
+    "CommandsMixin",
     "HelpCommandAccessor",
-    "client.ClientCommandSourceMixin",
-    "client.ClientPlayerEntityMixin",
-    "client.ClientPlayNetworkHandlerMixin",
+    "client.ClientSuggestionProviderMixin",
+    "client.LocalPlayerMixin",
+    "client.ClientPacketListenerMixin",
     "client.ChatScreenMixin"
   ],
   "injectors": {

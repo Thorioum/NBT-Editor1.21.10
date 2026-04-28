@@ -6,7 +6,7 @@ import java.util.function.Consumer;
 
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.TextInst;
 import com.luneruniverse.minecraft.mod.nbteditor.screens.widgets.NamedTextFieldWidget;
-import net.minecraft.client.gui.Click;
+import net.minecraft.client.input.MouseButtonEvent;
 
 public class ConfigValueNumber<T extends Number> extends NamedTextFieldWidget implements ConfigValue<T, ConfigValueNumber<T>> {
 	
@@ -33,8 +33,9 @@ public class ConfigValueNumber<T extends Number> extends NamedTextFieldWidget im
 		super(0, 0, 200, 20);
 		setMaxLength(Integer.MAX_VALUE);
 		name(TextInst.of(defaultValue + ""));
-		setText(value + "");
-		setTextPredicate(str -> {
+		setValue(value + "");
+		/*
+		setFilter(str -> {
 			if (str.isEmpty() || str.equals("-") || str.equals("+"))
 				return true;
 			try {
@@ -44,7 +45,7 @@ public class ConfigValueNumber<T extends Number> extends NamedTextFieldWidget im
 				return false;
 			}
 		});
-		
+		*/
 		this.defaultValue = defaultValue;
 		this.min = min;
 		this.max = max;
@@ -53,7 +54,7 @@ public class ConfigValueNumber<T extends Number> extends NamedTextFieldWidget im
 		if (onChanged != null)
 			this.onChanged.addAll(onChanged);
 		
-		super.setChangedListener(str -> {
+		super.setResponder(str -> {
 			boolean valid = isValueValid();
 			setValid(valid);
 			if (valid)
@@ -62,7 +63,7 @@ public class ConfigValueNumber<T extends Number> extends NamedTextFieldWidget im
 	}
 	
 	@Override
-	public boolean mouseClicked(Click click, boolean doubled) {
+	public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
 		boolean output = super.mouseClicked(click, doubled);
 		setMultiFocused(output);
 		return output;
@@ -75,12 +76,12 @@ public class ConfigValueNumber<T extends Number> extends NamedTextFieldWidget im
 	
 	@Override
 	public void setValue(T value) {
-		setText(value + "");
+		setValue(value + "");
 	}
 	@Override
-	public T getValue() {
+	public T getConfigValue() {
 		try {
-			return parser.parse(getText());
+			return parser.parse(super.getValue());
 		} catch (NumberFormatException e) {
 			setValue(defaultValue);
 			return defaultValue;
@@ -88,9 +89,9 @@ public class ConfigValueNumber<T extends Number> extends NamedTextFieldWidget im
 	}
 	@Override
 	public boolean isValueValid() {
-		if (getText().isEmpty() || getText().equals("-") || getText().equals("+"))
+		if (super.getValue().isEmpty() || getConfigValue().equals("-") || getConfigValue().equals("+"))
 			return false;
-		T value = getValue();
+		T value = getConfigValue();
 		return min.doubleValue() <= value.doubleValue() && value.doubleValue() <= max.doubleValue();
 	}
 	@Override
@@ -99,7 +100,7 @@ public class ConfigValueNumber<T extends Number> extends NamedTextFieldWidget im
 		return this;
 	}
 	@Override
-	public void setChangedListener(Consumer<String> changedListener) {
+	public void setResponder(Consumer<String> changedListener) {
 		throw new UnsupportedOperationException("Use addValueListener instead!");
 	}
 	
@@ -116,7 +117,7 @@ public class ConfigValueNumber<T extends Number> extends NamedTextFieldWidget im
 	
 	@Override
 	public ConfigValueNumber<T> clone(boolean defaults) {
-		return new ConfigValueNumber<>(defaults ? defaultValue : getValue(), defaultValue, min, max, parser, onChanged);
+		return new ConfigValueNumber<>(defaults ? defaultValue : getConfigValue(), defaultValue, min, max, parser, onChanged);
 	}
 	
 }

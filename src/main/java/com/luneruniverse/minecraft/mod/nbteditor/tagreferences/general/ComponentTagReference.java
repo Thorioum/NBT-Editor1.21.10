@@ -7,7 +7,8 @@ import java.util.function.Supplier;
 
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVComponentType;
 
-import net.minecraft.item.ItemStack;
+import net.minecraft.core.component.DataComponentType;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.util.Unit;
 
 public class ComponentTagReference<T, C> implements TagReference<T, ItemStack> {
@@ -49,7 +50,7 @@ public class ComponentTagReference<T, C> implements TagReference<T, ItemStack> {
 	
 	@Override
 	public T get(ItemStack object) {
-		C componentValue = object.get(component);
+		C componentValue = object.get((DataComponentType<C>)component.getInternalValue());
 		if (componentValue == null && defaultComponent != null)
 			componentValue = defaultComponent.get();
 		return getter.apply(componentValue);
@@ -58,13 +59,13 @@ public class ComponentTagReference<T, C> implements TagReference<T, ItemStack> {
 	@Override
 	public void set(ItemStack object, T value) {
 		if (value == null && !passNullValue) {
-			object.set(component, null);
+			object.set((DataComponentType<C>)component.getInternalValue(), null);
 			return;
 		}
-		C componentValue = object.get(component);
+		C componentValue = object.get((DataComponentType<C>)component.getInternalValue());
 		if (componentValue == null && defaultComponent != null)
 			componentValue = defaultComponent.get();
-		object.set(component, setter.apply(componentValue, value));
+		object.set((DataComponentType<C>)component.getInternalValue(), setter.apply(componentValue, value));
 	}
 	
 }

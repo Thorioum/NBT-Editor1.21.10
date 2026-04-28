@@ -24,36 +24,36 @@ import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.ItemTagReferences
 import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.specific.data.Enchants;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.Element;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.ingame.GenericContainerScreen;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.screen.slot.SlotActionType;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.ContainerScreen;
+import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.inventory.ContainerInput;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 
 import static com.luneruniverse.minecraft.mod.nbteditor.NBTEditor.hasControlDown;
 import static com.luneruniverse.minecraft.mod.nbteditor.NBTEditor.hasShiftDown;
 
-public class ClientHandledScreen extends GenericContainerScreen implements OldEventBehavior, IgnoreCloseScreenPacket {
+public class ClientHandledScreen extends ContainerScreen implements OldEventBehavior, IgnoreCloseScreenPacket {
 	
 	private static final Identifier TEXTURE = IdentifierInst.of("textures/gui/container/generic_54.png");
 	
 	public static boolean handleKeybind(int keyCode, Slot hoveredSlot, Runnable parent, Function<Slot, ItemReference> containerRef) {
 		if (hoveredSlot != null &&
-				(ConfigScreen.isAirEditable() || hoveredSlot.getStack() != null && !hoveredSlot.getStack().isEmpty())) {
+				(ConfigScreen.isAirEditable() || hoveredSlot.getItem() != null && !hoveredSlot.getItem().isEmpty())) {
 			ItemReference ref;
-			if (hoveredSlot.inventory == MainUtil.client.player.getInventory()) {
-				ref = new InventoryItemReference(hoveredSlot.getIndex());
+			if (hoveredSlot.container == MainUtil.client.player.getInventory()) {
+				ref = new InventoryItemReference(hoveredSlot.getContainerSlot());
 				if (parent != null)
 					((InventoryItemReference) ref).setParent(parent);
 			} else
 				ref = containerRef.apply(hoveredSlot);
-			return handleKeybind(keyCode, hoveredSlot.getStack(), ref);
+			return handleKeybind(keyCode, hoveredSlot.getItem(), ref);
 		}
 		return false;
 	}
@@ -71,7 +71,7 @@ public class ClientHandledScreen extends GenericContainerScreen implements OldEv
 		boolean notAir = item != null && !item.isEmpty();
 		if (hasControlDown()) {
 			if (notAir && ContainerIOs.isSupported(item))
-				ContainerScreen.show(ref);
+				com.luneruniverse.minecraft.mod.nbteditor.screens.containers.ContainerScreen.show(ref);
 		} else if (hasShiftDown()) {
 			if (notAir)
 				MainUtil.client.setScreen(new LocalFactoryScreen<>(ref));
@@ -83,14 +83,14 @@ public class ClientHandledScreen extends GenericContainerScreen implements OldEv
 	
 	private ServerInventoryManager serverInv;
 	
-	protected ClientHandledScreen(int rows, Text title) {
+	protected ClientHandledScreen(int rows, Component title) {
 		super(new ClientScreenHandler(rows), MainUtil.client.player.getInventory(), title);
-		((ClientScreenHandler) handler).setScreen(this);
-		handler.disableSyncing();
+		((ClientScreenHandler) menu).setScreen(this);
+		menu.suppressRemoteUpdates();
 	}
 	
 	protected void setSlotTextures(Identifier... textures) {
-		((ClientScreenHandler) handler).setSlotTextures(textures);
+		((ClientScreenHandler) menu).setSlotTextures(textures);
 	}
 	
 	public ServerInventoryManager getServerInventoryManager() {
@@ -104,14 +104,14 @@ public class ClientHandledScreen extends GenericContainerScreen implements OldEv
 	}
 	
 	protected void drawBackground(Matrix3x2fStack matrices, float delta, int mouseX, int mouseY) {
-		MVDrawableHelper.drawTexture(matrices, TEXTURE, x, y, 0, 0, backgroundWidth, handler.getRows() * 18 + 17);
-		MVDrawableHelper.drawTexture(matrices, TEXTURE, x, y + handler.getRows() * 18 + 17, 0, 126, backgroundWidth, 96);
+		MVDrawableHelper.drawTexture(matrices, TEXTURE, leftPos, topPos, 0, 0, imageWidth, menu.getRowCount() * 18 + 17);
+		MVDrawableHelper.drawTexture(matrices, TEXTURE, leftPos, topPos + menu.getRowCount() * 18 + 17, 0, 126, imageWidth, 96);
 		
 		if (showLogo())
 			MainUtil.renderLogo(matrices);
 	}
 	@Override
-	protected final void drawBackground(DrawContext context, float delta, int mouseX, int mouseY) {
+	public final void extractBackground(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
 		drawBackground(MVDrawableHelper.getMatrices(context), delta, mouseX, mouseY);
 	}
 	protected final void method_2389(Matrix3x2fStack matrices, float delta, int mouseX, int mouseY) {
@@ -122,29 +122,29 @@ public class ClientHandledScreen extends GenericContainerScreen implements OldEv
 	}
 	
 	protected void drawForeground(Matrix3x2fStack matrices, int mouseX, int mouseY) {
-		getLockedSlotsInfo().renderLockedHighlights(matrices, handler, true, false, true);
+		getLockedSlotsInfo().renderLockedHighlights(matrices, menu, true, false, true);
 		
-		MVDrawableHelper.drawTextWithoutShadow(matrices, textRenderer, getRenderedTitle(), titleX, titleY, 4210752);
-		MVDrawableHelper.drawTextWithoutShadow(matrices, textRenderer, playerInventoryTitle, playerInventoryTitleX, playerInventoryTitleY, 4210752);
+		MVDrawableHelper.drawTextWithoutShadow(matrices, font, getRenderedTitle(), titleLabelX, titleLabelY, 4210752);
+		MVDrawableHelper.drawTextWithoutShadow(matrices, font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, 4210752);
 	}
 	@Override
-	protected final void drawForeground(DrawContext context, int mouseX, int mouseY) {
+	protected final void extractLabels(GuiGraphicsExtractor context, int mouseX, int mouseY) {
 		drawForeground(MVDrawableHelper.getMatrices(context), mouseX, mouseY);
 	}
 	protected final void method_2388(Matrix3x2fStack matrices, int mouseX, int mouseY) {
 		drawForeground(matrices, mouseX, mouseY);
 	}
-	protected Text getRenderedTitle() {
+	protected Component getRenderedTitle() {
 		return title;
 	}
 	
-	public void setInitialFocus(Element element) {
+	public void setInitialFocus(GuiEventListener element) {
 		MVMisc.setInitialFocus(this, element, super::setInitialFocus);
 	}
 	@Override
 	protected void setInitialFocus() {}
 	
-	public boolean shouldPause() {
+	public boolean isPauseScreen() {
 		return false;
 	}
 	
@@ -154,15 +154,15 @@ public class ClientHandledScreen extends GenericContainerScreen implements OldEv
 		Version.newSwitch()
 				.range("1.17.1", null, () -> {})
 				.range(null, "1.17", () -> {
-					if (client.player.isAlive() && !client.player.isRemoved())
-						handledScreenTick();
+					if (minecraft.player.isAlive() && !minecraft.player.isRemoved())
+						containerTick();
 				})
 				.run();
 	}
 	@Override
-	protected void handledScreenTick() {}
+	protected void containerTick() {}
 	
-	public void close() {
+	public void onClose() {
 		NBTEditorClient.CURSOR_MANAGER.closeRoot();
 	}
 	@Override
@@ -173,48 +173,48 @@ public class ClientHandledScreen extends GenericContainerScreen implements OldEv
 	
 	
 	@Override
-	protected void onMouseClick(Slot slot, int slotId, int button, SlotActionType actionType) {
+	protected void slotClicked(Slot slot, int slotId, int button, ContainerInput actionType) {
 		if (slot != null) {
 			LockedSlotsInfo lockedSlotsInfo = getLockedSlotsInfo();
 			if (lockedSlotsInfo.isBlocked(slot, button, actionType, false)) {
-				if (lockedSlotsInfo.isCopyLockedItem() && slot.inventory != client.player.getInventory()) {
+				if (lockedSlotsInfo.isCopyLockedItem() && slot.container != minecraft.player.getInventory()) {
 					switch (actionType) {
 						case PICKUP, PICKUP_ALL -> {
-							ItemStack item = slot.getStack();
+							ItemStack item = slot.getItem();
 							if (item.isEmpty())
 								break;
-							if (!handler.getCursorStack().isEmpty() &&
-									!ItemStack.areItemsAndComponentsEqual(item, handler.getCursorStack())) {
-								GetLostItemCommand.loseItem(handler.getCursorStack());
-								handler.setCursorStack(ItemStack.EMPTY);
+							if (!menu.getCarried().isEmpty() &&
+									!ItemStack.isSameItemSameComponents(item, menu.getCarried())) {
+								GetLostItemCommand.loseItem(menu.getCarried());
+								menu.setCarried(ItemStack.EMPTY);
 							}
-							ItemStack cursor = handler.getCursorStack();
+							ItemStack cursor = menu.getCarried();
 							if (!cursor.isEmpty()) {
-								cursor.setCount(Math.min(cursor.getMaxCount(), cursor.getCount() + item.getCount()));
-								handler.setCursorStack(cursor);
+								cursor.setCount(Math.min(cursor.getMaxStackSize(), cursor.getCount() + item.getCount()));
+								menu.setCarried(cursor);
 							} else
-								handler.setCursorStack(item.copy());
+								menu.setCarried(item.copy());
 							serverInv.updateServer();
 						}
 						case CLONE -> {
-							ItemStack item = slot.getStack();
+							ItemStack item = slot.getItem();
 							if (item.isEmpty())
 								break;
-							if (!handler.getCursorStack().isEmpty())
+							if (!menu.getCarried().isEmpty())
 								break;
 							item = item.copy();
-							item.setCount(item.getMaxCount());
-							handler.setCursorStack(item);
+							item.setCount(item.getMaxStackSize());
+							menu.setCarried(item);
 							serverInv.updateServer();
 						}
 						case QUICK_MOVE -> {
-							ItemStack prevItem = slot.getStack().copy();
-							ClientScreenHandlerSlot.unlockDuring(() -> handler.onSlotClick(slot.id, button, actionType, MainUtil.client.player));
-							slot.setStackNoCallbacks(prevItem);
+							ItemStack prevItem = slot.getItem().copy();
+							ClientScreenHandlerSlot.unlockDuring(() -> menu.clicked(slot.index, button, actionType, MainUtil.client.player));
+							slot.set(prevItem);
 							serverInv.updateServer();
 						}
 						case THROW -> {
-							ItemStack item = slot.getStack();
+							ItemStack item = slot.getItem();
 							if (button == 0) {
 								item = item.copy();
 								item.setCount(1);
@@ -230,22 +230,22 @@ public class ClientHandledScreen extends GenericContainerScreen implements OldEv
 		}
 		
 		if (!(this instanceof CursorHistoryScreen))
-			GetLostItemCommand.addToHistory(handler.getCursorStack());
+			GetLostItemCommand.addToHistory(menu.getCarried());
 		
 		if (!(slot != null && allowEnchantmentCombine() && NBTEditor.hasControlDown() && tryCombineEnchantments(slot, actionType)))
-			handler.onSlotClick(slot == null ? slotId : slot.id, button, actionType, MainUtil.client.player);
+			menu.clicked(slot == null ? slotId : slot.index, button, actionType, MainUtil.client.player);
 		
 		if (!(this instanceof CursorHistoryScreen))
-			GetLostItemCommand.addToHistory(handler.getCursorStack());
+			GetLostItemCommand.addToHistory(menu.getCarried());
 		
 		serverInv.updateServer();
 		onChange();
 	}
 	
-	private boolean tryCombineEnchantments(Slot slot, SlotActionType actionType) {
-		if (actionType == SlotActionType.PICKUP && slot != null) {
-			ItemStack cursor = handler.getCursorStack();
-			ItemStack item = slot.getStack();
+	private boolean tryCombineEnchantments(Slot slot, ContainerInput actionType) {
+		if (actionType == ContainerInput.PICKUP && slot != null) {
+			ItemStack cursor = menu.getCarried();
+			ItemStack item = slot.getItem();
 			if (cursor == null || cursor.isEmpty() || item == null || item.isEmpty())
 				return false;
 			if (cursor.getItem() == Items.ENCHANTED_BOOK || item.getItem() == Items.ENCHANTED_BOOK) {
@@ -259,8 +259,8 @@ public class ClientHandledScreen extends GenericContainerScreen implements OldEv
 				enchants.addEnchants(ItemTagReferences.ENCHANTMENTS.get(cursor).getEnchants());
 				ItemTagReferences.ENCHANTMENTS.set(item, enchants);
 				
-				slot.setStackNoCallbacks(item);
-				handler.setCursorStack(ItemStack.EMPTY);
+				slot.set(item);
+				menu.setCarried(ItemStack.EMPTY);
 				return true;
 			}
 		}

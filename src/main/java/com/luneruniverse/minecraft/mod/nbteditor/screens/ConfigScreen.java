@@ -23,12 +23,7 @@ import com.luneruniverse.minecraft.mod.nbteditor.NBTEditorClient;
 import com.luneruniverse.minecraft.mod.nbteditor.clientchest.ClientChestHelper;
 import com.luneruniverse.minecraft.mod.nbteditor.clientchest.LargeClientChestPageCache;
 import com.luneruniverse.minecraft.mod.nbteditor.clientchest.SmallClientChestPageCache;
-import com.luneruniverse.minecraft.mod.nbteditor.multiversion.EditableText;
-import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVEnchantments;
-import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVMisc;
-import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVTooltip;
-import com.luneruniverse.minecraft.mod.nbteditor.multiversion.ScreenTexts;
-import com.luneruniverse.minecraft.mod.nbteditor.multiversion.TextInst;
+import com.luneruniverse.minecraft.mod.nbteditor.multiversion.*;
 import com.luneruniverse.minecraft.mod.nbteditor.screens.configurable.ConfigButton;
 import com.luneruniverse.minecraft.mod.nbteditor.screens.configurable.ConfigCategory;
 import com.luneruniverse.minecraft.mod.nbteditor.screens.configurable.ConfigItem;
@@ -41,10 +36,10 @@ import com.luneruniverse.minecraft.mod.nbteditor.screens.containers.ClientChestS
 import com.luneruniverse.minecraft.mod.nbteditor.screens.widgets.CreativeTabWidget;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.enchantment.Enchantment;
-import net.minecraft.text.Text;
+import net.minecraft.client.gui.screens.Screen;
+import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.network.chat.Component;
 import org.joml.Matrix3x2fStack;
 
 public class ConfigScreen extends TickableSupportingScreen {
@@ -55,7 +50,7 @@ public class ConfigScreen extends TickableSupportingScreen {
 		NOT_MAXED("nbteditor.config.enchant_level_max.not_max", (level, maxLevel) -> level < maxLevel),
 		ALWAYS("nbteditor.config.enchant_level_max.always", (level, maxLevel) -> true);
 		
-		private final Text label;
+		private final Component label;
 		private final BiFunction<Integer, Integer, Boolean> showMax;
 		
 		private EnchantLevelMax(String key, BiFunction<Integer, Integer, Boolean> showMax) {
@@ -76,7 +71,7 @@ public class ConfigScreen extends TickableSupportingScreen {
 		}
 		@Override
 		public MVTooltip getTooltip() {
-			List<Text> output = new ArrayList<>();
+			List<Component> output = new ArrayList<>();
 			for (int lvl = 1; lvl <= 3; lvl++)
 				output.add(getEnchantNameWithMax(MVEnchantments.FIRE_ASPECT, lvl, this));
 			return new MVTooltip(output);
@@ -88,8 +83,8 @@ public class ConfigScreen extends TickableSupportingScreen {
 		PATCH("nbteditor.config.check_updates.patch", 2),
 		NONE("nbteditor.config.check_updates.none", -1);
 		
-		private final Text label;
-		private final Text desc;
+		private final Component label;
+		private final Component desc;
 		private final int level;
 		
 		private CheckUpdatesLevel(String key, int level) {
@@ -127,7 +122,7 @@ public class ConfigScreen extends TickableSupportingScreen {
 		MEGABYTE_COMPRESSED("nbteditor.config.item_size.megabyte_compressed", 1000000, true),
 		GIGABYTE_COMPRESSED("nbteditor.config.item_size.gigabyte_compressed", 1000000000, true);
 		
-		private final Text label;
+		private final Component label;
 		private final int magnitude;
 		private final boolean compressed;
 		
@@ -158,7 +153,7 @@ public class ConfigScreen extends TickableSupportingScreen {
 		TOP_CENTER("nbteditor.config.creative_tabs_pos.top_center"),
 		TOP_RIGHT("nbteditor.config.creative_tabs_pos.top_right");
 		
-		private final Text label;
+		private final Component label;
 		
 		private CreativeTabsPosition(String key) {
 			this.label = TextInst.translatable(key);
@@ -359,7 +354,7 @@ public class ConfigScreen extends TickableSupportingScreen {
 		return lockSlots || isLockSlotsRequired();
 	}
 	public static boolean isLockSlotsRequired() {
-		return MainUtil.client.interactionManager != null && !NBTEditorClient.SERVER_CONN.isEditingAllowed();
+		return MainUtil.client.gameMode != null && !NBTEditorClient.SERVER_CONN.isEditingAllowed();
 	}
 	public static boolean isChatLimitExtended() {
 		return chatLimitExtended;
@@ -436,7 +431,7 @@ public class ConfigScreen extends TickableSupportingScreen {
         }
         return output;
 	}
-	public static Text getEnchantNameWithMax(Enchantment enchant, int level, EnchantLevelMax display) {
+	public static Component getEnchantNameWithMax(Enchantment enchant, int level, EnchantLevelMax display) {
 		EditableText text = getEnchantName(enchant, level);
 		if (display.shouldShowMax(level, enchant.getMaxLevel())) {
 			text = text.append("/").append(
@@ -446,7 +441,7 @@ public class ConfigScreen extends TickableSupportingScreen {
 		}
 		return text.getInternalValue(); // Allows Enchantment Descriptions to detect the enchantments
 	}
-	public static Text getEnchantNameWithMax(Enchantment enchant, int level) {
+	public static Component getEnchantNameWithMax(Enchantment enchant, int level) {
 		return getEnchantNameWithMax(enchant, level, enchantLevelMax);
 	}
 	
@@ -560,10 +555,10 @@ public class ConfigScreen extends TickableSupportingScreen {
 		// ---------- FUNCTIONAL ----------
 		
 		functional.setConfigurable("aliases", new ConfigButton(100, TextInst.translatable("nbteditor.config.aliases"),
-				btn -> client.setScreen(new AliasesScreen(this)), new MVTooltip("nbteditor.config.aliases.desc")));
+				btn -> minecraft.setScreen(new AliasesScreen(this)), new MVTooltip("nbteditor.config.aliases.desc")));
 		
 		functional.setConfigurable("shortcuts", new ConfigButton(100, TextInst.translatable("nbteditor.config.shortcuts"),
-				btn -> client.setScreen(new ShortcutsScreen(this)), new MVTooltip("nbteditor.config.shortcuts.desc")));
+				btn -> minecraft.setScreen(new ShortcutsScreen(this)), new MVTooltip("nbteditor.config.shortcuts.desc")));
 		
 		functional.setConfigurable("recreateBlocksAndEntities", new ConfigItem<>(TextInst.translatable("nbteditor.config.recreate_blocks_and_entities"),
 				new ConfigValueBoolean(recreateBlocksAndEntities, false, 100, TextInst.translatable("nbteditor.config.recreate_blocks_and_entities.enabled"), TextInst.translatable("nbteditor.config.recreate_blocks_and_entities.disabled"))
@@ -606,21 +601,21 @@ public class ConfigScreen extends TickableSupportingScreen {
 	
 	@Override
 	protected void init() {
-		ConfigPanel newPanel = addDrawableChild(new ConfigPanel(16, 16, width - 32, height - 32, config));
+		ConfigPanel newPanel = addRenderableWidget(new ConfigPanel(16, 16, width - 32, height - 32, config));
 		if (panel != null)
 			newPanel.setScroll(panel.getScroll());
 		panel = newPanel;
 		
-		this.addDrawableChild(MVMisc.newButton(this.width - 134, this.height - 36, 100, 20, ScreenTexts.DONE, btn -> close()));
+		this.addRenderableWidget(MVMisc.newButton(this.width - 134, this.height - 36, 100, 20, ScreenTexts.DONE, btn -> onClose()));
 	}
 	
 	public void render(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
-		super.renderBackground(matrices);
+		this.extractBackground(MVDrawableHelper.getDrawContext(matrices), mouseX, mouseY, delta);
 		super.render(matrices, mouseX, mouseY, delta);
 	}
 	
-	public void close() {
-		client.setScreen(this.parent);
+	public void onClose() {
+		minecraft.setScreen(this.parent);
 	}
 	
 	@Override

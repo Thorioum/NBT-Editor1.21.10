@@ -12,9 +12,9 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.Formatting;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.ChatFormatting;
 
 public class MaxStackSizeCommand extends ClientCommand {
 	
@@ -33,16 +33,16 @@ public class MaxStackSizeCommand extends ClientCommand {
 		builder.then(literal("default").executes(context -> {
 			ItemReference ref = ItemReference.getHeldItem();
 			ItemStack item = ref.getItem();
-			if (item.getComponentChanges().get(DataComponentTypes.MAX_STACK_SIZE) == null) {
-				MainUtil.client.player.sendMessage(TextInst.translatable("nbteditor.max_stack_size.already_removed"), false);
-			} else if (item.contains(DataComponentTypes.MAX_DAMAGE) &&
-					item.getDefaultComponents().getOrDefault(DataComponentTypes.MAX_STACK_SIZE, 1) > 1) {
-				MainUtil.client.player.sendMessage(TextInst.translatable("nbteditor.max_stack_size.invalid_state"), false);
+			if (item.getComponentsPatch().get(item.getComponents(),DataComponents.MAX_STACK_SIZE) == null) {
+				MainUtil.client.player.sendSystemMessage(TextInst.translatable("nbteditor.max_stack_size.already_removed"));
+			} else if (item.has(DataComponents.MAX_DAMAGE) &&
+					item.getPrototype().getOrDefault(DataComponents.MAX_STACK_SIZE, 1) > 1) {
+				MainUtil.client.player.sendSystemMessage(TextInst.translatable("nbteditor.max_stack_size.invalid_state"));
 			} else {
-				int size = item.getDefaultComponents().get(DataComponentTypes.MAX_STACK_SIZE);
+				int size = item.getPrototype().get(DataComponents.MAX_STACK_SIZE);
 				if (item.getCount() > size)
 					item.setCount(size);
-				item.set(DataComponentTypes.MAX_STACK_SIZE, size);
+				item.set(DataComponents.MAX_STACK_SIZE, size);
 				ref.saveItem(item, TextInst.translatable("nbteditor.max_stack_size.removed"));
 			}
 			return Command.SINGLE_SUCCESS;
@@ -50,14 +50,14 @@ public class MaxStackSizeCommand extends ClientCommand {
 			int size = context.getArgument("size", Integer.class);
 			ItemReference ref = ItemReference.getHeldItem();
 			ItemStack item = ref.getItem();
-			if (item.contains(DataComponentTypes.MAX_DAMAGE) && size > 1)
-				MainUtil.client.player.sendMessage(TextInst.translatable("nbteditor.max_stack_size.invalid_state"), false);
+			if (item.has(DataComponents.MAX_DAMAGE) && size > 1)
+				MainUtil.client.player.sendSystemMessage(TextInst.translatable("nbteditor.max_stack_size.invalid_state"));
 			else {
 				if (item.getCount() > size)
 					item.setCount(size);
-				item.set(DataComponentTypes.MAX_STACK_SIZE, size);
+				item.set(DataComponents.MAX_STACK_SIZE, size);
 				ref.saveItem(item, TextInst.translatable("nbteditor.max_stack_size.added",
-						TextInst.literal(size + "").formatted(Formatting.GOLD)));
+						TextInst.literal(size + "").formatted(ChatFormatting.GOLD)));
 			}
 			return Command.SINGLE_SUCCESS;
 		}));

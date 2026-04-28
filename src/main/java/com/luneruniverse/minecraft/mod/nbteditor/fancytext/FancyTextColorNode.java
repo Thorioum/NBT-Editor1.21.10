@@ -1,7 +1,7 @@
 package com.luneruniverse.minecraft.mod.nbteditor.fancytext;
 
-import net.minecraft.text.Style;
-import net.minecraft.text.TextColor;
+import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.TextColor;
 
 public record FancyTextColorNode(TextColor color) implements FancyTextNode {
 	

@@ -5,7 +5,7 @@ import java.util.Optional;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.DataVersionStatus;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.Version;
 
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.item.ItemStack;
 
 public record ClientChestPage(Optional<Integer> dataVersion, ItemStack[] items, DynamicItems dynamicItems, PageLoadLevel loadLevel) {
 	

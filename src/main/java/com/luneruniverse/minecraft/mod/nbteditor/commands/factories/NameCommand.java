@@ -17,7 +17,7 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
 
 public class NameCommand extends ClientCommand {
 	
@@ -48,7 +48,7 @@ public class NameCommand extends ClientCommand {
 	private static <T extends LocalNBT> void setName(FabricClientCommandSource source, NBTReference<T> ref, FancyTextArgumentType.UnparsedText unparsedName) {
 		try {
 			T localNBT = ref.getLocalNBT();
-			Text name = unparsedName.parse(StyleUtil.getBaseNameStyle(localNBT, false));
+			Component name = unparsedName.parse(StyleUtil.getBaseNameStyle(localNBT, false));
 			localNBT.setName(name);
 			ref.saveLocalNBT(localNBT, TextInst.translatable("nbteditor.named").append(name));
 		} catch (CommandSyntaxException e) {

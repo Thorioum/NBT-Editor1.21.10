@@ -7,7 +7,7 @@ import com.luneruniverse.minecraft.mod.nbteditor.multiversion.shaders.MVShader;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.shaders.MVVertexFormat;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.shaders.MVVertexFormatElement;
 
-import net.minecraft.client.gl.RenderPipelines;
+import net.minecraft.client.renderer.RenderPipelines;
 
 public class Shaders {
 	

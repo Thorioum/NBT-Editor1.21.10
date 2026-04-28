@@ -14,10 +14,10 @@ import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 import io.netty.buffer.Unpooled;
 import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.EventFactory;
-import net.minecraft.client.network.ClientPlayNetworkHandler;
-import net.minecraft.network.PacketByteBuf;
-import net.minecraft.network.packet.c2s.common.CustomPayloadC2SPacket;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.multiplayer.ClientPacketListener;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
+import net.minecraft.resources.Identifier;
 
 public class MVClientNetworking {
 	
@@ -27,7 +27,7 @@ public class MVClientNetworking {
 				for (Start listener : listeners)
 					listener.onPlayStart(networkHandler);
 			});
-			public void onPlayStart(ClientPlayNetworkHandler networkHandler);
+			public void onPlayStart(ClientPacketListener networkHandler);
 		}
 		public static interface Join {
 			public static final Event<Join> EVENT = EventFactory.createArrayBacked(Join.class, listeners -> () -> {
@@ -45,7 +45,7 @@ public class MVClientNetworking {
 		}
 	}
 	
-	public static void onPlayStart(ClientPlayNetworkHandler networkHandler) {
+	public static void onPlayStart(ClientPacketListener networkHandler) {
 		Version.newSwitch()
 				.range("1.20.5", null, () -> {
 					DynamicRegistryManagerHolder.setClientManager(networkHandler);
@@ -73,13 +73,13 @@ public class MVClientNetworking {
 	
 	@SuppressWarnings("deprecation")
 	public static void send(MVPacket packet) {
-		MVMisc.sendC2SPacket(Version.<CustomPayloadC2SPacket>newSwitch()
+		MVMisc.sendC2SPacket(Version.<ServerboundCustomPayloadPacket>newSwitch()
 				.range("1.20.2", null, () -> MVPacketCustomPayload.wrapC2S(packet))
 				.range(null, "1.20.1", () -> {
-					PacketByteBuf payload = new PacketByteBuf(Unpooled.buffer());
+					FriendlyByteBuf payload = new FriendlyByteBuf(Unpooled.buffer());
 					packet.write(payload);
 					try {
-						return CustomPayloadC2SPacket.class.getConstructor(Identifier.class, PacketByteBuf.class)
+						return ServerboundCustomPayloadPacket.class.getConstructor(Identifier.class, FriendlyByteBuf.class)
 								.newInstance(packet.getPacketId(), payload);
 					} catch (Exception e) {
 						throw new RuntimeException("Failed to create CustomPayloadC2SPacket", e);
@@ -94,7 +94,7 @@ public class MVClientNetworking {
 	}
 	
 	public static void callListeners(MVPacket packet) {
-		if (!MainUtil.client.isOnThread()) {
+		if (!MainUtil.client.isSameThread()) {
 			MainUtil.client.execute(() -> callListeners(packet));
 			return;
 		}

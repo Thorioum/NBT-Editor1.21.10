@@ -2,7 +2,7 @@ package com.luneruniverse.minecraft.mod.nbteditor.screens.widgets;
 
 import java.util.function.Consumer;
 
-import net.minecraft.client.input.KeyInput;
+import net.minecraft.client.input.KeyEvent;
 import org.joml.Matrix3x2fStack;
 import org.lwjgl.glfw.GLFW;
 
@@ -15,10 +15,9 @@ import com.luneruniverse.minecraft.mod.nbteditor.screens.OverlayScreen;
 import com.luneruniverse.minecraft.mod.nbteditor.screens.OverlaySupportingScreen;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.text.Text;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.network.chat.Component;
 
 public class InputOverlay<T> extends GroupWidget implements InitializableOverlay<Screen> {
 	
@@ -30,20 +29,20 @@ public class InputOverlay<T> extends GroupWidget implements InitializableOverlay
 		public boolean isValid();
 	}
 	
-	public static <T> void show(Text title, Input<T> input, Consumer<T> valueConsumer) {
+	public static <T> void show(Component title, Input<T> input, Consumer<T> valueConsumer) {
 		OverlayScreen.setOverlayOrScreen(
 				new InputOverlay<>(title, input, valueConsumer, () -> OverlaySupportingScreen.setOverlayStatic(null)), true);
 	}
 	
-	private final Text title;
+	private final Component title;
 	private final Input<T> input;
 	private final Consumer<T> valueConsumer;
 	private final Runnable close;
 	private int x;
 	private int y;
-	private ButtonWidget ok;
+	private Button ok;
 	
-	public InputOverlay(Text title, Input<T> input, Consumer<T> valueConsumer, Runnable close) {
+	public InputOverlay(Component title, Input<T> input, Consumer<T> valueConsumer, Runnable close) {
 		this.title = title;
 		this.input = input;
 		this.valueConsumer = valueConsumer;
@@ -74,23 +73,23 @@ public class InputOverlay<T> extends GroupWidget implements InitializableOverlay
 	}
 	
 	@Override
-	public void render(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
+	public void extractRenderState(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
 		ok.active = input.isValid();
 		
 		matrices.pushMatrix();
 		matrices.translate(0.0f, 0.0f);
-		MainUtil.client.currentScreen.renderBackground(matrices);
+		MainUtil.client.screen.extractBackground(MVDrawableHelper.getDrawContext(matrices), mouseX, mouseY, delta);
 		if (title != null) {
-			MVDrawableHelper.drawCenteredTextWithShadow(matrices, MainUtil.client.textRenderer, title,
-					x + input.getWidth() / 2, y - 4 - MainUtil.client.textRenderer.fontHeight, -1);
+			MVDrawableHelper.drawCenteredTextWithShadow(matrices, MainUtil.client.font, title,
+					x + input.getWidth() / 2, y - 4 - MainUtil.client.font.lineHeight, -1);
 		}
-		super.render(matrices, mouseX, mouseY, delta);
+		super.extractRenderState(matrices, mouseX, mouseY, delta);
 		MainUtil.renderLogo(matrices);
 		matrices.popMatrix();
 	}
 	
 	@Override
-	public boolean keyPressed(KeyInput keyInput) {
+	public boolean keyPressed(KeyEvent keyInput) {
 		int keyCode = keyInput.key();
 		if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
 			close.run();

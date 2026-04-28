@@ -15,7 +15,7 @@ import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVScreen;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.TextInst;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 
-import net.minecraft.client.util.math.MatrixStack;
+import com.mojang.blaze3d.vertex.PoseStack;
 import org.joml.Matrix3x2fStack;
 
 public class LoadingScreen extends MVScreen {
@@ -66,7 +66,7 @@ public class LoadingScreen extends MVScreen {
 	
 	@Override
 	protected void init() {
-		addDrawableChild(MVMisc.newButton(width / 2 - 75, height / 2, 150, 20, TextInst.translatable("nbteditor.hide"), btn -> close()));
+		addRenderableWidget(MVMisc.newButton(width / 2 - 75, height / 2, 150, 20, TextInst.translatable("nbteditor.hide"), btn -> onClose()));
 	}
 	
 	@Override
@@ -88,12 +88,12 @@ public class LoadingScreen extends MVScreen {
 	
 	@Override
 	public void render(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
-		super.renderBackground(matrices);
+		this.extractBackground(MVDrawableHelper.getDrawContext(matrices), mouseX, mouseY, delta);
 		super.render(matrices, mouseX, mouseY, delta);
 		MainUtil.renderLogo(matrices);
 		
-		MVDrawableHelper.drawCenteredTextWithShadow(matrices, textRenderer, TextInst.translatable("nbteditor.loading"),
-				width / 2, height / 2 - textRenderer.fontHeight / 2 - 10, -1);
+		MVDrawableHelper.drawCenteredTextWithShadow(matrices, font, TextInst.translatable("nbteditor.loading"),
+				width / 2, height / 2 - font.lineHeight / 2 - 10, -1);
 	}
 	
 }

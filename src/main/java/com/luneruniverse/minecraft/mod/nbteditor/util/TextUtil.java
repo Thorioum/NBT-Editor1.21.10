@@ -21,18 +21,18 @@ import com.luneruniverse.minecraft.mod.nbteditor.multiversion.TextInst;
 import com.luneruniverse.minecraft.mod.nbteditor.screens.util.FancyConfirmScreen;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
-import net.minecraft.nbt.InvalidNbtException;
-import net.minecraft.text.StringVisitable.StyledVisitor;
-import net.minecraft.text.Style;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.nbt.NbtFormatException;
+import net.minecraft.network.chat.FormattedText.StyledContentConsumer;
+import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting;
 
 public class TextUtil {
 	
-	public static List<Text> getLongTranslatableTextLines(String key) {
-		List<Text> lines = new ArrayList<>();
+	public static List<Component> getLongTranslatableTextLines(String key) {
+		List<Component> lines = new ArrayList<>();
 		for (int i = 1; i <= 50; i++) {
-			Text line = TextInst.translatable(key + "_" + i);
+			Component line = TextInst.translatable(key + "_" + i);
 			String str = line.getString();
 			if (str.equals(key + "_" + i))
 				break;
@@ -47,7 +47,7 @@ public class TextUtil {
 				}
 				line = TextInst.literal(url)
 						.styled(style -> style.withClickEvent(MVTextEvents.ClickAction.OPEN_URL.newEvent(uri))
-						.withUnderline(true).withItalic(true).withColor(Formatting.GOLD));
+						.withUnderlined(true).withItalic(true).withColor(ChatFormatting.GOLD));
 			}
 			if (str.startsWith("[FORMAT] ")) {
 				String toFormat = str.substring("[FORMAT] ".length());
@@ -57,8 +57,8 @@ public class TextUtil {
 		}
 		return lines;
 	}
-	public static Text getLongTranslatableText(String key) {
-		List<Text> lines = getLongTranslatableTextLines(key);
+	public static Component getLongTranslatableText(String key) {
+		List<Component> lines = getLongTranslatableTextLines(key);
 		if (lines.isEmpty())
 			return TextInst.of(key);
 		EditableText output = TextInst.copy(lines.get(0));
@@ -67,13 +67,13 @@ public class TextUtil {
 		return output;
 	}
 	
-	public static Text parseTranslatableFormatted(String key, Object... args) {
+	public static Component parseTranslatableFormatted(String key, Object... args) {
 		return FancyText.parse(TextInst.translatable(key, args).getString());
 	}
 	
-	public static Text substring(Text text, int start, int end) {
+	public static Component substring(Component text, int start, int end) {
 		EditableText output = TextInst.literal("");
-		text.visit(new StyledVisitor<Boolean>() {
+		text.visit(new StyledContentConsumer<Boolean>() {
 			private int i;
 			@Override
 			public Optional<Boolean> accept(Style style, String str) {
@@ -99,11 +99,11 @@ public class TextUtil {
 		}, Style.EMPTY);
 		return output;
 	}
-	public static Text substring(Text text, int start) {
+	public static Component substring(Component text, int start) {
 		return substring(text, start, -1);
 	}
 	
-	public static Text deleteCharAt(Text text, int index) {
+	public static Component deleteCharAt(Component text, int index) {
 		EditableText output = TextInst.literal("");
 		AtomicInteger pos = new AtomicInteger(0);
 		text.visit((style, str) -> {
@@ -118,7 +118,7 @@ public class TextUtil {
 		return output;
 	}
 	
-	public static Text joinLines(List<Text> lines) {
+	public static Component joinLines(List<Component> lines) {
 		EditableText output = TextInst.literal("");
 		for (int i = 0; i < lines.size(); i++) {
 			if (i > 0)
@@ -127,8 +127,8 @@ public class TextUtil {
 		}
 		return output;
 	}
-	public static List<Text> splitText(Text text) {
-		List<Text> output = new ArrayList<>();
+	public static List<Component> splitText(Component text) {
+		List<Component> output = new ArrayList<>();
 		int i;
 		while ((i = text.getString().indexOf('\n')) != -1) {
 			output.add(substring(text, 0, i));
@@ -138,7 +138,7 @@ public class TextUtil {
 		return output;
 	}
 	
-	public static Text stripInvalidChars(Text text, boolean allowLineBreaks) {
+	public static Component stripInvalidChars(Component text, boolean allowLineBreaks) {
 		EditableText output = TextInst.literal("");
 		text.visit((style, str) -> {
 			output.append(TextInst.literal(MVMisc.stripInvalidChars(str, allowLineBreaks)).setStyle(style));
@@ -147,7 +147,7 @@ public class TextUtil {
 		return output;
 	}
 	
-	public static Text attachFileTextOptions(EditableText link, File file) {
+	public static Component attachFileTextOptions(EditableText link, File file) {
 		return link.append(" ").append(TextInst.translatable("nbteditor.file_options.show").styled(style ->
 				style.withClickEvent(MVTextEvents.ClickAction.OPEN_FILE.newEvent(
 						file.getAbsoluteFile().getParentFile().getAbsolutePath()))))
@@ -158,24 +158,24 @@ public class TextUtil {
 								if (file.exists()) {
 									try {
 										Files.deleteIfExists(file.toPath());
-										MainUtil.client.player.sendMessage(TextInst.translatable("nbteditor.file_options.delete.success", "§6" + file.getName()), false);
+										MainUtil.client.player.sendSystemMessage(TextInst.translatable("nbteditor.file_options.delete.success", "§6" + file.getName()));
 									} catch (IOException e) {
 										NBTEditor.LOGGER.error("Error deleting file", e);
-										MainUtil.client.player.sendMessage(TextInst.translatable("nbteditor.file_options.delete.error", "§6" + file.getName()), false);
+										MainUtil.client.player.sendSystemMessage(TextInst.translatable("nbteditor.file_options.delete.error", "§6" + file.getName()));
 									}
 								} else
-									MainUtil.client.player.sendMessage(TextInst.translatable("nbteditor.file_options.delete.missing", "§6" + file.getName()), false);
+									MainUtil.client.player.sendSystemMessage(TextInst.translatable("nbteditor.file_options.delete.missing", "§6" + file.getName()));
 							}
 							MainUtil.client.setScreen(null);
 						}, TextInst.translatable("nbteditor.file_options.delete.title", file.getName()),
 								TextInst.translatable("nbteditor.file_options.delete.desc", file.getName()))))));
 	}
 	
-	public static boolean isTextFormatted(Text text, Style base) {
+	public static boolean isTextFormatted(Component text, Style base) {
 		if (StyleUtil.hasFormatting(text.getStyle(), base))
 			return true;
 		
-		for (Text sibling : text.getSiblings()) {
+		for (Component sibling : text.getSiblings()) {
 			if (isTextFormatted(sibling, base))
 				return true;
 		}
@@ -183,7 +183,7 @@ public class TextUtil {
 		return false;
 	}
 	
-	public static int lastIndexOf(Text text, int ch) {
+	public static int lastIndexOf(Component text, int ch) {
 		AtomicInteger output = new AtomicInteger(-1);
 		AtomicInteger pos = new AtomicInteger(0);
 		text.visit(str -> {
@@ -196,23 +196,23 @@ public class TextUtil {
 		return output.getPlain();
 	}
 	
-	public static Text fromStringSafely(String str, boolean eitherFormat) {
+	public static Component fromStringSafely(String str, boolean eitherFormat) {
 		try {
-			Text output = TextInst.fromString(str, eitherFormat);
+			Component output = TextInst.fromString(str, eitherFormat);
 			if (output != null)
 				return output;
 		} catch (IllegalArgumentException e) {}
 		return TextInst.of(str);
 	}
-	public static Text fromSNbtSafely(String snbt) {
+	public static Component fromSNbtSafely(String snbt) {
 		try {
 			return TextInst.fromSNbt(snbt);
-		} catch (CommandSyntaxException | InvalidNbtException e) {}
+		} catch (CommandSyntaxException | NbtFormatException e) {}
 		return TextInst.of(snbt);
 	}
-	public static Text fromJsonSafely(String json) {
+	public static Component fromJsonSafely(String json) {
 		try {
-			Text output = TextInst.fromJson(json);
+			Component output = TextInst.fromJson(json);
 			if (output != null)
 				return output;
 		} catch (JsonParseException e) {}

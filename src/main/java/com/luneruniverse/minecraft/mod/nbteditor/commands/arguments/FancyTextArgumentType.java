@@ -1,3 +1,4 @@
+// TODO(Ravel): Failed to fully resolve file: null cannot be cast to non-null type com.intellij.psi.PsiJavaCodeReferenceElement
 package com.luneruniverse.minecraft.mod.nbteditor.commands.arguments;
 
 import java.util.List;
@@ -19,11 +20,11 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 
-import net.minecraft.text.Style;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting;
 
-public class FancyTextArgumentType implements ArgumentType<Text> {
+public class FancyTextArgumentType implements ArgumentType<Component> {
 	
 	private static final List<String> eventTypes = Stream.of(StyleOption.values())
 			.map(action -> "[" + action.name().toLowerCase() + "]").toList();
@@ -33,7 +34,7 @@ public class FancyTextArgumentType implements ArgumentType<Text> {
 	}
 	
 	public interface UnparsedText {
-		public Text parse(Style base) throws CommandSyntaxException;
+		public Component parse(Style base) throws CommandSyntaxException;
 	}
 	public static ArgumentType<UnparsedText> fancyText() {
 		FancyTextArgumentType defaultArgType = new FancyTextArgumentType(Style.EMPTY);
@@ -52,13 +53,13 @@ public class FancyTextArgumentType implements ArgumentType<Text> {
 		};
 	}
 	
-	public static String stringifyFancyText(Text text, Style base, boolean printErrors) {
+	public static String stringifyFancyText(Component text, Style base, boolean printErrors) {
 		if (ConfigScreen.isNormalText())
 			return TextInst.toString(text);
 		
 		Map.Entry<String, Boolean> output = FancyText.stringify(text, base);
 		if (output.getValue() && printErrors)
-			MainUtil.client.player.sendMessage(TextInst.translatable("nbteditor.fancy_text_arg_type.stringify_unsupported"), false);
+			MainUtil.client.player.sendSystemMessage(TextInst.translatable("nbteditor.fancy_text_arg_type.stringify_unsupported"));
 		return output.getKey();
 	}
 	
@@ -69,11 +70,11 @@ public class FancyTextArgumentType implements ArgumentType<Text> {
 	}
 	
 	@Override
-	public Text parse(StringReader reader) throws CommandSyntaxException {
+	public Component parse(StringReader reader) throws CommandSyntaxException {
 		if (ConfigScreen.isNormalText())
 			return MVMisc.getTextArg().parse(reader);
 		
-		Text output = FancyText.parse(reader.getRemaining(), base);
+		Component output = FancyText.parse(reader.getRemaining(), base);
 		reader.setCursor(reader.getTotalLength());
 		return output;
 	}
@@ -96,8 +97,8 @@ public class FancyTextArgumentType implements ArgumentType<Text> {
 		
 		if (lastColor == lastIndex || StyleUtil.SHADOW_COLOR_EXISTS && lastColor == lastShadowColor - 1 && lastShadowColor == lastIndex) {
 			builder = builder.createOffset(builder.getStart() + lastIndex + 1);
-			for (Formatting format : Formatting.values())
-				builder.suggest(format.getCode() + "", () -> format.getName());
+			for (ChatFormatting format : ChatFormatting.values())
+				builder.suggest(format.getChar() + "", () -> format.getName());
 			builder.suggest("#", TextInst.translatable("nbteditor.fancy_text_arg_type.custom_color"));
 			if (StyleUtil.SHADOW_COLOR_EXISTS && lastColor == lastIndex)
 				builder.suggest("_", TextInst.translatable("nbteditor.fancy_text_arg_type.shadow_color"));

@@ -9,11 +9,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.luneruniverse.minecraft.mod.nbteditor.misc.MixinLink;
 
-import net.minecraft.client.texture.NativeImage;
+import com.mojang.blaze3d.platform.NativeImage;
 
 @Mixin(NativeImage.class)
 public class NativeImageMixin {
-	@Inject(method = "writeTo(Ljava/io/File;)V", at = @At("HEAD"))
+	@Inject(method = "writeToFile(Ljava/io/File;)V", at = @At("HEAD"))
 	private void writeTo(File file, CallbackInfo info) {
 		MixinLink.screenshotTarget = file;
 	}

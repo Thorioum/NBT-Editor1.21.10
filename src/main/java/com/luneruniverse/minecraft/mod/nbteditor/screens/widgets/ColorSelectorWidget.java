@@ -3,8 +3,8 @@ package com.luneruniverse.minecraft.mod.nbteditor.screens.widgets;
 import java.awt.Color;
 import java.util.function.Consumer;
 
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.input.KeyInput;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.KeyEvent;
 import org.joml.Matrix3x2fStack;
 import org.lwjgl.glfw.GLFW;
 
@@ -18,10 +18,9 @@ import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVSliderWidget;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.TextInst;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.Mth;
 
 public class ColorSelectorWidget extends GroupWidget {
 	
@@ -65,24 +64,24 @@ public class ColorSelectorWidget extends GroupWidget {
 	
 	private class ColorArea implements MVDrawable, MVElement {
 		@Override
-		public void render(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
+		public void extractRenderState(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
 			MainUtil.fillShader(matrices, Shaders.POSITION_HSV, vertex -> MVMisc.setVertexLight(vertex, hueValue), x, y, areaSize, areaSize);
 		}
 		@Override
-		public boolean mouseClicked(Click click, boolean doubled) {
+		public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
 			if (click.button() != GLFW.GLFW_MOUSE_BUTTON_1 || !isMouseOver(click.x(), click.y()))
 				return false;
 			mouseDragged(click, 0, 0);
 			return true;
 		}
 		@Override
-		public boolean mouseDragged(Click click, double deltaX, double deltaY) {
+		public boolean mouseDragged(MouseButtonEvent click, double deltaX, double deltaY) {
 			if (click.button() != GLFW.GLFW_MOUSE_BUTTON_1)
 				return false;
-			double mouseX = MathHelper.clamp(click.x(), x, x + areaSize);
-			double mouseY = MathHelper.clamp(click.y(), y, y + areaSize);
+			double mouseX = Mth.clamp(click.x(), x, x + areaSize);
+			double mouseY = Mth.clamp(click.y(), y, y + areaSize);
 			color = Color.HSBtoRGB(hueValue / 360.0f, (float) (mouseX - x) / areaSize, 1 - (float) (mouseY - y) / areaSize);
-			field.setText("#" + String.format("%08X", color).substring(2, 8)); // Calls onColor
+			field.setValue("#" + String.format("%08X", color).substring(2, 8)); // Calls onColor
 			return true;
 		}
 		@Override
@@ -94,7 +93,7 @@ public class ColorSelectorWidget extends GroupWidget {
 	private final int x;
 	private final int y;
 	private final int areaSize;
-	private final TextFieldWidget field;
+	private final EditBox field;
 	private int color;
 	private int hueValue;
 	
@@ -116,7 +115,7 @@ public class ColorSelectorWidget extends GroupWidget {
 				return true;
 			}
 			@Override
-			public boolean keyPressed(KeyInput keyInput) {
+			public boolean keyPressed(KeyEvent keyInput) {
 				if (keyInput.key() == GLFW.GLFW_KEY_RIGHT) {
 					setValue(getValue() + 1 / 359.0);
 					return true;
@@ -129,10 +128,10 @@ public class ColorSelectorWidget extends GroupWidget {
 			}
 		});
 		
-		field = new TextFieldWidget(MainUtil.client.textRenderer, x + areaSize + 4, y + areaSize + 4, areaSize / 2, 20, TextInst.of(""));
+		field = new EditBox(MainUtil.client.font, x + areaSize + 4, y + areaSize + 4, areaSize / 2, 20, TextInst.of(""));
 		field.setMaxLength(7);
-		field.setText("#" + String.format("%08X", color).substring(2, 8));
-		field.setChangedListener(str -> {
+		field.setValue("#" + String.format("%08X", color).substring(2, 8));
+		field.setResponder(str -> {
 			if (!str.matches("#[0-9a-fA-F]{6}"))
 				return;
 			this.color = Integer.parseInt(str.substring(1), 16);
@@ -142,8 +141,8 @@ public class ColorSelectorWidget extends GroupWidget {
 	}
 	
 	@Override
-	public void render(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
-		super.render(matrices, mouseX, mouseY, delta);
+	public void extractRenderState(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
+		super.extractRenderState(matrices, mouseX, mouseY, delta);
 		MVDrawableHelper.fill(matrices, x + areaSize + 4, y, x + areaSize + 4 + areaSize / 2, y + areaSize, color | 0xFF000000);
 	}
 	

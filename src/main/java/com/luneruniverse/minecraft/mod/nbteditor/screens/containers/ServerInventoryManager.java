@@ -6,75 +6,75 @@ import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVMisc;
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 import com.luneruniverse.minecraft.mod.nbteditor.util.SlotUtil;
 
-import net.minecraft.inventory.Inventory;
-import net.minecraft.inventory.SimpleInventory;
-import net.minecraft.item.ItemStack;
-import net.minecraft.network.packet.s2c.play.InventoryS2CPacket;
-import net.minecraft.network.packet.s2c.play.ScreenHandlerSlotUpdateS2CPacket;
-import net.minecraft.network.packet.s2c.play.SetPlayerInventoryS2CPacket;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.screen.slot.Slot;
+import net.minecraft.world.Container;
+import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.network.protocol.game.ClientboundContainerSetContentPacket;
+import net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket;
+import net.minecraft.network.protocol.game.ClientboundSetPlayerInventoryPacket;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.Slot;
 
 public class ServerInventoryManager {
 	
-	private final Inventory serverInv;
+	private final Container serverInv;
 	
 	public ServerInventoryManager() {
-		Inventory playerInv = MainUtil.client.player.getInventory();
-		serverInv = new SimpleInventory(playerInv.size());
-		for (int i = 0; i < serverInv.size(); i++)
-			serverInv.setStack(i, playerInv.getStack(i).copy());
+		Container playerInv = MainUtil.client.player.getInventory();
+		serverInv = new SimpleContainer(playerInv.getContainerSize());
+		for (int i = 0; i < serverInv.getContainerSize(); i++)
+			serverInv.setItem(i, playerInv.getItem(i).copy());
 	}
 	
-	private ScreenHandler getScreenHandler(int syncId) {
+	private AbstractContainerMenu getScreenHandler(int syncId) {
 		if (syncId == 0)
-			return MainUtil.client.player.playerScreenHandler;
-		if (syncId == MainUtil.client.player.currentScreenHandler.syncId)
-			return MainUtil.client.player.currentScreenHandler;
+			return MainUtil.client.player.inventoryMenu;
+		if (syncId == MainUtil.client.player.containerMenu.containerId)
+			return MainUtil.client.player.containerMenu;
 		return null;
 	}
 	
-	public void onSetPlayerInventoryPacket(SetPlayerInventoryS2CPacket packet) {
-		serverInv.setStack(packet.slot(), packet.contents().copy());
+	public void onSetPlayerInventoryPacket(ClientboundSetPlayerInventoryPacket packet) {
+		serverInv.setItem(packet.slot(), packet.contents().copy());
 	}
 	
-	public void onInventoryPacket(InventoryS2CPacket packet) {
-		ScreenHandler handler = getScreenHandler(MVMisc.getSyncId(packet));
+	public void onInventoryPacket(ClientboundContainerSetContentPacket packet) {
+		AbstractContainerMenu handler = getScreenHandler(MVMisc.getSyncId(packet));
 		if (handler == null)
 			return;
 		
 		List<ItemStack> contents = MVMisc.getContents(packet);
 		for (int i = 0; i < contents.size(); i++) {
 			Slot slot = handler.getSlot(i);
-			if (slot.inventory == MainUtil.client.player.getInventory())
-				serverInv.setStack(slot.getIndex(), contents.get(i).copy());
+			if (slot.container == MainUtil.client.player.getInventory())
+				serverInv.setItem(slot.getContainerSlot(), contents.get(i).copy());
 		}
 	}
 	
-	public void onScreenHandlerSlotUpdatePacket(ScreenHandlerSlotUpdateS2CPacket packet) {
-		if (packet.getSyncId() == -1)
+	public void onScreenHandlerSlotUpdatePacket(ClientboundContainerSetSlotPacket packet) {
+		if (packet.getContainerId() == -1)
 			return;
 		
-		if (packet.getSyncId() == -2) {
-			serverInv.setStack(packet.getSlot(), packet.getStack().copy());
+		if (packet.getContainerId() == -2) {
+			serverInv.setItem(packet.getSlot(), packet.getItem().copy());
 			return;
 		}
 		
-		ScreenHandler handler = getScreenHandler(packet.getSyncId());
+		AbstractContainerMenu handler = getScreenHandler(packet.getContainerId());
 		if (handler == null)
 			return;
 		Slot slot = handler.getSlot(packet.getSlot());
-		if (slot.inventory == MainUtil.client.player.getInventory())
-			serverInv.setStack(slot.getIndex(), packet.getStack().copy());
+		if (slot.container == MainUtil.client.player.getInventory())
+			serverInv.setItem(slot.getContainerSlot(), packet.getItem().copy());
 	}
 	
 	public void updateServer() {
-		Inventory playerInv = MainUtil.client.player.getInventory();
-		for (int i = 0; i < serverInv.size(); i++) {
-			ItemStack item = playerInv.getStack(i);
-			if (!ItemStack.areEqual(item, serverInv.getStack(i))) {
+		Container playerInv = MainUtil.client.player.getInventory();
+		for (int i = 0; i < serverInv.getContainerSize(); i++) {
+			ItemStack item = playerInv.getItem(i);
+			if (!ItemStack.matches(item, serverInv.getItem(i))) {
 				MainUtil.clickCreativeStack(item, SlotUtil.invToContainer(i));
-				serverInv.setStack(i, item.copy());
+				serverInv.setItem(i, item.copy());
 			}
 		}
 	}

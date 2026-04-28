@@ -5,23 +5,24 @@ import java.util.UUID;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.IdentifierInst;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVRegistryKeys;
 
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.network.PacketByteBuf;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.util.Identifier;
-import net.minecraft.world.World;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.level.Level;
 
 public class ViewEntityS2CPacket implements ResponsePacket {
 	
 	public static final Identifier ID = IdentifierInst.of("nbteditor", "view_entity");
 	
 	private final int requestId;
-	private final RegistryKey<World> world;
+	private final ResourceKey<Level> world;
 	private final UUID uuid;
 	private final Identifier id;
-	private final NbtCompound nbt;
+	private final CompoundTag nbt;
 	
-	public ViewEntityS2CPacket(int requestId, RegistryKey<World> world, UUID uuid, Identifier id, NbtCompound nbt) {
+	public ViewEntityS2CPacket(int requestId, ResourceKey<Level> world, UUID uuid, Identifier id, CompoundTag nbt) {
 		if ((world == null) != (uuid == null))
 			throw new IllegalArgumentException("world and uuid have to be null together!");
 		if ((id == null) != (nbt == null))
@@ -33,11 +34,11 @@ public class ViewEntityS2CPacket implements ResponsePacket {
 		this.id = id;
 		this.nbt = nbt;
 	}
-	public ViewEntityS2CPacket(PacketByteBuf payload) {
+	public ViewEntityS2CPacket(FriendlyByteBuf payload) {
 		this.requestId = payload.readVarInt();
 		if (payload.readBoolean()) {
-			this.world = payload.readRegistryKey(MVRegistryKeys.WORLD);
-			this.uuid = payload.readUuid();
+			this.world = payload.readResourceKey(Registries.DIMENSION);
+			this.uuid = payload.readUUID();
 		} else {
 			this.world = null;
 			this.uuid = null;
@@ -54,7 +55,7 @@ public class ViewEntityS2CPacket implements ResponsePacket {
 	public int getRequestId() {
 		return requestId;
 	}
-	public RegistryKey<World> getWorld() {
+	public ResourceKey<Level> getWorld() {
 		return world;
 	}
 	public UUID getUUID() {
@@ -66,26 +67,26 @@ public class ViewEntityS2CPacket implements ResponsePacket {
 	public Identifier getId() {
 		return id;
 	}
-	public NbtCompound getNbt() {
+	public CompoundTag getNbt() {
 		return nbt;
 	}
 	
 	@Override
-	public void write(PacketByteBuf payload) {
+	public void write(FriendlyByteBuf payload) {
 		payload.writeVarInt(requestId);
 		if (world == null) {
 			payload.writeBoolean(false);
 		} else {
 			payload.writeBoolean(true);
-			payload.writeRegistryKey(world);
-			payload.writeUuid(uuid);
+			payload.writeResourceKey(world);
+			payload.writeUUID(uuid);
 		}
 		if (id == null) {
 			payload.writeBoolean(false);
 		} else {
 			payload.writeBoolean(true);
 			payload.writeIdentifier(id);
-			payload.writeNbtCompound(nbt);
+			payload.writeNbt(nbt);
 		}
 	}
 	

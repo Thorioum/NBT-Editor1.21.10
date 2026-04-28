@@ -11,15 +11,15 @@ import org.lwjgl.opengl.GL20;
 import com.luneruniverse.minecraft.mod.nbteditor.misc.MixinLink;
 import com.luneruniverse.minecraft.mod.nbteditor.util.TextUtil;
 
-import net.minecraft.client.gui.tooltip.Tooltip;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.text.OrderedText;
-import net.minecraft.text.Text;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.components.Button;
+import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.network.chat.Component;
 
 public class MVTooltip {
 	
-	public static final MVTooltip EMPTY = new MVTooltip(new Text[0]);
+	public static final MVTooltip EMPTY = new MVTooltip(new Component[0]);
 	private static boolean oneTooltip = false;
 	private static boolean lastTooltip = false;
 	private static MVTooltip theOneTooltip;
@@ -40,7 +40,7 @@ public class MVTooltip {
 	public static MVTooltip getTheOneTooltip() {
 		return theOneTooltip;
 	}
-	public static boolean setExternalOneTooltip(List<OrderedText> tooltip) {
+	public static boolean setExternalOneTooltip(List<FormattedCharSequence> tooltip) {
 		if (isOneTooltip()) {
 			if (lastTooltip || theOneTooltip == null)
 				theOneTooltip = new MVTooltip(tooltip, null);
@@ -56,7 +56,7 @@ public class MVTooltip {
 		return true;
 	}
 	
-	private static Text combine(List<Text> lines) {
+	private static Component combine(List<Component> lines) {
 		EditableText combined = TextInst.literal("");
 		for (int i = 0; i < lines.size(); i++) {
 			if (i > 0)
@@ -66,28 +66,28 @@ public class MVTooltip {
 		return combined;
 	}
 	
-	private final List<OrderedText> lines;
-	private final Text combined;
+	private final List<FormattedCharSequence> lines;
+	private final Component combined;
 	
-	private MVTooltip(List<OrderedText> lines, Text combined) {
+	private MVTooltip(List<FormattedCharSequence> lines, Component combined) {
 		this.lines = lines;
 		this.combined = combined;
 	}
-	public MVTooltip(List<Text> lines) {
-		this(lines.stream().map(Text::asOrderedText).collect(Collectors.toList()), combine(lines));
+	public MVTooltip(List<Component> lines) {
+		this(lines.stream().map(Component::getVisualOrderText).collect(Collectors.toList()), combine(lines));
 	}
-	public MVTooltip(Text... lines) {
+	public MVTooltip(Component... lines) {
 		this(Arrays.stream(lines).flatMap(line -> TextUtil.splitText(line).stream()).toList());
 	}
 	public MVTooltip(String... keys) {
 		this(Arrays.asList(keys).stream().map(TextInst::translatable).toList().toArray(new EditableText[0]));
 	}
 	
-	public List<OrderedText> getLines() {
+	public List<FormattedCharSequence> getLines() {
 		return lines;
 	}
 	
-	public Text getCombined() {
+	public Component getCombined() {
 		return combined;
 	}
 	
@@ -99,14 +99,14 @@ public class MVTooltip {
 		if (isEmpty())
 			return null;
 		
-		Tooltip output = Tooltip.of(combined);
-		Reflection.getField(Tooltip.class, "field_41103", "Ljava/util/List;").set(output, lines);
+		Tooltip output = Tooltip.create(combined);
+		Reflection.getField(Tooltip.class, "cachedTooltip", "Ljava/util/List;").set(output, lines);
 		MixinLink.NEW_TOOLTIPS.put(output, true);
 		return output;
 	}
 	Object toOldTooltip() {
 		if (isEmpty())
-			return Reflection.getField(ButtonWidget.class, "field_25035", "Lnet/minecraft/class_4185$class_5316;").get(null); // ButtonWidget.EMPTY
+			return Reflection.getField(Button.class, "field_25035", "Lnet/minecraft/class_4185$class_5316;").get(null); // ButtonWidget.EMPTY
 		
 		return Proxy.newProxyInstance(MVMisc.class.getClassLoader(),
 				new Class<?>[] {Reflection.getClass("net.minecraft.class_4185$class_5316")}, (obj, method, args) -> {

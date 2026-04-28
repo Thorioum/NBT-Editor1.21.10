@@ -5,15 +5,10 @@ import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.CompoundTag;
 
 public class ArraySplitTagReference<C, O> implements TagReference<List<C>, O> {
-	
-	@SuppressWarnings("unchecked")
-	public static <C> TagReference<List<C>, NbtCompound> forNBT(Supplier<C> entryPadder, Class<C> clazz, String... paths) {
-		return new ArraySplitTagReference<>(entryPadder,
-				Arrays.stream(paths).map(path -> new NBTTagReference<>(clazz, path)).toArray(TagReference[]::new));
-	}
+
 	
 	private final Supplier<C> entryPadder;
 	private final TagReference<C, O>[] entryTagRefs;

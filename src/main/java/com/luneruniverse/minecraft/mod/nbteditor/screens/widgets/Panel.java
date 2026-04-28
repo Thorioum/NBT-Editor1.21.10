@@ -8,19 +8,18 @@ import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVDrawable;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVDrawableHelper;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVElement;
 
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.gui.Drawable;
-import net.minecraft.client.gui.Element;
-import net.minecraft.client.gui.Selectable;
-import net.minecraft.client.input.CharInput;
-import net.minecraft.client.input.KeyInput;
-import net.minecraft.client.input.MouseInput;
-import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.gui.components.Renderable;
+import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.client.gui.narration.NarratableEntry;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonInfo;
 import org.joml.Matrix3x2fStack;
 
-public abstract class Panel<T extends Drawable & Element> implements MVDrawable, MVElement, Selectable {
+public abstract class Panel<T extends Renderable & GuiEventListener> implements MVDrawable, MVElement, NarratableEntry {
 	
-	public static record PositionedPanelElement<T extends Drawable & Element>(T element, int x, int y) {
+	public static record PositionedPanelElement<T extends Renderable & GuiEventListener>(T element, int x, int y) {
 	}
 	
 	protected int x;
@@ -58,7 +57,7 @@ public abstract class Panel<T extends Drawable & Element> implements MVDrawable,
 	}
 	
 	@Override
-	public void render(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
+	public void extractRenderState(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
 		updateMousePos(mouseX, mouseY);
 		
 		checkOverScroll();
@@ -70,13 +69,13 @@ public abstract class Panel<T extends Drawable & Element> implements MVDrawable,
 			
 			matrices.pushMatrix();
 			matrices.translate(pos.x() + x, pos.y() + y + scroll);
-			element.render(matrices, mouseX - pos.x() - x, mouseY - pos.y() - y - scroll, delta);
+			element.extractRenderState(MVDrawableHelper.getDrawContext(matrices), mouseX - pos.x() - x, mouseY - pos.y() - y - scroll, delta);
 			matrices.popMatrix();
 		}
 		
 		MVDrawableHelper.disableScissor(matrices);
 		
-		scrollBar.render(matrices, mouseX, mouseY, delta);
+		scrollBar.extractRenderState(matrices, mouseX, mouseY, delta);
 	}
 	
 	private void checkOverScroll() {
@@ -104,7 +103,7 @@ public abstract class Panel<T extends Drawable & Element> implements MVDrawable,
 	
 	
 	@Override
-	public boolean mouseClicked(Click click, boolean doubled) {
+	public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
 		updateMousePos(click.x(), click.y());
 		
 		if (scrollBar.mouseClicked(click,doubled))
@@ -112,7 +111,7 @@ public abstract class Panel<T extends Drawable & Element> implements MVDrawable,
 		
 		boolean success = false;
 		for (PositionedPanelElement<T> pos : getPanelElementsSafe()) {
-			if (pos.element().mouseClicked(new Click(click.x() - pos.x() - x, click.y() - pos.y() - y - scroll, new MouseInput(click.button(),0)),doubled)) {
+			if (pos.element().mouseClicked(new MouseButtonEvent(click.x() - pos.x() - x, click.y() - pos.y() - y - scroll, new MouseButtonInfo(click.button(),0)),doubled)) {
 				success = true;
 				if (!continueEvents())
 					break;
@@ -122,12 +121,12 @@ public abstract class Panel<T extends Drawable & Element> implements MVDrawable,
 	}
 	
 	@Override
-	public boolean mouseReleased(Click click) {
+	public boolean mouseReleased(MouseButtonEvent click) {
 		updateMousePos(click.x(), click.y());
 		
 		boolean success = false;
 		for (PositionedPanelElement<T> pos : getPanelElementsSafe()) {
-			if (pos.element().mouseReleased(new Click(click.x() - pos.x() - x, click.y() - pos.y() - y - scroll, click.buttonInfo()))) {
+			if (pos.element().mouseReleased(new MouseButtonEvent(click.x() - pos.x() - x, click.y() - pos.y() - y - scroll, click.buttonInfo()))) {
 				success = true;
 				if (!continueEvents())
 					break;
@@ -145,7 +144,7 @@ public abstract class Panel<T extends Drawable & Element> implements MVDrawable,
 	}
 	
 	@Override
-	public boolean mouseDragged(Click click, double deltaX, double deltaY) {
+	public boolean mouseDragged(MouseButtonEvent click, double deltaX, double deltaY) {
 		updateMousePos(click.x(), click.y());
 		
 		if (scrollBar.mouseDragged(click, deltaX, deltaY))
@@ -153,7 +152,7 @@ public abstract class Panel<T extends Drawable & Element> implements MVDrawable,
 		
 		boolean success = false;
 		for (PositionedPanelElement<T> pos : getPanelElementsSafe()) {
-			if (pos.element().mouseDragged(new Click(click.x() - pos.x() - x, click.y() - pos.y() - y - scroll, click.buttonInfo()), deltaX, deltaY)) {
+			if (pos.element().mouseDragged(new MouseButtonEvent(click.x() - pos.x() - x, click.y() - pos.y() - y - scroll, click.buttonInfo()), deltaX, deltaY)) {
 				success = true;
 				if (!continueEvents())
 					break;
@@ -191,7 +190,7 @@ public abstract class Panel<T extends Drawable & Element> implements MVDrawable,
 	
 	
 	@Override
-	public boolean keyPressed(KeyInput keyInput) {
+	public boolean keyPressed(KeyEvent keyInput) {
 		boolean success = false;
 		for (PositionedPanelElement<T> pos : getPanelElementsSafe()) {
 			if (pos.element().keyPressed(keyInput)) {
@@ -203,7 +202,7 @@ public abstract class Panel<T extends Drawable & Element> implements MVDrawable,
 		return success;
 	}
 	@Override
-	public boolean keyReleased(KeyInput keyInput) {
+	public boolean keyReleased(KeyEvent keyInput) {
 		boolean success = false;
 		for (PositionedPanelElement<T> pos : getPanelElementsSafe()) {
 			if (pos.element().keyReleased(keyInput)) {
@@ -215,7 +214,7 @@ public abstract class Panel<T extends Drawable & Element> implements MVDrawable,
 		return success;
 	}
 	@Override
-	public boolean charTyped(CharInput charInput) {
+	public boolean charTyped(CharacterEvent charInput) {
 		boolean success = false;
 		for (PositionedPanelElement<T> pos : getPanelElementsSafe()) {
 			if (pos.element().charTyped(charInput)) {

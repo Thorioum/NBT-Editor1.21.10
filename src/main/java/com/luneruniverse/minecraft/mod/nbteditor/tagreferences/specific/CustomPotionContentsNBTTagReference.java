@@ -11,38 +11,20 @@ import com.luneruniverse.minecraft.mod.nbteditor.multiversion.nbt.MVNbtCompoundP
 import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.general.TagReference;
 import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.specific.data.CustomPotionContents;
 
-import net.minecraft.entity.effect.StatusEffectInstance;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.nbt.CompoundTag;
 
 public class CustomPotionContentsNBTTagReference implements TagReference<CustomPotionContents, ItemStack> {
-	
-	private static final Supplier<Class<?>> PotionUtil = Reflection.getOptionalClass("net.minecraft.class_1844");
-	
-	private static final Supplier<Reflection.MethodInvoker> PotionUtil_getCustomPotionEffects =
-			Reflection.getOptionalMethod(PotionUtil, () -> "method_8068", () -> MethodType.methodType(List.class, ItemStack.class));
+
+
 	@Override
 	public CustomPotionContents get(ItemStack object) {
-		Integer color = null;
-		if (object.nbte$hasNbt()) {
-			NbtCompound nbt = object.nbte$getNbt();
-			if (nbt.nbte$contains("CustomPotionColor", MVNbtCompoundParent.NUMBER_TYPE))
-				color = nbt.nbte$getIntOrDefault("CustomPotionColor");
-		}
-		List<StatusEffectInstance> effects = PotionUtil_getCustomPotionEffects.get().invoke(null, object);
-		return new CustomPotionContents(Optional.ofNullable(color), effects);
+		return null;
 	}
-	
-	private static final Supplier<Reflection.MethodInvoker> PotionUtil_setCustomPotionEffects =
-			Reflection.getOptionalMethod(PotionUtil, () -> "method_8056", () -> MethodType.methodType(ItemStack.class, ItemStack.class, Collection.class));
+
 	@Override
 	public void set(ItemStack object, CustomPotionContents value) {
-		if (value.color().isEmpty()) {
-			if (object.nbte$hasNbt())
-				object.nbte$modifyNbt(nbt -> nbt.remove("CustomPotionColor"));
-		} else
-			object.nbte$modifyNbt(nbt -> nbt.putInt("CustomPotionColor", value.color().get()));
-		PotionUtil_setCustomPotionEffects.get().invoke(null, object, value.effects());
+
 	}
-	
 }

@@ -15,21 +15,21 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.JsonOps;
 
-import com.nimbusds.jose.util.JSONStringUtils;
-import net.minecraft.dialog.type.Dialog;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
+import net.minecraft.server.dialog.Dialog;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.nbt.NbtOps;
-import net.minecraft.nbt.StringNbtReader;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.registry.RegistryOps;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.text.ClickEvent;
-import net.minecraft.text.HoverEvent;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
+import net.minecraft.nbt.TagParser;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.RegistryOps;
+import net.minecraft.core.Holder;
+import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.ItemStackTemplate;
 
 public class MVTextEvents {
 	
@@ -53,11 +53,11 @@ public class MVTextEvents {
 			} catch (NumberFormatException e) {}
 			return Optional.empty();
 		};
-		private static final Function<String, Optional<RegistryEntry<Dialog>>> parseDialog = s->{
+		private static final Function<String, Optional<Holder<Dialog>>> parseDialog = s->{
 
 			Gson gson = new Gson();
 			var s2 = gson.fromJson(s,JsonObject.class);
-            var s3 =  Dialog.ENTRY_CODEC.fieldOf("dialog").codec().decode(JsonOps.INSTANCE, s2).result();
+            var s3 =  Dialog.CODEC.fieldOf("dialog").codec().decode(JsonOps.INSTANCE, s2).result();
             return s3.map(Pair::getFirst);
         };
 		public static final ClickAction<URI> OPEN_URL = new ClickAction<>("open_url", ClickEvent.Action.OPEN_URL, parseUri, ClickEvent.OpenUrl::uri, ClickEvent.OpenUrl::new);
@@ -66,7 +66,7 @@ public class MVTextEvents {
 		public static final ClickAction<String> SUGGEST_COMMAND = new ClickAction<>("suggest_command", ClickEvent.Action.SUGGEST_COMMAND, parseCmd, ClickEvent.SuggestCommand::command, ClickEvent.SuggestCommand::new);
 		public static final ClickAction<Integer> CHANGE_PAGE = new ClickAction<>("change_page", ClickEvent.Action.CHANGE_PAGE, parsePage, ClickEvent.ChangePage::page, ClickEvent.ChangePage::new);
 		public static final ClickAction<String> COPY_TO_CLIPBOARD = new ClickAction<>("copy_to_clipboard", ClickEvent.Action.COPY_TO_CLIPBOARD, parseStr, ClickEvent.CopyToClipboard::value, ClickEvent.CopyToClipboard::new);
-		public static final ClickAction<RegistryEntry<Dialog>> SHOW_DIALOG = new ClickAction<>("show_dialog", ClickEvent.Action.SHOW_DIALOG, parseDialog, ClickEvent.ShowDialog::dialog, ClickEvent.ShowDialog::new);
+		public static final ClickAction<Holder<Dialog>> SHOW_DIALOG = new ClickAction<>("show_dialog", ClickEvent.Action.SHOW_DIALOG, parseDialog, ClickEvent.ShowDialog::dialog, ClickEvent.ShowDialog::new);
 		public static final ClickAction<String> CUSTOM = new ClickAction<>("copy_to_clipboard", ClickEvent.Action.CUSTOM, parseStr, ClickEvent.CopyToClipboard::value, ClickEvent.CopyToClipboard::new);
 
 		public static final ClickAction<?>[] VALUES = new ClickAction<?>[] {OPEN_URL, OPEN_FILE, RUN_COMMAND, SUGGEST_COMMAND, CHANGE_PAGE, COPY_TO_CLIPBOARD};
@@ -83,7 +83,7 @@ public class MVTextEvents {
 				Reflection.getOptionalMethod(ClickEvent.class, "method_10845", MethodType.methodType(ClickEvent.Action.class));
 		public static ClickAction<?> getAction(ClickEvent event) {
 			return switch (Version.<ClickEvent.Action>newSwitch()
-					.range("1.21.5", null, event::getAction)
+					.range("1.21.5", null, event::action)
 					.range(null, "1.21.4", () -> ClickEvent_getAction.get().invoke(event))
 					.get()) {
 				case OPEN_URL -> OPEN_URL;
@@ -145,9 +145,9 @@ public class MVTextEvents {
 	}
 	
 	public static class HoverAction<T> {
-		public static final HoverAction<Text> SHOW_TEXT = new HoverAction<>("show_text", HoverEvent.Action.SHOW_TEXT, HoverEvent.ShowText::value, HoverEvent.ShowText::new);
-		public static final HoverAction<ItemStack> SHOW_ITEM = new HoverAction<>("show_item", HoverEvent.Action.SHOW_ITEM, HoverEvent.ShowItem::item, HoverEvent.ShowItem::new);
-		public static final HoverAction<HoverEvent.EntityContent> SHOW_ENTITY = new HoverAction<>("show_entity", HoverEvent.Action.SHOW_ENTITY, HoverEvent.ShowEntity::entity, HoverEvent.ShowEntity::new);
+		public static final HoverAction<Component> SHOW_TEXT = new HoverAction<>("show_text", net.minecraft.network.chat.HoverEvent.Action.SHOW_TEXT, HoverEvent.ShowText::value, HoverEvent.ShowText::new);
+		public static final HoverAction<ItemStackTemplate> SHOW_ITEM = new HoverAction<>("show_item", net.minecraft.network.chat.HoverEvent.Action.SHOW_ITEM, HoverEvent.ShowItem::item, HoverEvent.ShowItem::new);
+		public static final HoverAction<HoverEvent.EntityTooltipInfo> SHOW_ENTITY = new HoverAction<>("show_entity", net.minecraft.network.chat.HoverEvent.Action.SHOW_ENTITY, HoverEvent.ShowEntity::entity, HoverEvent.ShowEntity::new);
 		public static final HoverAction<?>[] VALUES = new HoverAction<?>[] {SHOW_TEXT, SHOW_ITEM, SHOW_ENTITY};
 		
 		public static HoverAction<?> fromName(String name) {
@@ -159,10 +159,10 @@ public class MVTextEvents {
 		}
 		
 		private static final Supplier<Reflection.MethodInvoker> HoverEvent_getAction =
-				Reflection.getOptionalMethod(HoverEvent.class, "method_10892", MethodType.methodType(HoverEvent.Action.class));
+				Reflection.getOptionalMethod(HoverEvent.class, "method_10892", MethodType.methodType(net.minecraft.network.chat.HoverEvent.Action.class));
 		public static HoverAction<?> getAction(HoverEvent event) {
-			return switch (Version.<HoverEvent.Action>newSwitch()
-					.range("1.21.5", null, () -> event.getAction())
+			return switch (Version.<net.minecraft.network.chat.HoverEvent.Action>newSwitch()
+					.range("1.21.5", null, () -> event.action())
 					.range(null, "1.21.4", () -> HoverEvent_getAction.get().invoke(event))
 					.get()) {
 				case SHOW_TEXT -> SHOW_TEXT;
@@ -172,12 +172,12 @@ public class MVTextEvents {
 		}
 		
 		private final String name;
-		private final HoverEvent.Action action;
+		private final net.minecraft.network.chat.HoverEvent.Action action;
 		private final Function<HoverEvent, T> getter;
 		private final Function<T, HoverEvent> constructor;
 		
 		@SuppressWarnings("unchecked")
-		private <E extends HoverEvent> HoverAction(String name, HoverEvent.Action action, Function<E, T> getter, Function<T, HoverEvent> constructor) {
+		private <E extends HoverEvent> HoverAction(String name, net.minecraft.network.chat.HoverEvent.Action action, Function<E, T> getter, Function<T, HoverEvent> constructor) {
 			this.name = name;
 			this.action = action;
 			this.getter = (Function<HoverEvent, T>) getter;
@@ -196,7 +196,7 @@ public class MVTextEvents {
 				Reflection.getOptionalClass("net.minecraft.class_2568$class_5249");
 		
 		private static final Supplier<Reflection.MethodInvoker> HoverEvent_getValue =
-				Reflection.getOptionalMethod(HoverEvent.class, "", MethodType.methodType(Object.class, HoverEvent.Action.class));
+				Reflection.getOptionalMethod(HoverEvent.class, "", MethodType.methodType(Object.class, net.minecraft.network.chat.HoverEvent.Action.class));
 		private static final Supplier<Reflection.MethodInvoker> HoverEvent$ItemStackContent_asStack =
 				Reflection.getOptionalMethod(HoverEvent$ItemStackContent, () -> "method_27683", () -> MethodType.methodType(ItemStack.class));
 		@SuppressWarnings("unchecked")
@@ -212,11 +212,11 @@ public class MVTextEvents {
 					.get();
 		}
 		private static final Supplier<Reflection.MethodInvoker> HoverEvent$Action_contentsToJson =
-				Reflection.getOptionalMethod(HoverEvent.Action.class, "method_27669", MethodType.methodType(JsonElement.class, Object.class));
+				Reflection.getOptionalMethod(net.minecraft.network.chat.HoverEvent.Action.class, "method_27669", MethodType.methodType(JsonElement.class, Object.class));
 		public String getStringifiedValue(HoverEvent event) {
 			return Version.<String>newSwitch()
 					.range("1.21.5", null, () -> {
-						NbtCompound nbt = (NbtCompound) MVMisc.result(HoverEvent.CODEC.encodeStart(NbtOps.INSTANCE, event)).orElseThrow();
+						CompoundTag nbt = (CompoundTag) MVMisc.result(HoverEvent.CODEC.encodeStart(NbtOps.INSTANCE, event)).orElseThrow();
 						if (this == SHOW_TEXT)
 							return nbt.get("value").toString();
 						nbt.remove("action");
@@ -231,7 +231,7 @@ public class MVTextEvents {
 			return Version.<HoverEvent>newSwitch()
 					.range("1.21.5", null, () -> constructor.apply(value))
 					.range(null, "1.21.4", () -> Reflection.newInstance(HoverEvent.class,
-							new Class<?>[] {HoverEvent.Action.class, Object.class}, action,
+							new Class<?>[] {net.minecraft.network.chat.HoverEvent.Action.class, Object.class}, action,
 							this == SHOW_ITEM ? Reflection.newInstance(HoverEvent$ItemStackContent.get(), new Class<?>[] {ItemStack.class}, value) : value))
 					.get();
 		}
@@ -240,19 +240,19 @@ public class MVTextEvents {
 		public Optional<HoverEvent> newEventParse(String valueStr) {
 			return Version.<Optional<HoverEvent>>newSwitch()
 					.range("1.21.5", null, () -> {
-						NbtElement valueNbt;
+						Tag valueNbt;
 						try {
-							valueNbt = StringNbtReader.fromOps(NbtOps.INSTANCE).read(valueStr);
+							valueNbt = TagParser.create(NbtOps.INSTANCE).parseFully(valueStr);
 						} catch (CommandSyntaxException e) {
 							return Optional.empty();
 						}
 						
-						NbtCompound nbt = new NbtCompound();
+						CompoundTag nbt = new CompoundTag();
 						nbt.putString("action", name);
 						if (this == SHOW_TEXT)
 							nbt.put("value", valueNbt);
-						else if (valueNbt instanceof NbtCompound valueNbtCompound)
-							nbt.copyFrom(valueNbtCompound);
+						else if (valueNbt instanceof CompoundTag valueNbtCompound)
+							nbt.merge(valueNbtCompound);
 						else
 							return Optional.empty();
 						

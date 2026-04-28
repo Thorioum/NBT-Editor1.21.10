@@ -7,27 +7,27 @@ import java.util.stream.IntStream;
 
 import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 
-import net.minecraft.inventory.SimpleInventory;
-import net.minecraft.item.ItemStack;
-import net.minecraft.screen.GenericContainerScreenHandler;
-import net.minecraft.screen.ScreenHandlerType;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.util.Identifier;
+import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.inventory.ChestMenu;
+import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.resources.Identifier;
 
-public class ClientScreenHandler extends GenericContainerScreenHandler {
+public class ClientScreenHandler extends ChestMenu {
 	
 	public static final int SYNC_ID = -2718;
 	
 	public ClientScreenHandler(int rows) {
 		super(switch (rows) {
-			case 1 -> ScreenHandlerType.GENERIC_9X1;
-			case 2 -> ScreenHandlerType.GENERIC_9X2;
-			case 3 -> ScreenHandlerType.GENERIC_9X3;
-			case 4 -> ScreenHandlerType.GENERIC_9X4;
-			case 5 -> ScreenHandlerType.GENERIC_9X5;
-			case 6 -> ScreenHandlerType.GENERIC_9X6;
+			case 1 -> MenuType.GENERIC_9x1;
+			case 2 -> MenuType.GENERIC_9x2;
+			case 3 -> MenuType.GENERIC_9x3;
+			case 4 -> MenuType.GENERIC_9x4;
+			case 5 -> MenuType.GENERIC_9x5;
+			case 6 -> MenuType.GENERIC_9x6;
 			default -> throw new IllegalArgumentException("Invalid row count: " + rows);
-		}, SYNC_ID, MainUtil.client.player.getInventory(), new SimpleInventory(rows * 9), rows);
+		}, SYNC_ID, MainUtil.client.player.getInventory(), new SimpleContainer(rows * 9), rows);
 		
 		slots.replaceAll(ClientScreenHandlerSlot::new);
 	}
@@ -42,7 +42,7 @@ public class ClientScreenHandler extends GenericContainerScreenHandler {
 	}
 	
 	@Override
-	protected boolean insertItem(ItemStack stack, int startIndex, int endIndex, boolean fromLast) {
+	protected boolean moveItemStackTo(ItemStack stack, int startIndex, int endIndex, boolean fromLast) {
 		boolean changed = false;
 		List<Integer> indices = IntStream.range(startIndex, endIndex).collect(ArrayList::new, List::add, List::addAll);
 		if (fromLast)
@@ -53,20 +53,20 @@ public class ClientScreenHandler extends GenericContainerScreenHandler {
 				if (stack.isEmpty())
 					break;
 				Slot slot = slots.get(i);
-				ItemStack slotStack = slot.getStack();
+				ItemStack slotStack = slot.getItem();
 				
-				if (!slotStack.isEmpty() && ItemStack.areItemsAndComponentsEqual(stack, slotStack)) {
+				if (!slotStack.isEmpty() && ItemStack.isSameItemSameComponents(stack, slotStack)) {
 					int total = slotStack.getCount() + stack.getCount();
-					int max = slot.getMaxItemCount(slotStack);
+					int max = slot.getMaxStackSize(slotStack);
 					if (total <= max) {
 						stack.setCount(0);
 						slotStack.setCount(total);
-						slot.markDirty();
+						slot.setChanged();
 						changed = true;
 					} else if (slotStack.getCount() < max) {
-						stack.decrement(max - slotStack.getCount());
+						stack.shrink(max - slotStack.getCount());
 						slotStack.setCount(max);
-						slot.markDirty();
+						slot.setChanged();
 						changed = true;
 					}
 				}
@@ -76,12 +76,12 @@ public class ClientScreenHandler extends GenericContainerScreenHandler {
 		if (!stack.isEmpty()) {
 			for (int i : indices) {
 				Slot slot = slots.get(i);
-				ItemStack slotStack = slot.getStack();
+				ItemStack slotStack = slot.getItem();
 				
-				if (slotStack.isEmpty() && slot.canInsert(stack)) {
-					int max = slot.getMaxItemCount(stack);
-					slot.setStackNoCallbacks(stack.split(Math.min(stack.getCount(), max)));
-					slot.markDirty();
+				if (slotStack.isEmpty() && slot.mayPlace(stack)) {
+					int max = slot.getMaxStackSize(stack);
+					slot.set(stack.split(Math.min(stack.getCount(), max)));
+					slot.setChanged();
 					changed = true;
 					break;
 				}

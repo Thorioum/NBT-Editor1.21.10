@@ -150,7 +150,7 @@ public class Version {
 	
 	private static int[] parseVersion(String version) {
 		int[] parts = Stream.of(version.split("\\.")).mapToInt(Integer::parseInt).toArray();
-		if (parts[0] != 1 || parts.length < 2 || parts.length > 3)
+		if (parts.length < 2 || parts.length > 3)
 			throw new IllegalArgumentException("Unsupported Minecraft version: " + version);
 		if (parts.length == 3)
 			return parts;

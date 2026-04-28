@@ -5,7 +5,7 @@ import java.util.List;
 import com.luneruniverse.minecraft.mod.nbteditor.NBTEditorClient;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.TextInst;
 
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.item.ItemStack;
 
 public class CursorHistoryScreen extends ClientHandledScreen {
 	
@@ -19,8 +19,8 @@ public class CursorHistoryScreen extends ClientHandledScreen {
 		super(6, TextInst.translatable("nbteditor.container.title")
 				.append(TextInst.translatable("nbteditor.get.lost_item.history")));
 		
-		for (int i = 0; i < handler.getInventory().size() && i < items.size(); i++)
-			handler.getSlot(i).setStackNoCallbacks(items.get(i).copy());
+		for (int i = 0; i < menu.getContainer().getContainerSize() && i < items.size(); i++)
+			menu.getSlot(i).set(items.get(i).copy());
 		
 		lockedSlots = LockedSlotsInfo.ALL_LOCKED.copy();
 		lockedItems.forEach(lockedSlots::addContainerSlot);
@@ -32,7 +32,7 @@ public class CursorHistoryScreen extends ClientHandledScreen {
 	}
 	
 	@Override
-	public boolean shouldPause() {
+	public boolean isPauseScreen() {
 		return true;
 	}
 	

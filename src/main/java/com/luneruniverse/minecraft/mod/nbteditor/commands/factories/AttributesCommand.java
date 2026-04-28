@@ -19,15 +19,15 @@ import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 
-import net.minecraft.entity.mob.MobEntity;
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.item.ItemStack;
 
 public class AttributesCommand extends ClientCommand {
 	
 	public static final NBTReferenceFilter ATTRIBUTES_FILTER = NBTReferenceFilter.create(
 			ref -> true,
 			null,
-			ref -> ServerMVMisc.createEntity(ref.getEntityType(), MainUtil.client.world) instanceof MobEntity,
+			ref -> ServerMVMisc.createEntity(ref.getEntityType(), MainUtil.client.level) instanceof Mob,
 			TextInst.translatable("nbteditor.no_ref.attributes"),
 			TextInst.translatable("nbteditor.no_hand.no_item.to_edit"));
 	
@@ -48,12 +48,12 @@ public class AttributesCommand extends ClientCommand {
 			ItemStack item = ref.getItem();
 			List<AttributeData> attributes = ItemTagReferences.ATTRIBUTES.get(item);
 			if (attributes.isEmpty())
-				MainUtil.client.player.sendMessage(TextInst.translatable("nbteditor.attributes.new_uuids.no_attributes"), false);
+				MainUtil.client.player.sendSystemMessage(TextInst.translatable("nbteditor.attributes.new_uuids.no_attributes"));
 			else {
 				attributes.replaceAll(attribute -> new AttributeData(attribute.attribute(), attribute.value(),
 						attribute.modifierData().get().operation(), attribute.modifierData().get().slot(), AttributeModifierId.randomUUID()));
 				ItemTagReferences.ATTRIBUTES.set(item, attributes);
-				ref.saveItem(item, () -> MainUtil.client.player.sendMessage(TextInst.translatable("nbteditor.attributes.new_uuids.success"), false));
+				ref.saveItem(item, () -> MainUtil.client.player.sendSystemMessage(TextInst.translatable("nbteditor.attributes.new_uuids.success")));
 			}
 			return Command.SINGLE_SUCCESS;
 		})).executes(context -> {

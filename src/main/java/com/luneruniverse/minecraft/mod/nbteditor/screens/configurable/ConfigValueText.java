@@ -6,7 +6,7 @@ import java.util.function.Consumer;
 
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.TextInst;
 import com.luneruniverse.minecraft.mod.nbteditor.screens.widgets.NamedTextFieldWidget;
-import net.minecraft.client.gui.Click;
+import net.minecraft.client.input.MouseButtonEvent;
 
 public class ConfigValueText extends NamedTextFieldWidget implements ConfigValue<String, ConfigValueText> {
 	
@@ -17,12 +17,12 @@ public class ConfigValueText extends NamedTextFieldWidget implements ConfigValue
 		super(0, 0, width, 20);
 		setMaxLength(Integer.MAX_VALUE);
 		name(TextInst.of(defaultValue));
-		setText(value == null ? "" : value);
+		setValue(value == null ? "" : value);
 		
 		this.defaultValue = defaultValue;
 		this.onChanged = new ArrayList<>();
 		
-		super.setChangedListener(newValue -> {
+		super.setResponder(newValue -> {
 			onChanged.forEach(listener -> listener.onValueChanged(this));
 		});
 	}
@@ -32,7 +32,7 @@ public class ConfigValueText extends NamedTextFieldWidget implements ConfigValue
 	}
 	
 	@Override
-	public boolean mouseClicked(Click click, boolean doubled) {
+	public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
 		boolean output = super.mouseClicked(click, doubled);
 		setMultiFocused(output);
 		return output;
@@ -45,11 +45,11 @@ public class ConfigValueText extends NamedTextFieldWidget implements ConfigValue
 	
 	@Override
 	public void setValue(String value) {
-		setText(value);
+		setValue(value);
 	}
 	@Override
-	public String getValue() {
-		return getText();
+	public String getConfigValue() {
+		return getConfigValue();
 	}
 	@Override
 	public boolean isValueValid() {
@@ -61,7 +61,7 @@ public class ConfigValueText extends NamedTextFieldWidget implements ConfigValue
 		return this;
 	}
 	@Override
-	public void setChangedListener(Consumer<String> changedListener) {
+	public void setResponder(Consumer<String> changedListener) {
 		throw new UnsupportedOperationException("Use addValueListener instead!");
 	}
 	
@@ -77,7 +77,7 @@ public class ConfigValueText extends NamedTextFieldWidget implements ConfigValue
 	
 	@Override
 	public ConfigValueText clone(boolean defaults) {
-		return new ConfigValueText(width, defaults ? defaultValue : getText(), defaultValue, onChanged);
+		return new ConfigValueText(width, defaults ? defaultValue : getConfigValue(), defaultValue, onChanged);
 	}
 	
 }

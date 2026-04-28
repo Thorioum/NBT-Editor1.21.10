@@ -6,8 +6,7 @@ import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVTooltip;
 import com.luneruniverse.minecraft.mod.nbteditor.screens.Tickable;
 import com.luneruniverse.minecraft.mod.nbteditor.screens.widgets.Panel;
 
-import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
-import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.client.gui.narration.NarrationElementOutput;
 import org.joml.Matrix3x2fStack;
 
 public class ConfigPanel extends Panel<ConfigPath> implements Tickable {
@@ -39,12 +38,12 @@ public class ConfigPanel extends Panel<ConfigPath> implements Tickable {
 	}
 	
 	@Override
-	public void render(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
+	public void extractRenderState(Matrix3x2fStack matrices, int mouseX, int mouseY, float delta) {
 		boolean prevOneTooltip = MVTooltip.isOneTooltip();
 		if (!prevOneTooltip)
 			MVTooltip.setOneTooltip(true, true);
 		try {
-			super.render(matrices, mouseX, mouseY, delta);
+			super.extractRenderState(matrices, mouseX, mouseY, delta);
 		} finally {
 			if (!prevOneTooltip)
 				MVTooltip.renderOneTooltip(matrices, mouseX, mouseY);
@@ -59,12 +58,12 @@ public class ConfigPanel extends Panel<ConfigPath> implements Tickable {
 	
 	
 	@Override
-	public SelectionType getType() {
-		return SelectionType.NONE;
+	public NarrationPriority narrationPriority() {
+		return NarrationPriority.NONE;
 	}
 	
 	@Override
-	public void appendNarrations(NarrationMessageBuilder builder) {
+	public void updateNarration(NarrationElementOutput builder) {
 		
 	}
 	

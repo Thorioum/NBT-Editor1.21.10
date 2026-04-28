@@ -7,12 +7,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import com.luneruniverse.minecraft.mod.nbteditor.server.ServerMixinLink;
 
-import net.minecraft.item.ItemStack;
-import net.minecraft.screen.slot.Slot;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.inventory.Slot;
 
-@Mixin(targets = {"net.minecraft.screen.HorseScreenHandler$2"})
+@Mixin(targets = {"net.minecraft.world.inventory.HorseInventoryMenu$2"})
 public class HorseScreenHandler2Mixin {
-	@Inject(method = "method_7680(Lnet/minecraft/class_1799;)Z", at = @At("HEAD"), cancellable = true, remap = false)
+	// TODO(Ravel): target method method_7680 with the signature not found
+    @Inject(method = "method_7680(Lnet/minecraft/class_1799;)Z", at = @At("HEAD"), cancellable = true, remap = false)
 	@SuppressWarnings("target")
 	private void canInsert(ItemStack item, CallbackInfoReturnable<Boolean> info) {
 		ServerMixinLink.slotCanInsertOrTake((Slot) (Object) this, info, false);

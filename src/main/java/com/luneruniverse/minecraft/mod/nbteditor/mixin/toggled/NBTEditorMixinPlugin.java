@@ -13,12 +13,11 @@ public class NBTEditorMixinPlugin extends BasicMixinPlugin {
 	@Override
 	public void addMixins(List<String> output) {
 		Version.newSwitch()
-				.range("1.19.3", null, () -> output.add("toggled.ServerPlayNetworkHandlerMixin"))
+				.range("1.19.3", null, () -> output.add("toggled.ServerGamePacketListenerImplMixin"))
 				.range(null, "1.19.2", () -> {})
 				.run();
 		Version.newSwitch()
 				.range("1.21.0", null, () -> output.add("toggled.ArmorSlotMixin"))
-				.range(null, "1.20.6", () -> output.add("toggled.PlayerScreenHandler1Mixin"))
 				.run();
 		Version.newSwitch()
 				.range("1.21.5", null, () -> {}) // Covered by ArmorSlotMixin
@@ -27,31 +26,15 @@ public class NBTEditorMixinPlugin extends BasicMixinPlugin {
 					output.add("toggled.HorseScreenHandler2Mixin");
 				})
 				.run();
-		Version.newSwitch()
-				.range("1.20.5", null, () -> {
-					output.add("toggled.BundleItemMixin_1_20_5");
-					output.add("toggled.BundleContentsComponentBuilderMixin");
-				})
-				.range(null, "1.20.4", () -> output.add("toggled.BundleItemMixin_1_20_4"))
-				.run();
-		Version.newSwitch()
-				.range("1.21.2", null, () -> {})
-				.range(null, "1.21.1", () -> output.add("toggled.BundleItemMixin_1_21_1"))
-				.run();
-		Version.newSwitch()
-				.range("1.21.5", null, () -> output.add("toggled.ClickSlotC2SPacketMixin_1_21_5"))
-				.range(null, "1.21.4", () -> output.add("toggled.ClickSlotC2SPacketMixin_1_21_4"))
-				.run();
-		Version.newSwitch()
-				.range("1.21.5", null, () -> output.add("toggled.PlayStateFactories1Mixin"))
-				.range(null, "1.21.4", () -> {})
-				.run();
 		
 		if (FabricLoader.getInstance().getEnvironmentType() == EnvType.SERVER)
 			return;
 		
 		Version.newSwitch()
-				.range("1.20.0", null, () -> output.add("toggled.DrawContextMixin"))
+				.range("1.20.0", null, () -> {
+					output.add("toggled.GuiGraphicsExtractorMixin");
+					output.add("toggled.GuiRenderStateMixin");
+				})
 				.range("1.19.3", "1.19.4", () -> output.add("toggled.ScreenMixin"))
 				.range(null, "1.19.2", () -> {})
 				.run();
@@ -76,23 +59,21 @@ public class NBTEditorMixinPlugin extends BasicMixinPlugin {
 				.run();
 		Version.newSwitch()
 				.range("1.21.5", null, () -> output.add("toggled.GameRendererMixin_1_21_5"))
-				.range("1.21.2", "1.21.4", () -> output.add("toggled.GameRendererMixin_1_21_2"))
-				.range(null, "1.21.1", () -> output.add("toggled.GameRendererMixin_1_21_1"))
 				.run();
 		Version.newSwitch()
 				.range("1.21.4", null, () -> {
-					output.add("toggled.ItemModelManagerMixin");
+					output.add("toggled.ItemModelResolverMixin");
 					output.add("toggled.ItemRenderStateLayerRenderStateMixin");
 				})
 				.range(null, "1.21.3", () -> output.add("toggled.BuiltinModelItemRendererMixin"))
 				.run();
 		Version.newSwitch()
-				.range("1.21.2", null, () -> output.add("toggled.ClientPlayNetworkHandlerMixin"))
+				.range("1.21.2", null, () -> output.add("toggled.ClientPacketListenerMixin"))
 				.range(null, "1.21.1", () -> {})
 				.run();
 		Version.newSwitch()
-				.range("1.21.5", null, () -> output.add("toggled.SnbtParsingMixin"))
-				.range(null, "1.21.4", () -> output.add("toggled.StringNbtReaderMixin"))
+				.range("1.21.5", null, () -> output.add("toggled.SnbtGrammarMixin"))
+				.range(null, "1.21.4", () -> output.add("toggled.TagParserMixin"))
 				.run();
 	}
 	

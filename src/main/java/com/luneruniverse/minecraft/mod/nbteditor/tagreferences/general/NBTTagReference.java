@@ -2,74 +2,63 @@ package com.luneruniverse.minecraft.mod.nbteditor.tagreferences.general;
 
 import java.lang.invoke.MethodType;
 import java.lang.reflect.Array;
+import java.util.AbstractList;
 
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.MVMisc;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.TextInst;
 
-import net.minecraft.nbt.AbstractNbtList;
-import net.minecraft.nbt.AbstractNbtNumber;
-import net.minecraft.nbt.NbtByte;
-import net.minecraft.nbt.NbtByteArray;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtDouble;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtFloat;
-import net.minecraft.nbt.NbtInt;
-import net.minecraft.nbt.NbtIntArray;
-import net.minecraft.nbt.NbtList;
-import net.minecraft.nbt.NbtLong;
-import net.minecraft.nbt.NbtLongArray;
-import net.minecraft.nbt.NbtShort;
-import net.minecraft.nbt.NbtString;
-import net.minecraft.text.Text;
+import net.minecraft.nbt.*;
 
-public class NBTTagReference<T> implements TagReference<T, NbtCompound> {
+import net.minecraft.nbt.Tag;
+import net.minecraft.network.chat.Component;
+
+public class NBTTagReference<T> implements TagReference<T, CompoundTag> {
 	
-	private static Object deserialize(NbtElement element, Class<?> target) {
+	private static Object deserialize(Tag element, Class<?> target) {
 		if (target.isArray()) {
-			if (!(element instanceof AbstractNbtList list))
+			if (!(element instanceof CollectionTag list))
 				return Array.newInstance(target.componentType(), 0);
 			
-			Object output = Array.newInstance(target.componentType(), list.nbte$size());
-			for (int i = 0; i < list.nbte$size(); i++)
-				Array.set(output, i, deserialize(list.nbte$get(i), target.componentType()));
+			Object output = Array.newInstance(target.componentType(), list.size());
+			for (int i = 0; i < list.size(); i++)
+				Array.set(output, i, deserialize(list.get(i), target.componentType()));
 			return output;
 		}
 		
-		if (target.isAssignableFrom(NbtElement.class))
+		if (target.isAssignableFrom(Tag.class))
 			return element.copy();
-		if (target.isAssignableFrom(NbtCompound.class))
-			return (element instanceof NbtCompound compound ? compound.copy() : new NbtCompound());
-		if (target.isAssignableFrom(NbtList.class))
-			return (element instanceof NbtList list ? list.copy() : new NbtList());
+		if (target.isAssignableFrom(CompoundTag.class))
+			return (element instanceof CompoundTag compound ? compound.copy() : new CompoundTag());
+		if (target.isAssignableFrom(ListTag.class))
+			return (element instanceof ListTag list ? list.copy() : new ListTag());
 		
 		Class<?> primitiveTarget = (target.isPrimitive() ? target : MethodType.methodType(target).unwrap().returnType());
 		if (primitiveTarget.isPrimitive()) {
 			if (primitiveTarget == boolean.class)
-				return (element instanceof AbstractNbtNumber num ? num.nbte$byteValue() != 0 : false);
+				return (element instanceof NumericTag num ? num.byteValue() != 0 : false);
 			if (primitiveTarget == byte.class)
-				return (element instanceof AbstractNbtNumber num ? num.nbte$byteValue() : (byte) 0);
+				return (element instanceof NumericTag num ? num.byteValue() : (byte) 0);
 			if (primitiveTarget == short.class)
-				return (element instanceof AbstractNbtNumber num ? num.nbte$shortValue() : (short) 0);
+				return (element instanceof NumericTag num ? num.shortValue() : (short) 0);
 			if (primitiveTarget == char.class)
-				return (element instanceof AbstractNbtNumber num ? (char) num.nbte$shortValue() : (char) 0);
+				return (element instanceof NumericTag num ? (char) num.shortValue() : (char) 0);
 			if (primitiveTarget == int.class)
-				return (element instanceof AbstractNbtNumber num ? num.nbte$intValue() : (int) 0);
+				return (element instanceof NumericTag num ? num.intValue() : (int) 0);
 			if (primitiveTarget == long.class)
-				return (element instanceof AbstractNbtNumber num ? num.nbte$longValue() : (long) 0);
+				return (element instanceof NumericTag num ? num.longValue() : (long) 0);
 			if (primitiveTarget == float.class)
-				return (element instanceof AbstractNbtNumber num ? num.nbte$floatValue() : (float) 0);
+				return (element instanceof NumericTag num ? num.floatValue() : (float) 0);
 			if (primitiveTarget == double.class)
-				return (element instanceof AbstractNbtNumber num ? num.nbte$doubleValue() : (double) 0);
+				return (element instanceof NumericTag num ? num.doubleValue() : (double) 0);
 			throw new IllegalArgumentException("Unknown primitive type " + primitiveTarget.getName());
 		}
 		
 		if (target.isAssignableFrom(String.class))
-			return (element instanceof NbtString str ? MVMisc.value(str) : "");
+			return (element instanceof StringTag str ? MVMisc.value(str) : "");
 		
-		if (target.isAssignableFrom(Text.class)) {
+		if (target.isAssignableFrom(Component.class)) {
 			try {
-				Text output = TextInst.fromMinecraft(element);
+				Component output = TextInst.fromMinecraft(element);
 				if (output == null)
 					return TextInst.of("");
 				return output;
@@ -81,7 +70,7 @@ public class NBTTagReference<T> implements TagReference<T, NbtCompound> {
 		throw new IllegalArgumentException("Cannot get " + target.getName() + " from nbt!");
 	}
 	
-	private static NbtElement serialize(Object value) {
+	private static Tag serialize(Object value) {
 		if (value == null)
 			throw new IllegalArgumentException("Cannot convert null to nbt!");
 		
@@ -91,60 +80,60 @@ public class NBTTagReference<T> implements TagReference<T, NbtCompound> {
 			Class<?> compType = valueType.componentType();
 			if (compType.isPrimitive()) {
 				if (compType == byte.class)
-					return new NbtByteArray((byte[]) value);
+					return new ByteArrayTag((byte[]) value);
 				if (compType == int.class)
-					return new NbtIntArray((int[]) value);
+					return new IntArrayTag((int[]) value);
 				if (compType == long.class)
-					return new NbtLongArray((long[]) value);
+					return new LongArrayTag((long[]) value);
 			}
 			
-			NbtList output = new NbtList();
+			ListTag output = new ListTag();
 			int length = Array.getLength(value);
 			for (int i = 0; i < length; i++)
 				output.add(serialize(Array.get(value, i)));
 			return output;
 		}
 		
-		if (NbtElement.class.isAssignableFrom(valueType))
-			return ((NbtElement) value).copy();
+		if (Tag.class.isAssignableFrom(valueType))
+			return ((Tag) value).copy();
 		
 		Class<?> primitiveValueType = (valueType.isPrimitive() ? valueType : MethodType.methodType(valueType).unwrap().returnType());
 		if (primitiveValueType.isPrimitive()) {
 			if (primitiveValueType == boolean.class)
-				return NbtByte.of((boolean) value);
+				return ByteTag.valueOf((boolean) value);
 			if (primitiveValueType == byte.class)
-				return NbtByte.of((byte) value);
+				return ByteTag.valueOf((byte) value);
 			if (primitiveValueType == short.class)
-				return NbtShort.of((short) value);
+				return ShortTag.valueOf((short) value);
 			if (primitiveValueType == char.class)
-				return NbtShort.of((short) (char) value);
+				return ShortTag.valueOf((short) (char) value);
 			if (primitiveValueType == int.class)
-				return NbtInt.of((int) value);
+				return IntTag.valueOf((int) value);
 			if (primitiveValueType == long.class)
-				return NbtLong.of((long) value);
+				return LongTag.valueOf((long) value);
 			if (primitiveValueType == float.class)
-				return NbtFloat.of((float) value);
+				return FloatTag.valueOf((float) value);
 			if (primitiveValueType == double.class)
-				return NbtDouble.of((double) value);
+				return DoubleTag.valueOf((double) value);
 			throw new IllegalArgumentException("Unknown primitive type " + primitiveValueType.getName());
 		}
 		
 		if (CharSequence.class.isAssignableFrom(valueType))
-			return NbtString.of(((CharSequence) value).toString());
+			return StringTag.valueOf(((CharSequence) value).toString());
 		
-		if (Text.class.isAssignableFrom(valueType))
-			return TextInst.toMinecraft((Text) value);
+		if (Component.class.isAssignableFrom(valueType))
+			return TextInst.toMinecraft((Component) value);
 		
 		throw new IllegalArgumentException("Cannot convert " + valueType.getName() + " to nbt!");
 	}
 	
-	private static NbtElement manageNbt(NbtCompound nbt, String[] path, boolean write, NbtElement toWrite) {
+	private static Tag manageNbt(CompoundTag nbt, String[] path, boolean write, Tag toWrite) {
 		for (int i = 0; i < path.length - 1; i++) {
-			NbtElement element = nbt.get(path[i]);
-			if (element instanceof NbtCompound compound)
+			Tag element = nbt.get(path[i]);
+			if (element instanceof CompoundTag compound)
 				nbt = compound;
 			else if (write) {
-				NbtCompound compound = new NbtCompound();
+				CompoundTag compound = new CompoundTag();
 				nbt.put(path[i], compound);
 				nbt = compound;
 			} else
@@ -160,13 +149,13 @@ public class NBTTagReference<T> implements TagReference<T, NbtCompound> {
 		}
 		return nbt.get(finalKey);
 	}
-	private static NbtElement getFromNbt(NbtCompound nbt, String[] path) {
+	private static Tag getFromNbt(CompoundTag nbt, String[] path) {
 		return manageNbt(nbt, path, false, null);
 	}
-	private static void setToNbt(NbtCompound nbt, String[] path, NbtElement value) {
+	private static void setToNbt(CompoundTag nbt, String[] path, Tag value) {
 		manageNbt(nbt, path, true, value);
 	}
-	private static void removeFromNbt(NbtCompound nbt, String[] path) {
+	private static void removeFromNbt(CompoundTag nbt, String[] path) {
 		manageNbt(nbt, path, true, null);
 	}
 	
@@ -180,12 +169,12 @@ public class NBTTagReference<T> implements TagReference<T, NbtCompound> {
 	
 	@SuppressWarnings("unchecked")
 	@Override
-	public T get(NbtCompound object) {
+	public T get(CompoundTag object) {
 		return (T) deserialize(object == null ? null : getFromNbt(object, path), clazz);
 	}
-	
+
 	@Override
-	public void set(NbtCompound object, T value) {
+	public void set(CompoundTag object, T value) {
 		if (value == null) {
 			removeFromNbt(object, path);
 			return;

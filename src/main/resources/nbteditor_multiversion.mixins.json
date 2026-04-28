@@ -5,19 +5,19 @@
   "compatibilityLevel": "JAVA_16",
   "plugin": "com.luneruniverse.minecraft.mod.nbteditor.multiversion.mixin.toggled.MVMixinPlugin",
   "mixins": [
-    "PacketByteBufMixin",
+    "FriendlyByteBufMixin",
     "BlockEntityMixin",
     "ItemStackMixin",
-    "NbtCompoundMixin",
-    "AbstractNbtListMixin",
-    "AbstractNbtNumberMixin"
+    "CompoundTagMixin",
+    "CollectionTagMixin",
+    "NumericTagMixin"
   ],
   "client": [
-    "ScreenHandlerMixin",
-    "DrawableMixin",
+    "AbstractContainerMenuMixin",
+    "RenderableMixin",
     "ScreenMixin",
-    "AbstractParentElementMixin",
-    "ParentElementMixin"
+    "AbstractContainerEventHandlerMixin",
+    "ContainerEventHandlerMixin"
   ],
   "injectors": {
     "defaultRequire": 1

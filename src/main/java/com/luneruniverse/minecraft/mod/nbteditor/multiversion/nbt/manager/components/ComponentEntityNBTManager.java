@@ -4,22 +4,22 @@ import com.luneruniverse.minecraft.mod.nbteditor.multiversion.Attempt;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.DynamicRegistryManagerHolder;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.nbt.manager.NBTManager;
 
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.nbt.NbtCompound;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
-import net.minecraft.storage.NbtReadView;
-import net.minecraft.storage.NbtWriteView;
-import net.minecraft.util.ErrorReporter;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.TagValueOutput;
+import net.minecraft.util.ProblemReporter;
 
 public class ComponentEntityNBTManager implements NBTManager<Entity> {
 	
 	@Override
-	public Attempt<NbtCompound> trySerialize(Entity subject) {
-		NbtWriteView view = new NbtWriteView(ErrorReporter.EMPTY, NbtOps.INSTANCE,new NbtCompound());
-		view.putString("id", EntityType.getId(subject.getType()).toString());
-		subject.writeData(view);
-		return new Attempt<>(view.getNbt());
+	public Attempt<CompoundTag> trySerialize(Entity subject) {
+		TagValueOutput view = new TagValueOutput(ProblemReporter.DISCARDING, NbtOps.INSTANCE,new CompoundTag());
+		view.putString("id", EntityType.getKey(subject.getType()).toString());
+		subject.saveWithoutId(view);
+		return new Attempt<>(view.buildResult());
 	}
 	
 	@Override
@@ -27,18 +27,18 @@ public class ComponentEntityNBTManager implements NBTManager<Entity> {
 		return true;
 	}
 	@Override
-	public NbtCompound getNbt(Entity subject) {
-		NbtWriteView v = new NbtWriteView(ErrorReporter.EMPTY,NbtOps.INSTANCE,new NbtCompound());
-		subject.writeData(v);
-		return v.getNbt();
+	public CompoundTag getNbt(Entity subject) {
+		TagValueOutput v = new TagValueOutput(ProblemReporter.DISCARDING,NbtOps.INSTANCE,new CompoundTag());
+		subject.saveWithoutId(v);
+		return v.buildResult();
 	}
 	@Override
-	public NbtCompound getOrCreateNbt(Entity subject) {
+	public CompoundTag getOrCreateNbt(Entity subject) {
 		return getNbt(subject);
 	}
 	@Override
-	public void setNbt(Entity subject, NbtCompound nbt) {
-		subject.readData(NbtReadView.create(ErrorReporter.EMPTY,DynamicRegistryManagerHolder.get(),nbt));
+	public void setNbt(Entity subject, CompoundTag nbt) {
+		subject.load(TagValueInput.create(ProblemReporter.DISCARDING,DynamicRegistryManagerHolder.get(),nbt));
 	}
 	
 }

@@ -5,9 +5,9 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import net.minecraft.text.Style;
-import net.minecraft.text.TextColor;
-import net.minecraft.util.Formatting;
+import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.TextColor;
+import net.minecraft.ChatFormatting;
 
 public interface FancyTextNode {
 	
@@ -24,7 +24,7 @@ public interface FancyTextNode {
 			switch (token.type()) {
 				case TEXT -> output.add(new FancyTextTextNode((String) token.content().get()));
 				case COLOR -> output.add(new FancyTextColorNode((TextColor) token.content().get()));
-				case FORMATTING -> output.add(new FancyTextFormattingNode((Formatting) token.content().get()));
+				case FORMATTING -> output.add(new FancyTextFormattingNode((ChatFormatting) token.content().get()));
 				case SHADOW_COLOR -> output.add(new FancyTextShadowColorNode((Integer) token.content().get()));
 				case OPEN_PAREN -> {
 					parenLevel++;

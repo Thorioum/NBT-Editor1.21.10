@@ -20,11 +20,11 @@ import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 
-import net.minecraft.entity.effect.StatusEffectInstance;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.potion.Potion;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.alchemy.Potion;
 
 public class GetPotionCommand extends ClientCommand {
 	
@@ -55,10 +55,10 @@ public class GetPotionCommand extends ClientCommand {
 	public void register(LiteralArgumentBuilder<FabricClientCommandSource> builder, String path) {
 		builder.then(argument("type", EnumArgumentType.options(PotionType.class)).then(argument("effects", EffectListArgumentType.effectList()).executes(context -> {
 			ItemStack item = new ItemStack(context.getArgument("type", PotionType.class).item, 1);
-			List<StatusEffectInstance> effects = new ArrayList<>(context.getArgument("effects", Collection.class));
+			List<MobEffectInstance> effects = new ArrayList<>(context.getArgument("effects", Collection.class));
 			Optional<Integer> color = Optional.empty();
 			if (!effects.isEmpty()) {
-				StatusEffectInstance effect = effects.get(0);
+				MobEffectInstance effect = effects.get(0);
 				Potion potion = MVRegistry.POTION.getEntrySet().stream().map(Map.Entry::getValue)
 						.filter(testPotion -> !testPotion.getEffects().isEmpty() &&
 								MVMisc.getEffectType(testPotion.getEffects().get(0)) == MVMisc.getEffectType(effect)).findFirst().orElse(null);

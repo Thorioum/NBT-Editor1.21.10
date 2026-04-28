@@ -6,21 +6,21 @@ import com.luneruniverse.minecraft.mod.nbteditor.multiversion.Attempt;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.Reflection;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.nbt.manager.DeserializableNBTManager;
 
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.nbt.CompoundTag;
 
 public class NBTItemNBTManager implements DeserializableNBTManager<ItemStack> {
 	
 	private static final Reflection.MethodInvoker ItemStack_writeNbt =
-			Reflection.getMethod(ItemStack.class, "method_7953", MethodType.methodType(NbtCompound.class, NbtCompound.class));
+			Reflection.getMethod(ItemStack.class, "method_7953", MethodType.methodType(CompoundTag.class, CompoundTag.class));
 	@Override
-	public Attempt<NbtCompound> trySerialize(ItemStack subject) {
-		return new Attempt<>(ItemStack_writeNbt.invoke(subject, new NbtCompound()));
+	public Attempt<CompoundTag> trySerialize(ItemStack subject) {
+		return new Attempt<>(ItemStack_writeNbt.invoke(subject, new CompoundTag()));
 	}
 	private static final Reflection.MethodInvoker ItemStack_fromNbt =
-			Reflection.getMethod(ItemStack.class, "method_7915", MethodType.methodType(ItemStack.class, NbtCompound.class));
+			Reflection.getMethod(ItemStack.class, "method_7915", MethodType.methodType(ItemStack.class, CompoundTag.class));
 	@Override
-	public Attempt<ItemStack> tryDeserialize(NbtCompound nbt) {
+	public Attempt<ItemStack> tryDeserialize(CompoundTag nbt) {
 		return new Attempt<>(ItemStack_fromNbt.invoke(null, nbt.copy()));
 	}
 	
@@ -31,24 +31,24 @@ public class NBTItemNBTManager implements DeserializableNBTManager<ItemStack> {
 		return ItemStack_hasNbt.invoke(subject);
 	}
 	private static final Reflection.MethodInvoker ItemStack_getNbt =
-			Reflection.getMethod(ItemStack.class, "method_7969", MethodType.methodType(NbtCompound.class));
+			Reflection.getMethod(ItemStack.class, "method_7969", MethodType.methodType(CompoundTag.class));
 	@Override
-	public NbtCompound getNbt(ItemStack subject) {
-		NbtCompound nbt = ItemStack_getNbt.invoke(subject);
+	public CompoundTag getNbt(ItemStack subject) {
+		CompoundTag nbt = ItemStack_getNbt.invoke(subject);
 		if (nbt == null)
 			return null;
 		return nbt.copy();
 	}
 	private static final Reflection.MethodInvoker ItemStack_getOrCreateNbt =
-			Reflection.getMethod(ItemStack.class, "method_7948", MethodType.methodType(NbtCompound.class));
+			Reflection.getMethod(ItemStack.class, "method_7948", MethodType.methodType(CompoundTag.class));
 	@Override
-	public NbtCompound getOrCreateNbt(ItemStack subject) {
-		return ((NbtCompound) ItemStack_getOrCreateNbt.invoke(subject)).copy();
+	public CompoundTag getOrCreateNbt(ItemStack subject) {
+		return ((CompoundTag) ItemStack_getOrCreateNbt.invoke(subject)).copy();
 	}
 	private static final Reflection.MethodInvoker ItemStack_setNbt =
-			Reflection.getMethod(ItemStack.class, "method_7980", MethodType.methodType(void.class, NbtCompound.class));
+			Reflection.getMethod(ItemStack.class, "method_7980", MethodType.methodType(void.class, CompoundTag.class));
 	@Override
-	public void setNbt(ItemStack subject, NbtCompound nbt) {
+	public void setNbt(ItemStack subject, CompoundTag nbt) {
 		ItemStack_setNbt.invoke(subject, nbt == null ? null : nbt.copy());
 	}
 	
