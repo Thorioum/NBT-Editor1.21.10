@@ -92,20 +92,18 @@ public class NBTValue extends List2D.List2DValue {
 		int color = -1;
 		String tooltip = null;
 
-		byte heldType = (byte) 0;
-		for (Tag element : parentList) {
-			if (heldType == 0)
-				heldType = element.getId();
-			else if (heldType != element.getId()){}
-		}
 
 		byte ht = (byte) 0;
-		for (Tag element : parentList) {
-			if (ht == 0)
-				ht = element.getId();
-			else if (ht != element.getId()){}
-		}
 
+		if(parentList != null) {
+
+			for (Tag element : parentList) {
+				if (ht == 0)
+					ht = element.getId();
+				else if (ht != element.getId()) {
+				}
+			}
+		}
 		if (unsafe && selected || parentList != null &&
 				!MVNbtCompoundParent.NBT_CODE_REFACTORED && ht != value.getId()) {
 			color = 0xFFFFAA33;

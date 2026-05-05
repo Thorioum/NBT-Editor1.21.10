@@ -550,7 +550,7 @@ public class NBTEditorScreen<L extends LocalNBT> extends LocalEditorScreen<L> {
 				keyConsumer);
 	}
 	private void getKey(Consumer<String> keyConsumer, boolean renaming) {
-		getKey(null, keyConsumer, renaming);
+		getKey("", keyConsumer, renaming);
 	}
 	
 	private void promptForDuplicateKey(String key, Consumer<String> keyConsumer) {

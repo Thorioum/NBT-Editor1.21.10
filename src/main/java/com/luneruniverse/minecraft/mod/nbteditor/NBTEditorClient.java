@@ -94,7 +94,7 @@ public class NBTEditorClient implements ClientModInitializer {
 					screen -> (screen instanceof CreativeModeInventoryScreen || screen instanceof InventoryScreen || screen instanceof ClientChestScreen)
 							&& SERVER_CONN.isEditingExpanded());
 
-		});
+		}).start();
 
 		CommandHandler.registerCommands();
 		try {
