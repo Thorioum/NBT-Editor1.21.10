@@ -21,6 +21,7 @@ import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import com.mt1006.nbt_ac.autocomplete.NbtSuggestionManager;
 
 import net.minecraft.commands.arguments.item.ItemParser;
+import net.minecraft.data.registries.VanillaRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.nbt.ListTag;
@@ -170,7 +171,7 @@ public class NBTAutocompleteIntegration extends Integration {
 			name = name.substring("item/".length());
 			int shift = name.length();
 			SuggestionsBuilder builder = new SuggestionsBuilder(name + tag, 0);
-			return new ItemParser(DynamicRegistryManagerHolder.get()).fillSuggestions(builder).thenApply(suggestions -> {
+			return new ItemParser((MainUtil.client.getConnection() == null ? VanillaRegistries.createLookup() : MainUtil.client.getConnection().registryAccess())).fillSuggestions(builder).thenApply(suggestions -> {
 				return new Suggestions(shiftRange(suggestions.getRange(), -shift), suggestions.getList().stream()
 						.map(suggestion -> shiftSuggestion(suggestion, -shift)).collect(Collectors.toList()));
 			});

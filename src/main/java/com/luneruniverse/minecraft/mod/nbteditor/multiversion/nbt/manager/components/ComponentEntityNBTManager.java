@@ -4,6 +4,8 @@ import com.luneruniverse.minecraft.mod.nbteditor.multiversion.Attempt;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.DynamicRegistryManagerHolder;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.nbt.manager.NBTManager;
 
+import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
+import net.minecraft.data.registries.VanillaRegistries;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.nbt.CompoundTag;
@@ -38,7 +40,7 @@ public class ComponentEntityNBTManager implements NBTManager<Entity> {
 	}
 	@Override
 	public void setNbt(Entity subject, CompoundTag nbt) {
-		subject.load(TagValueInput.create(ProblemReporter.DISCARDING,DynamicRegistryManagerHolder.get(),nbt));
+		subject.load(TagValueInput.create(ProblemReporter.DISCARDING,(MainUtil.client.getConnection() == null ? VanillaRegistries.createLookup() : MainUtil.client.getConnection().registryAccess()),nbt));
 	}
 	
 }

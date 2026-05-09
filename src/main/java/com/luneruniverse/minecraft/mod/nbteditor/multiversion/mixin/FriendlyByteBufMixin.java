@@ -3,6 +3,8 @@ package com.luneruniverse.minecraft.mod.nbteditor.multiversion.mixin;
 import java.lang.invoke.MethodType;
 import java.util.function.Supplier;
 
+import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
+import net.minecraft.data.registries.VanillaRegistries;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 
@@ -109,7 +111,7 @@ public abstract class FriendlyByteBufMixin implements MVPacketByteBufParent {
 	private Object createRegistryByteBuf() {
 		return Reflection.newInstance("net.minecraft.class_9129",
 				new Class<?>[] {ByteBuf.class, RegistryAccess.class},
-                source, DynamicRegistryManagerHolder.get());
+                source, (MainUtil.client.getConnection() == null ? VanillaRegistries.createLookup() : MainUtil.client.getConnection().registryAccess()));
 	}
 	
 }

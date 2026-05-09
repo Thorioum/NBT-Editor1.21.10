@@ -23,6 +23,8 @@ import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.ItemTagReferences
 import com.luneruniverse.minecraft.mod.nbteditor.tagreferences.specific.data.Enchants;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.core.Holder;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.ItemStack;
 import org.joml.Matrix3x2fStack;
@@ -75,10 +77,16 @@ public class EnchantmentsScreen extends LocalEditorScreen<LocalItem> {
 								.range(null, "1.17", 32767)
 								.get())));
 		config = new ConfigList(TextInst.translatable("nbteditor.enchantments"), false, entry);
-		
+
 		ItemTagReferences.ENCHANTMENTS.get(localNBT.getEditableItem()).getEnchants().forEach(enchant -> {
 			ConfigCategory enchantConfig = entry.clone(true);
-			getConfigEnchantment(enchantConfig).setValue(registry.getId(enchant.enchant()).toString());
+			Identifier id = null;
+			for(Holder<Enchantment> e : registry.getInternalValue().asHolderIdMap()) {
+				if(e.value().description().getString().equals(enchant.enchant().description().getString())) {
+					id = registry.getId(e.value());
+				}
+			}
+			getConfigEnchantment(enchantConfig).setValue(id.toString());
 			getConfigLevel(enchantConfig).setValue(enchant.level());
 			config.addConfigurable(enchantConfig);
 		});

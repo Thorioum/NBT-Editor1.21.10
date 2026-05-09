@@ -30,6 +30,7 @@ import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.data.registries.VanillaRegistries;
 import net.minecraft.server.permissions.PermissionSet;
 import net.minecraft.world.level.storage.TagValueOutput;
 import net.minecraft.util.ProblemReporter;
@@ -679,7 +680,7 @@ public class MVMisc {
 	// Edited to remove x, y, & z
 	@SuppressWarnings("deprecation")
 	public static void addBlockEntityNbtWithoutXYZ(ItemStack item, BlockEntity entity) {
-		CompoundTag blockEntityTag = entity.saveCustomOnly(DynamicRegistryManagerHolder.get());
+		CompoundTag blockEntityTag = entity.saveCustomOnly((MainUtil.client.getConnection() == null ? VanillaRegistries.createLookup() : MainUtil.client.getConnection().registryAccess()));
 		blockEntityTag.remove("x");
 		blockEntityTag.remove("y");
 		blockEntityTag.remove("z");

@@ -5,9 +5,11 @@ import com.luneruniverse.minecraft.mod.nbteditor.multiversion.DynamicRegistryMan
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.Reflection;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.Version;
 import com.luneruniverse.minecraft.mod.nbteditor.multiversion.nbt.manager.NBTManager;
+import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 
+import net.minecraft.data.registries.VanillaRegistries;
 import net.minecraft.util.ProblemReporter.PathElement;
 import net.minecraft.util.ProblemReporter.Problem;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -44,7 +46,7 @@ public class ComponentBlockEntityNBTManager implements NBTManager<BlockEntity> {
 	public Attempt<CompoundTag> trySerialize(BlockEntity subject) {
 		// Based on BlockEntity#createNbtWithId
 		
-		HolderLookup.Provider registryLookup = DynamicRegistryManagerHolder.get();
+		HolderLookup.Provider registryLookup = (MainUtil.client.getConnection() == null ? VanillaRegistries.createLookup() : MainUtil.client.getConnection().registryAccess());
 		
 		CompoundTag output = new CompoundTag();
 		sErrorReporter errorReporter = new sErrorReporter();
@@ -58,7 +60,7 @@ public class ComponentBlockEntityNBTManager implements NBTManager<BlockEntity> {
 	}
 	@Override
 	public CompoundTag getNbt(BlockEntity subject) {
-		return subject.saveWithoutMetadata(DynamicRegistryManagerHolder.get());
+		return subject.saveWithoutMetadata((MainUtil.client.getConnection() == null ? VanillaRegistries.createLookup() : MainUtil.client.getConnection().registryAccess()));
 	}
 	@Override
 	public CompoundTag getOrCreateNbt(BlockEntity subject) {
@@ -66,7 +68,7 @@ public class ComponentBlockEntityNBTManager implements NBTManager<BlockEntity> {
 	}
 	@Override
 	public void setNbt(BlockEntity subject, CompoundTag nbt) {
-		subject.loadWithComponents(TagValueInput.create(ProblemReporter.DISCARDING,DynamicRegistryManagerHolder.get(),nbt));
+		subject.loadWithComponents(TagValueInput.create(ProblemReporter.DISCARDING,(MainUtil.client.getConnection() == null ? VanillaRegistries.createLookup() : MainUtil.client.getConnection().registryAccess()),nbt));
 	}
 	
 }

@@ -76,5 +76,7 @@ accessible method net/minecraft/client/gui/components/CommandSuggestions updateU
 
 accessible method net/minecraft/client/gui/screens/Screen defaultHandleGameClickEvent (Lnet/minecraft/network/chat/ClickEvent;Lnet/minecraft/client/Minecraft;Lnet/minecraft/client/gui/screens/Screen;)V
 
+accessible method net/minecraft/core/Holder$Reference boundTags ()Ljava/util/Set;
+
 # Private in older versions
 accessible method net/minecraft/network/chat/TextColor formatValue ()Ljava/lang/String;

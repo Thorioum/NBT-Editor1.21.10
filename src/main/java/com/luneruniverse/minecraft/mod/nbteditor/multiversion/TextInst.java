@@ -5,6 +5,8 @@ import java.util.function.Supplier;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
+import com.luneruniverse.minecraft.mod.nbteditor.util.MainUtil;
+import net.minecraft.data.registries.VanillaRegistries;
 import net.minecraft.nbt.*;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtFormatException;
@@ -145,7 +147,7 @@ public class TextInst {
 	 * <strong>CONSIDER USING {@link TextUtil#fromJsonSafely(String)}</strong>
 	 */
 	public static String textToJson(Component text) {
-		Tag t = ComponentSerialization.CODEC.encodeStart(DynamicRegistryManagerHolder.get().createSerializationContext(NbtOps.INSTANCE),text).result().orElse(new CompoundTag());
+		Tag t = ComponentSerialization.CODEC.encodeStart((MainUtil.client.getConnection() == null ? VanillaRegistries.createLookup() : MainUtil.client.getConnection().registryAccess()).createSerializationContext(NbtOps.INSTANCE),text).result().orElse(new CompoundTag());
 		return t.toString();
 	}
 	public static Component asText(String textString) {
@@ -154,7 +156,7 @@ public class TextInst {
 		try {
 			CompoundTag nbt = TagParser.parseCompoundFully(compoundString);
 			Tag textNbt = nbt.get("a");
-			return ComponentSerialization.CODEC.decode(DynamicRegistryManagerHolder.get().createSerializationContext(NbtOps.INSTANCE),textNbt).getOrThrow().getFirst();
+			return ComponentSerialization.CODEC.decode((MainUtil.client.getConnection() == null ? VanillaRegistries.createLookup() : MainUtil.client.getConnection().registryAccess()).createSerializationContext(NbtOps.INSTANCE),textNbt).getOrThrow().getFirst();
 		} catch (Exception e) {}
 		return null;
 	}
